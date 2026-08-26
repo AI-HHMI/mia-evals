@@ -105,7 +105,7 @@ def test_scores_an_instance_submission_and_writes_a_record(instances, monkeypatc
     records = tmp_path / "records"
     args = type("Args", (), {
         "config": config, "test": artifact, "val": None, "record": records,
-        "run_dir": None, "label": "", "scratch": tmp_path / "scratch",
+        "val_config": None, "run_dir": None, "label": "", "scratch": tmp_path / "scratch",
     })()
     evaluate.cmd_score(args)
 
@@ -145,7 +145,7 @@ def test_a_sweep_cannot_be_fitted_on_the_reported_split(instances, tmp_path):
 
     args = type("Args", (), {
         "config": config, "test": affinities, "val": None, "record": tmp_path / "r",
-        "run_dir": None, "label": "", "scratch": tmp_path / "s",
+        "val_config": None, "run_dir": None, "label": "", "scratch": tmp_path / "s",
     })()
     with pytest.raises(SystemExit, match="selecting on the number being reported"):
         evaluate.cmd_score(args)
@@ -174,7 +174,7 @@ def test_incompatible_kind_and_postprocessor_are_refused(instances, tmp_path):
 
     args = type("Args", (), {
         "config": config, "test": scores, "val": None, "record": tmp_path / "r",
-        "run_dir": None, "label": "", "scratch": tmp_path / "s",
+        "val_config": None, "run_dir": None, "label": "", "scratch": tmp_path / "s",
     })()
     with pytest.raises(ValueError, match="accepts artifacts of kind"):
         evaluate.cmd_score(args)
@@ -220,7 +220,7 @@ def test_leaderboard_renders_and_detects_drift(instances, tmp_path):
     records = tmp_path_ / "records2"
     evaluate.cmd_score(type("Args", (), {
         "config": config, "test": artifact, "val": None, "record": records,
-        "run_dir": None, "label": "arm_a", "scratch": tmp_path_ / "s2",
+        "val_config": None, "run_dir": None, "label": "arm_a", "scratch": tmp_path_ / "s2",
     })())
 
     output = tmp_path_ / "LEADERBOARD.md"
@@ -284,7 +284,7 @@ def test_each_volume_is_scored_against_its_own_artifact(two_volumes):
     records = root / "records"
     evaluate.cmd_score(type("Args", (), {
         "config": config, "test": artifacts, "val": None, "record": records,
-        "run_dir": None, "label": "multi", "scratch": root / "s",
+        "val_config": None, "run_dir": None, "label": "multi", "scratch": root / "s",
     })())
     payload = json.loads((records / "unit_task" / "multi.json").read_text())
 
@@ -314,7 +314,7 @@ def test_a_missing_per_volume_artifact_is_refused(two_volumes):
     with pytest.raises(SystemExit, match="missing an artifact"):
         evaluate.cmd_score(type("Args", (), {
             "config": config, "test": artifacts, "val": None, "record": root / "r2",
-            "run_dir": None, "label": "", "scratch": root / "s2",
+            "val_config": None, "run_dir": None, "label": "", "scratch": root / "s2",
         })())
 
 
@@ -325,5 +325,6 @@ def test_a_single_artifact_is_refused_for_a_multi_volume_task(two_volumes):
     with pytest.raises(SystemExit, match="single artifact but this task has 2 volumes"):
         evaluate.cmd_score(type("Args", (), {
             "config": config, "test": artifacts / "alpha.zarr", "val": None,
-            "record": root / "r3", "run_dir": None, "label": "", "scratch": root / "s3",
+            "record": root / "r3", "val_config": None, "run_dir": None,
+            "label": "", "scratch": root / "s3",
         })())

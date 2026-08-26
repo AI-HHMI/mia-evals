@@ -7,6 +7,7 @@ shared, and lives in the postprocess and metric registries.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -56,19 +57,72 @@ class InstanceSegmentation(BaseTask):
 
     canonical = "instances"
 
+    TRUTH_KINDS = ("skeleton", "labels", "sibling_artifact")
+
     def __init__(self, truth_kind: str = "skeleton", skeleton_name: str = "skeleton.pkl",
                  **settings: Any) -> None:
         super().__init__(truth_kind=truth_kind, skeleton_name=skeleton_name, **settings)
-        if truth_kind not in ("skeleton", "labels"):
+        if truth_kind not in self.TRUTH_KINDS:
             raise ValueError(
-                f"truth_kind must be 'skeleton' or 'labels', got {truth_kind!r}. A skeleton scores "
-                "run length over traced paths; a label array scores voxel overlap. They measure "
-                "different things and their numbers do not belong in one column."
+                f"truth_kind must be one of {self.TRUTH_KINDS}, got {truth_kind!r}. A skeleton "
+                "scores run length over traced paths; a label array scores voxel overlap. They "
+                "measure different things and their numbers do not belong in one column."
             )
         self.truth_kind = truth_kind
         self.skeleton_name = skeleton_name
 
+    def region(
+        self, volume: Volume, artifact: Artifact
+    ) -> tuple[tuple[int, ...], tuple[int, ...]]:
+        """For a resampled artifact, the region is the artifact's own extent.
+
+        `bounding_box` in a data config counts *native* voxels of the source store, while a
+        prediction resampled to the training resolution lives on a different lattice entirely --
+        512 output voxels over 412 native ones, for `liconn_mouse_hippocampus`. Intersecting the two
+        would compare coordinates in different units, which is arithmetic that succeeds and means
+        nothing. The producer already clipped to the box; `covers_full_box` records whether the
+        lattice reached its far edge.
+        """
+        if self.truth_kind == "sibling_artifact":
+            return artifact.origin, artifact.spatial_shape
+        return super().region(volume, artifact)
+
+    def context(self, volume: Volume, artifact: Artifact) -> dict[str, Any]:
+        context = super().context(volume, artifact)
+        if self.truth_kind == "sibling_artifact":
+            context["whole_region"] = bool(artifact.attrs.get("covers_full_box", False))
+        return context
+
+    def truth_artifact_path(self, volume: Volume, artifact: Artifact) -> Path:
+        """`<volume>.gt.zarr` beside the prediction."""
+        return artifact.path.parent / f"{volume.name}.gt.zarr"
+
     def ground_truth(self, volume: Volume, artifact: Artifact) -> Any:
+        if self.truth_kind == "sibling_artifact":
+            from artifact import open_artifact
+
+            path = self.truth_artifact_path(volume, artifact)
+            if not path.exists():
+                raise FileNotFoundError(
+                    f"no ground-truth artifact at {path}. `truth_kind = \"sibling_artifact\"` "
+                    "scores against the labelling the producer wrote on the prediction's own "
+                    "grid -- mia-train's src/predict_ngff.py emits it beside each prediction, "
+                    "and it cannot be reconstructed here without redoing that resampling."
+                )
+            truth = open_artifact(path)
+            if truth.spatial_shape != artifact.spatial_shape:
+                raise ValueError(
+                    f"{path.name} is {truth.spatial_shape} but the prediction is "
+                    f"{artifact.spatial_shape}; they were not written on the same grid"
+                )
+            for key in ("native_box", "read_shape", "image_level", "label_level"):
+                if truth.attrs.get(key) != artifact.attrs.get(key):
+                    raise ValueError(
+                        f"{path.name} and {artifact.path.name} disagree about {key!r}: "
+                        f"{truth.attrs.get(key)} vs {artifact.attrs.get(key)}. They describe "
+                        "different regions, so one of them is stale -- re-run prediction."
+                    )
+            return truth.load()
         if self.truth_kind == "skeleton":
             path = volume.path / self.skeleton_name
             if not path.is_file():

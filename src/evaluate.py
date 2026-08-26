@@ -243,12 +243,35 @@ def cmd_score(args: argparse.Namespace) -> None:
         )
 
     if args.val is not None:
-        val_artifacts = resolve_artifacts(Path(args.val), config.volumes)
+        # The fit split may be a different *set of volumes*, not merely different data over the
+        # same ones: lmd_ssl_v1 finetunes on four of eight eval volumes and reports on the other
+        # four, so the threshold is chosen on volumes the model trained on. `--val-config` names
+        # that half. Only its volumes are taken from it -- postprocessor, metrics and ranking stay
+        # the reported task's, or the two halves would not be measuring the same thing.
+        fit_config = (
+            config if args.val_config is None else load_task_config(args.val_config)
+        )
+        if fit_config is not config:
+            if fit_config.postprocess.name != config.postprocess.name:
+                raise SystemExit(
+                    f"--val-config uses postprocess {fit_config.postprocess.name!r} but the "
+                    f"reported task uses {config.postprocess.name!r}. The fitted parameter would "
+                    "not apply to the postprocessor it is handed to."
+                )
+            overlap = {v.name for v in config.volumes} & {v.name for v in fit_config.volumes}
+            if overlap:
+                raise SystemExit(
+                    f"--val-config shares volume(s) {sorted(overlap)} with the reported task. "
+                    "Fitting a threshold on a volume that is then reported is selecting on the "
+                    "number being published, which is the one thing this split exists to prevent."
+                )
+            print(f"fit volumes: {[v.name for v in fit_config.volumes]}", flush=True)
+        val_artifacts = resolve_artifacts(Path(args.val), fit_config.volumes)
         for artifact in val_artifacts.values():
             check_compatible(artifact, processor, task)
         print(f"fitting {config.postprocess.name} on {Path(args.val).name}", flush=True)
         params, val_scores = fit(
-            val_artifacts, config.volumes, task, processor, metric_objects, config, scratch
+            val_artifacts, fit_config.volumes, task, processor, metric_objects, config, scratch
         )
         print(f"chose {processor.describe(params)}", flush=True)
     else:
@@ -290,6 +313,7 @@ def cmd_score(args: argparse.Namespace) -> None:
             "params": params,
             "describe": processor.describe(params),
             "fitted_on": None if args.val is None else str(Path(args.val).resolve()),
+            "fitted_on_config": None if args.val_config is None else str(args.val_config),
             "validation_scores": val_scores,
         },
         region=region,
@@ -348,6 +372,10 @@ def main() -> None:
     score.add_argument("--val", type=Path, default=None,
                        help="artifacts to fit the postprocessor's hyperparameter on, same form as "
                             "--test; required whenever there is more than one candidate")
+    score.add_argument("--val-config", type=Path, default=None,
+                       help="task .toml whose volumes form the fit split, when it is a different "
+                            "set of volumes than the reported one (as in lmd_ssl_v1, which "
+                            "finetunes on half the eval set and reports on the other half)")
     score.add_argument("--record", type=Path, default=DEFAULT_RECORDS,
                        help=f"where the submission record is written (default {DEFAULT_RECORDS})")
     score.add_argument("--run-dir", type=Path, default=None,
