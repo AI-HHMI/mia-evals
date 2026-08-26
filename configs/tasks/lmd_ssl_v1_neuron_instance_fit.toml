@@ -40,7 +40,15 @@ truth_kind = "sibling_artifact"   # <volume>.gt.zarr beside each prediction; see
 
 [postprocess]
 name = "cc_threshold"
-logits = [3, 4, 5, 6, 7]
+# Wider than BANIS' [3..7]. Those five logits are thresholds 0.646 to 0.802, calibrated for a
+# BANIS-trained model on NISB, and measured on arm 2 the entire threshold response lies below
+# them: at logit +3 a 256^3 block already yields 1,342 components against 34 ground-truth
+# objects, and it climbs to 24,660 by logit +16. A sweep that cannot reach the optimum is not a
+# fit, it is a fixed threshold with extra steps.
+#
+# Costs 2.4x the scoring time of the five-logit sweep (~3 min per call on the zebrafish cube),
+# which is worth it to stop the fitted value from sitting at the edge of its own range.
+logits = [-12, -9, -6, -3, 0, 3, 6, 9, 12]
 
 [metric]
 names = ["voxel_instance"]
