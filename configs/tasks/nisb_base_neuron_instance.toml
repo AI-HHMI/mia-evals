@@ -1,0 +1,39 @@
+# NISB "base" -- neuron instance segmentation, scored as the benchmark defines it.
+#
+# This is the task every NISB figure in `mia-train/experiments/` was produced under, expressed as a
+# config. Run it as two artifacts: fit the threshold on the val cube, report on the test cube.
+#
+#   python src/predict.py ...                          # in mia-train, once per cube
+#   python src/evaluate.py score configs/tasks/nisb_base_neuron_instance.toml \
+#       --val  aff_seed100.zarr \
+#       --test aff_seed101.zarr \
+#       --run-dir /nrs/.../<run>
+#
+# Note the two data configs: `[data]` names the cube being *reported*, and the val artifact is
+# scored against the same task with `--val`. Both cubes are 3000x3000x1350, so a whole-cube
+# prediction of each is directly comparable -- unlike a block, which truncates skeleton branches
+# and inflates nERL (0.4192 on a 512^3 block against 0.3045 whole-cube, same model).
+
+task_name = "nisb_base_neuron_instance"
+
+notes = """
+Benchmark rules: only the training cubes may be trained on; the val cube selects post-processing
+and the test cube is scored once. The threshold sweep below is `sigmoid(0.2 * L)`, BANIS'
+`eval_ranges`, kept so results stay comparable to the published baselines.
+"""
+
+[data]
+config_path = "../data/nisb_base_test.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "skeleton"          # NISB ships a traced skeleton inside each cube's zarr group
+skeleton_name = "skeleton.pkl"
+
+[postprocess]
+name = "cc_threshold"
+logits = [3, 4, 5, 6, 7]         # fitted on --val, applied to --test
+
+[metric]
+names = ["skeleton_erl"]
+rank_by = "skeleton_erl"         # ranks on its `primary` key, nerl; direction is the metric's own

@@ -10,11 +10,11 @@ than models.
 Training lives in [`mia-train`](https://github.com/AI-HHMI/mia-train); data is read through
 [`miao`](https://pypi.org/project/miao-io/).
 
-> **Status: initial import.** The NISB affinity pipeline at the repository root is complete and in
-> use — it produced every NISB number in `mia-train/experiments/`. The generalised structure
-> described below is the plan it is being refactored into, and only
-> [`src/mia_evals/utils/`](src/mia_evals/utils/) exists so far. This repository derives from BANIS;
-> see [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md).
+> **Status.** The registries, the artifact contract, the runner and the leaderboard are built and
+> tested. What is *not* yet done is the parity gate: `mia_score.py` at the repository root is the
+> original NISB scorer, kept until the new path is shown to reproduce its numbers on the same
+> artifact. Until then it, not `src/`, is what published NISB figures came from. This repository
+> derives from BANIS; see [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md).
 
 ## Where the boundary is
 
@@ -109,38 +109,46 @@ Two things the renderer has to enforce:
 - **Never mix extents in one table.** nERL is not comparable across regions — the same model scored
   0.3045 over a whole cube and 0.4192 on a 512³ block of it.
 
-## What runs today
-
-The NISB affinity pipeline, as three stages. `mia_predict.py` needs torch and `mia-train`
-importable; the scoring stages need `funlib.evaluate` and numba, which is why they are separate
-jobs in separate environments (see `pyproject.toml`'s extras).
+## Running it
 
 ```bash
-# 1. affinities over a cube, from a mia-train run directory (GPU)
-python mia_predict.py <run_dir> --cube <cube>.zarr --out aff.zarr --patch 256 --stride 128
+pip install -e '.[instance]'          # + numba, cc3d, networkx, funlib.evaluate
 
-# 2. affinities -> instances -> nERL / VOI, sweeping the threshold (CPU, many slots)
-python mia_score.py aff.zarr --skeleton <cube>.zarr/skeleton.pkl --out scores.json
+# 1. produce the artifact, in the repo that owns the model
+python <mia-train>/src/predict.py <run_dir> --cube <cube>.zarr --out aff.zarr --patch 256
 
-# 2'. or mutex watershed over 6-channel affinities, no threshold
-python mia_score_mws.py aff6.zarr --skeleton <cube>.zarr/skeleton.pkl --out s.json --also-cc
+# 2. fit the threshold on val, report on test, write a record
+python src/evaluate.py score configs/tasks/nisb_base_neuron_instance.toml \
+    --val aff_seed100.zarr --test aff_seed101.zarr --run-dir <run_dir>
+
+# 3. rebuild the table (CI runs the same with --check)
+python src/evaluate.py leaderboard
 
 # look at what was predicted, beside the ground truth
-python visualize_affinities.py --run <run_dir>
+python visualize_affinities.py --affinities aff.zarr --cube <cube>.zarr
 ```
 
-`mia_pseudolabel.py` turns a checkpoint into pseudo-labels for further training. It is
-*data generation*, not evaluation, and belongs in `mia-train`; only its `calibrate` and `oracle`
-subcommands — which score pseudo-labels against ground truth — belong here.
+Step 2 refuses to run a multi-candidate sweep without `--val`: sweeping on the reported split and
+keeping the best is selecting on the number being published. A single-candidate postprocessor —
+`identity`, for a finished segmentation — needs no `--val` at all.
+
+**Layout.** `src/artifact.py` is the contract; `src/postprocess/`, `src/metrics/` and `src/tasks/`
+are the three registries; `src/config.py` parses a task `.toml` and resolves the `miao` YAML it
+references; `src/report/` writes records and renders the table; `src/utils/` holds the two
+functions recycled verbatim from BANIS. Adding a component is one line in `src/components.py`.
+
+Prediction and pseudo-labelling now live in `mia-train` (`src/predict.py`, `src/pseudolabel.py`) —
+they run a model, which is the other side of the boundary. Only the pseudo-label *scoring*
+subcommands belong here, and move once the metrics they need exist.
 
 ## Refactoring plan
 
-1. **Lift and shift.** Today's pipeline behind the task/postprocess/metric registries, with two
-   independent parity gates: scoring parity (same artifact, old and new scorer, *exact* equality)
-   and tiler parity (hand-rolled vs `miao`-sequential tiling, compared before thresholding).
-   Confounding the two makes a discrepancy undiagnosable.
-2. **Generalise.** The artifact kinds above; absorb `mia-train/src/evals/` (registered there but
-   wired to nothing, so it moves for free); add voxel-based instance metrics — everything today is
+1. **Parity.** ✅ registries, artifact contract, runner, leaderboard. ⬜ the gate itself: score one
+   artifact through both `mia_score.py` and `src/evaluate.py` and require *exact* equality, then
+   separately compare the hand-rolled tiler against a `miao`-sequential one before thresholding.
+   Confounding the two makes a discrepancy undiagnosable, which is why they are two gates.
+2. **Generalise.** ✅ voxel instance metrics (VOI/Rand/PQ, pinned to funlib's VOI convention);
+   ⬜ absorb `mia-train/src/evals/` (registered there but
    skeleton-based, and the corpus' instance volumes ship dense voxel GT and no skeletons.
 3. **OME-Zarr semantic segmentation.** Replace `mia-train`'s HuggingFace CellMap path with a `miao`
    config over `/groups/miaai/miaai/lmd-v0.0.1/data`. Verify the 2D orthoplane path survives first

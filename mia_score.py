@@ -30,20 +30,19 @@ from pathlib import Path
 
 import numpy as np
 import zarr
-
 from mia_nisb import spatial_shape
 
 
 def load_banis():
-    """BANIS' segmentation and metric functions, recycled into `mia_evals.utils`.
+    """BANIS' segmentation and metric functions, recycled into `utils`.
 
     Imported inside the function rather than at module scope because both halves carry heavy
     optional dependencies -- numba compiles the components pass on first call, and
     `funlib.evaluate` is git-install-only -- so `--help` and the tests that only exercise
     `crop_skeleton` do not pay for either.
     """
-    from mia_evals.utils.connected_components import compute_connected_component_segmentation
-    from mia_evals.utils.instance_metrics import compute_metrics
+    from utils.connected_components import compute_connected_component_segmentation
+    from utils.instance_metrics import compute_metrics
 
     return compute_connected_component_segmentation, compute_metrics
 
@@ -104,7 +103,6 @@ def main() -> None:
     # resolution near 0.5-0.8 is far finer than the gap between successive sweep thresholds.
     affinities = np.asarray(store[:])
     origin = list(store.attrs.get("origin", [0, 0, 0]))
-    shape = list(store.attrs.get("shape", affinities.shape[1:]))
     print(f"affinities {affinities.shape} from run={store.attrs.get('run')} "
           f"step={store.attrs.get('step')}", flush=True)
 

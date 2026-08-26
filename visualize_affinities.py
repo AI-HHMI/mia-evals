@@ -1,15 +1,13 @@
 """Look at predicted affinities beside the ground truth they were trained on.
 
-    python visualize_affinities.py --run <run_dir> [--slices 4]
-    python visualize_affinities.py --affinities <aff.zarr> --cube <cube>
+    python visualize_affinities.py --affinities <aff.zarr> --cube <cube> [--slices 4]
 
-Lives here rather than in `mia-train` because it reads a checkpoint through `mia_predict.py`, which
-is this repo's: it was previously in `mia-train/experiments/banis_parity/` and reached back across
-the repo boundary with a `sys.path` insert, which also put a plotting script inside `mia-train`'s
-mypy gate. It takes any `affinity_seg` run directory or any affinity zarr from `mia_predict.py`, so
-it is not tied to one experiment. Needs only numpy, zarr and PIL.
+Reads a prediction artifact, like everything else here -- it does not run a model, so it needs
+neither torch nor a GPU, only numpy, zarr and PIL. Produce the artifact first with mia-train's
+`src/predict.py`. It takes any affinity zarr that carries the standard attrs, so it is tied to no
+particular experiment.
 
-Figures go to `<run_dir>/figures/` on /nrs rather than into the repo -- they are binary and
+Figures go beside the artifact on /nrs rather than into the repo -- they are binary and
 regenerable, and keeping them beside the checkpoint and `resolved_config.json` that produced them
 means a figure is never orphaned from the run it describes.
 
@@ -19,7 +17,7 @@ in a narrow band around the positive rate (measured 0.46-0.89 on arm B) instead 
 0 or 1. Stretching each panel to its own range would render an uncommitted field as a confident
 one. `--stretch` enables it anyway for reading faint structure, and labels the panel when it does.
 
-Values are shown as stored by `mia_predict.py`, i.e. `sigmoid(0.2 * logit)` -- BANIS' convention,
+Values are shown as stored by prediction, i.e. `sigmoid(0.2 * logit)` -- BANIS' convention,
 and the number that actually gets thresholded downstream. The header prints the range so the
 compression is legible as a number, not just a shade.
 """
@@ -31,9 +29,8 @@ from pathlib import Path
 
 import numpy as np
 import zarr
-from PIL import Image, ImageDraw
-
 from mia_nisb import open_labels, open_raw
+from PIL import Image, ImageDraw
 
 PAD = 6
 HEADER = 34
@@ -106,27 +103,10 @@ def ground_truth_affinity(seg: np.ndarray) -> np.ndarray:
     return aff
 
 
-def predict_region(run_dir: Path, cube: Path, origin, size) -> tuple[np.ndarray, int]:
-    """Run the checkpoint over one region, reusing mia_predict rather than re-implementing it.
-
-    Imported inside the function, not at module scope, so that rendering an existing affinity zarr
-    (`--affinities`) needs neither torch nor a GPU -- only `--run` predicts on the fly.
-    """
-    import torch
-    from mia_predict import load_algorithm, predict
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    algorithm, step = load_algorithm(run_dir, device)
-    image = open_raw(cube)
-    patch = min(size)
-    return predict(algorithm, image, origin, tuple([patch] * 3), patch, patch, device), step
-
-
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    source = p.add_mutually_exclusive_group(required=True)
-    source.add_argument("--run", type=Path, help="a mia-train run dir; predicts on the fly")
-    source.add_argument("--affinities", type=Path, help="an affinity zarr from mia_predict.py")
+    p.add_argument("--affinities", type=Path, required=True,
+                   help="an affinity zarr from mia-train's src/predict.py")
     p.add_argument(
         "--cube",
         type=Path,
@@ -139,24 +119,19 @@ def main() -> None:
                    help="rescale each panel to its own range; off by default because it makes an "
                         "uncommitted prediction look confident")
     p.add_argument("--out", type=Path, default=None,
-                   help="default: <run_dir>/figures, or beside the affinity zarr")
+                   help="default: beside the affinity zarr")
     args = p.parse_args()
 
     origin, n = args.origin, args.size
 
-    if args.run is not None:
-        pred, step = predict_region(args.run, args.cube, origin, (n, n, n))
-        title = f"{args.run.name} @ step {step}"
-        out_dir = args.out or (args.run / "figures")
-    else:
-        store = zarr.open(str(args.affinities), mode="r")
-        off = np.asarray(origin) - np.asarray(store.attrs.get("origin", [0, 0, 0]))
-        pred = np.asarray(
-            store[:, off[0]:off[0] + n, off[1]:off[1] + n, off[2]:off[2] + n]
-        ).astype(np.float32)
-        step = store.attrs.get("step")
-        title = f"{store.attrs.get('run', args.affinities.name)} @ step {step}"
-        out_dir = args.out or args.affinities.parent
+    store = zarr.open(str(args.affinities), mode="r")
+    off = np.asarray(origin) - np.asarray(store.attrs.get("origin", [0, 0, 0]))
+    pred = np.asarray(
+        store[:, off[0]:off[0] + n, off[1]:off[1] + n, off[2]:off[2] + n]
+    ).astype(np.float32)
+    step = store.attrs.get("step")
+    title = f"{store.attrs.get('run', args.affinities.name)} @ step {step}"
+    out_dir = args.out or args.affinities.parent
 
     # Labels are (x, y, z); the raw image is (c, x, y, z), so its channel is selected from the
     # front. Before the NGFF reorganisation both were spatial-first and the channel came last.

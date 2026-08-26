@@ -57,7 +57,7 @@ def spatial_shape(cube: Path, level: str = NATIVE_LEVEL) -> tuple[int, int, int]
     return (int(shape[1]), int(shape[2]), int(shape[3]))
 
 
-def read_patch(raw: zarr.Array, origin, size) -> "zarr.core.Array":
+def read_patch(raw: zarr.Array, origin, size) -> zarr.core.Array:
     """A (c, x, y, z) block, indexing the spatial axes and keeping every channel.
 
     A one-liner, but the one place the channel-first layout is easy to get wrong twice: the

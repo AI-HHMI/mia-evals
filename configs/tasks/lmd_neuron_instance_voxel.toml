@@ -1,0 +1,32 @@
+# lmd-v0.0.1 -- neuron/cell instance segmentation over the corpus' eval set, scored on voxels.
+#
+# The data config is the *generated* one from the lmd-configs tree: it carries a provenance header,
+# a `--check` drift gate, and the measured `bounding_box` of every volume. Do not copy it here and
+# do not edit it -- change its generator and regenerate.
+#
+# Those bounding boxes are not a speed crop. LICONN dentate gyrus and hippocampus have 0%
+# ground-truth foreground in their own central 256^3 block, so a score that ignored the box would
+# grade unannotated space as background and return a plausible number meaning nothing.
+#
+# Voxel metrics, not skeleton ones: these volumes ship dense label arrays and no skeletons, so nERL
+# is unavailable and panoptic quality is what ranks. Its numbers are NOT comparable with the NISB
+# task's nERL, which is why they are separate tasks rather than one task with two metrics.
+
+task_name = "lmd_neuron_instance_voxel"
+
+[data]
+config_path = "/groups/miaai/miaai/lmd-v0.0.1/configs/evals/v1/instance_seg/lmd_instance_seg_eval_singlescale_patch256.yaml"
+# All eight volumes by default. Name a subset here to score one specimen at a time -- but note that
+# the leaderboard groups rows by region, so subsets rank separately from the full set.
+
+[task]
+name = "instance_seg"
+truth_kind = "labels"
+
+[postprocess]
+name = "cc_threshold"
+logits = [3, 4, 5, 6, 7]
+
+[metric]
+names = ["voxel_instance"]
+rank_by = "voxel_instance"       # primary key: pq

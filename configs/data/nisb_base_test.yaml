@@ -1,0 +1,30 @@
+# NISB "base": the held-out test cube (seed101), as a miao data config.
+#
+# Separate from the test cube on purpose. Under the benchmark's rules the val cube is where
+# post-processing thresholds are chosen and the test cube is scored once, so a task file names one
+# or the other and never both -- which is what `mia-evals score --val ... --test ...` consumes.
+#
+# Lives here rather than in the generated lmd-configs tree because NISB is not part of that corpus:
+# it sits under `dev/nisb`, and the generated eval configs do not include it. Corpus volumes are
+# referenced from their generated config instead; see configs/tasks/.
+#
+# The skeleton this cube is scored against is *inside* the zarr group (`seed100.zarr/skeleton.pkl`),
+# not beside it. `resolutions`, `patch_size` and `output_axes` are required by miao's schema and are
+# not used by scoring, which reads level 0 directly over the region the artifact covers.
+
+resolutions:
+- - 9.0
+  - 9.0
+  - 20.0
+patch_size:
+- 256
+- 256
+- 256
+output_axes: lcxyz
+
+volumes:
+- name: nisb_base_test_seed101
+  path: /groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/test/seed101.zarr
+  image_key: raw
+  label_key: labels/public_gt-cell-nisb
+  zarr_version: zarr3

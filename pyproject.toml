@@ -67,8 +67,8 @@ select = ["E", "F", "I", "UP", "B"]
 # The two recycled BANIS modules are held byte-identical to upstream on purpose (see
 # ACKNOWLEDGEMENTS.md), so they are exempt from lint rather than reformatted into a fork.
 exclude = [
-    "src/mia_evals/utils/connected_components.py",
-    "src/mia_evals/utils/instance_metrics.py",
+    "src/utils/connected_components.py",
+    "src/utils/instance_metrics.py",
 ]
 
 [tool.mypy]
@@ -82,7 +82,7 @@ warn_redundant_casts = true
 # Same exemption, same reason: type-annotating upstream's code would make it a fork of upstream's
 # code.
 [[tool.mypy.overrides]]
-module = ["mia_evals.utils.connected_components", "mia_evals.utils.instance_metrics"]
+module = ["utils.connected_components", "utils.instance_metrics"]
 ignore_errors = true
 
 [[tool.mypy.overrides]]

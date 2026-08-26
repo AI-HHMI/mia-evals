@@ -24,8 +24,8 @@ their own module header, so the provenance survives a file being read on its own
 
 | now at | from | author | why it is kept |
 | --- | --- | --- | --- |
-| [`src/mia_evals/utils/connected_components.py`](src/mia_evals/utils/connected_components.py) | `inference.py` `compute_connected_component_segmentation` | Franz Rieger, extended by Zuzana Urbanová (`aecf188`, `7e4834c`) | the post-processing half of the published baseline |
-| [`src/mia_evals/utils/instance_metrics.py`](src/mia_evals/utils/instance_metrics.py) | `metrics.py` `compute_metrics`, `adapted_erl`, `evaluate_skeletons` | Zuzana Urbanová (`cb31913`), in turn adapting `funlib.evaluate.expected_run_length` | the scoring half of the published baseline |
+| [`src/utils/connected_components.py`](src/utils/connected_components.py) | `inference.py` `compute_connected_component_segmentation` | Franz Rieger, extended by Zuzana Urbanová (`aecf188`, `7e4834c`) | the post-processing half of the published baseline |
+| [`src/utils/instance_metrics.py`](src/utils/instance_metrics.py) | `metrics.py` `compute_metrics`, `adapted_erl`, `evaluate_skeletons` | Zuzana Urbanová (`cb31913`), in turn adapting `funlib.evaluate.expected_run_length` | the scoring half of the published baseline |
 
 Both were copied from upstream commit `0ca3682` and are byte-identical to it. The only changes are
 the module docstring, the import block, and the removal of `metrics.py`'s `__main__` handler now
@@ -69,9 +69,9 @@ repository does not have.
   `expected_run_length`, `rand_voi`, `get_skeleton_lengths`. Expected run length and VOI are the
   benchmark's metrics; this is their reference implementation.
 - **Mutex watershed** — Wolf et al., *The Mutex Watershed: Efficient, Parameter-Free Image
-  Partitioning* (ECCV 2018). Our implementation in `mia_score_mws.py` is written from the paper,
+  Partitioning* (ECCV 2018). Our implementation in `src/postprocess/mws.py` is written from the paper,
   because the reference `affogato` is CMake-only and does not pip-install; it is checked against
-  cases whose answers follow from the definition (`--self-test`).
+  cases whose answers follow from the definition (`tests/unit/test_mws.py`).
 - **[`miao`](https://pypi.org/project/miao-io/)** — the OME-NGFF loader every dataset here is read
   through.
 - **Affinity-based instance segmentation** — Turaga et al. (2009); Funke et al.,
