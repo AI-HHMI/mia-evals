@@ -48,6 +48,16 @@ class BasePostprocess(abc.ABC):
                 f"got {self.produces!r}"
             )
 
+    def reads_channels(self) -> int | None:
+        """How many leading channels this consumes, or None for all of them.
+
+        Declared so the runner can read only what will be used. Not a micro-optimisation at these
+        sizes: the zebrafish doublecube's six affinity channels are 85 GB as float16 while
+        `cc_threshold` reads three, and the 43 GB saved is the difference between fitting in a
+        300 GB reservation and being killed part-way through a ten-hour job.
+        """
+        return None
+
     def produces_for(self, artifact_canonical: str) -> str:
         """The canonical form this yields given an artifact whose form is `artifact_canonical`."""
         return artifact_canonical if self.produces == "same" else self.produces

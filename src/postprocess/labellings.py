@@ -33,7 +33,9 @@ class Identity(BasePostprocess):
                 f"identity was handed a floating-point array (dtype {array.dtype}); a labelling "
                 "must be integral, or the ids are not ids. Check the artifact's `kind`."
             )
-        return array.astype(np.int64, copy=False)
+        # `copy=False` and no widening: a labelling read straight from an artifact is already the
+        # right thing, and at these volumes an unnecessary cast is tens of gigabytes.
+        return array
 
 
 @PostprocessRegistry.register("argmax")

@@ -93,7 +93,8 @@ class Artifact:
         return zarr.open(str(self.path), mode="r")
 
     def read(self, origin: tuple[int, ...] | None = None,
-             size: tuple[int, ...] | None = None) -> np.ndarray:
+             size: tuple[int, ...] | None = None,
+             channels: int | None = None) -> np.ndarray:
         """A block, in coordinates *absolute to the source volume* rather than to this array.
 
         Absolute, because a caller holding a bounding box from a data config has it in volume
@@ -102,8 +103,9 @@ class Artifact:
         wrong quietly -- an off-by-`origin` read returns real data from the wrong place.
         """
         store = self._store()
+        limit = None if channels is None or self.channels is None else min(channels, self.channels)
         if origin is None and size is None:
-            return np.asarray(store[:])
+            return np.asarray(store[:] if limit is None else store[:limit])
         origin = origin or self.origin
         size = size or self.spatial_shape
         local = [a - b for a, b in zip(origin, self.origin, strict=True)]
@@ -117,8 +119,13 @@ class Artifact:
                     "Origins are absolute to the source volume."
                 )
         window = tuple(slice(o, o + s) for o, s in zip(local, size, strict=True))
-        block = (slice(None), *window) if self.channels is not None else window
-        return np.asarray(store[block])
+        if self.channels is None:
+            return np.asarray(store[window])
+        # Reading only the channels the consumer declared. The alternative -- read all of them and
+        # slice afterwards -- allocates the full array first, which for a 7-gigavoxel six-channel
+        # affinity artifact is 85 GB rather than 42 GB.
+        leading = slice(None) if limit is None else slice(0, limit)
+        return np.asarray(store[(leading, *window)])
 
     def load(self) -> np.ndarray:
         """The whole array. Named to make its cost visible at the callsite."""

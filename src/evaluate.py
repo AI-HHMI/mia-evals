@@ -180,7 +180,9 @@ def score_once(
         origin, shape = task.region(volume, artifact)
         context = task.context(volume, artifact)
         context["scratch_dir"] = scratch / volume.name
-        prediction = processor(artifact.read(origin, shape), **params)
+        prediction = processor(
+            artifact.read(origin, shape, processor.reads_channels()), **params
+        )
         truth = task.ground_truth(volume, artifact)
         regions[volume.name] = {
             "origin": list(origin), "shape": list(shape),

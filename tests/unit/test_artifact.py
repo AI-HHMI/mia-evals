@@ -78,3 +78,36 @@ def test_canonical_form_follows_the_kind(tmp_path):
     )
     assert open_artifact(affinity).canonical == "instances"
     assert open_artifact(scores).canonical == "classes"
+
+
+def test_read_honours_a_channel_limit(tmp_path):
+    """A consumer that reads three of six channels must not pay for six.
+
+    Not a micro-optimisation at the sizes this runs at: the zebrafish doublecube's six affinity
+    channels are 85 GB as float16 while `cc_threshold` reads three, and reading all of them then
+    slicing is the difference between fitting a 300 GB reservation and being killed part-way
+    through a ten-hour job.
+    """
+    data = np.arange(6 * 4 * 4 * 4, dtype=np.float16).reshape(6, 4, 4, 4)
+    path = write_artifact(tmp_path / "aff.zarr", data, "affinity")
+    artifact = open_artifact(path)
+
+    assert artifact.read().shape == (6, 4, 4, 4)
+    assert artifact.read(channels=3).shape == (3, 4, 4, 4)
+    assert np.array_equal(artifact.read(channels=3), data[:3])
+
+    block = artifact.read((1, 1, 1), (2, 2, 2), channels=3)
+    assert block.shape == (3, 2, 2, 2)
+    assert np.array_equal(block, data[:3, 1:3, 1:3, 1:3])
+
+    # Asking for more than there are is clamped, not an error: a postprocessor declaring 3 against
+    # a 1-channel artifact is caught by the kind check, not here.
+    assert artifact.read(channels=99).shape == (6, 4, 4, 4)
+
+
+def test_a_labelling_read_needs_no_channel_axis(tmp_path):
+    labels = np.arange(4 * 4 * 4, dtype=np.int32).reshape(4, 4, 4)
+    path = write_artifact(tmp_path / "seg.zarr", labels, "instances", background_id=0)
+    artifact = open_artifact(path)
+    assert artifact.channels is None
+    assert np.array_equal(artifact.read(channels=3), labels)

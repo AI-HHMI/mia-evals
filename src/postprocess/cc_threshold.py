@@ -63,6 +63,9 @@ class ConnectedComponentThreshold(BasePostprocess):
         self.logits = tuple(float(v) for v in logits)
         self.short_range_channels = int(short_range_channels)
 
+    def reads_channels(self) -> int | None:
+        return self.short_range_channels
+
     def search_space(self) -> list[dict[str, Any]]:
         return [{"logit": logit} for logit in self.logits]
 
@@ -83,7 +86,10 @@ class ConnectedComponentThreshold(BasePostprocess):
         hard = np.ascontiguousarray(
             array[: self.short_range_channels] > threshold_of(logit)
         )
-        return np.asarray(compute_connected_component_segmentation(hard)).astype(np.int64)
+        # Returned in the components pass's own dtype (uint32) rather than widened to int64. The
+        # metrics factorise ids rather than assuming a width, and at 7 gigavoxels the cast is not
+        # free: it holds the uint32 result and the int64 copy at once, 85 GB where 28 GB will do.
+        return np.asarray(compute_connected_component_segmentation(hard))
 
     def describe(self, params: dict[str, Any]) -> str:
         logit = float(params["logit"])
