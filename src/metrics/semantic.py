@@ -94,6 +94,7 @@ class Semantic(BaseMetric):
     canonical = "classes"
     consumes = "labels"
     higher_is_better = True
+    accumulates = True          # one confusion matrix over every volume; see BaseMetric
     primary = "mean_iou"
 
     def __init__(

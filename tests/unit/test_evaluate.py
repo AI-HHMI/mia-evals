@@ -64,14 +64,19 @@ def _task_config(root, data_path: str, body: str) -> str:
     return str(path)
 
 
-@pytest.fixture
-def instances(tmp_path):
-    """Truth with two objects, and a prediction that splits one of them."""
+def _truth_and_split(seed: int = 0) -> tuple[np.ndarray, np.ndarray]:
     truth = np.zeros((4, 4, 4), dtype=np.int64)
     truth[0:2] = 1
     truth[3] = 2
     prediction = truth.copy()
-    prediction[1] = 7                                     # object 1 broken in two
+    prediction[1] = 7 + seed                              # object 1 broken in two
+    return truth, prediction
+
+
+@pytest.fixture
+def instances(tmp_path):
+    """One volume, and a prediction that splits one of its two objects."""
+    truth, prediction = _truth_and_split()
     volume = _volume(tmp_path, "cube", truth)
     data = _data_config(tmp_path, [("cube", volume, truth.shape)])
     artifact = write_artifact(
@@ -230,3 +235,95 @@ def test_leaderboard_renders_and_detects_drift(instances, tmp_path):
 
     output.write_text(text + "\nhand edit\n")
     assert not leaderboard.check(records, output)
+
+
+# --------------------------------------------------------------- several volumes at once
+
+
+@pytest.fixture
+def two_volumes(tmp_path):
+    """Two volumes, each with its own artifact, and one of them predicted perfectly.
+
+    The case that exposed two bugs a single-volume test could not: the runner used to read one
+    artifact for every volume, and to overwrite each volume's scores with the next one's. Both are
+    silent -- the reported number is real, just not of what it claims.
+    """
+    root = tmp_path / "multi"
+    root.mkdir()
+    artifacts = root / "artifacts"
+    artifacts.mkdir()
+
+    entries = []
+    for index, name in enumerate(("alpha", "beta")):
+        truth, split = _truth_and_split(index)
+        prediction = truth if name == "beta" else split      # beta is perfect, alpha is not
+        entries.append((name, _volume(root, name, truth), truth.shape))
+        write_artifact(
+            artifacts / f"{name}.zarr", prediction, "instances",
+            background_id=0, run="unit_run", step=7,
+        )
+    data = _data_config(root, entries)
+    config = _task_config(root, data, textwrap.dedent("""\
+        [task]
+        name = "instance_seg"
+        truth_kind = "labels"
+
+        [postprocess]
+        name = "identity"
+
+        [metric]
+        names = ["voxel_instance"]
+        """))
+    return root, config, artifacts
+
+
+def test_each_volume_is_scored_against_its_own_artifact(two_volumes):
+    root, config, artifacts = two_volumes
+    import evaluate
+
+    records = root / "records"
+    evaluate.cmd_score(type("Args", (), {
+        "config": config, "test": artifacts, "val": None, "record": records,
+        "run_dir": None, "label": "multi", "scratch": root / "s",
+    })())
+    payload = json.loads((records / "unit_task" / "multi.json").read_text())
+
+    per_volume = payload["per_volume"]
+    assert set(per_volume) == {"alpha", "beta"}
+    # beta was predicted exactly, alpha was over-segmented. If both volumes were read from one
+    # artifact these would be equal, and if scores were overwritten only one would survive.
+    assert per_volume["beta"]["voxel_instance"]["pq"] == pytest.approx(1.0)
+    assert per_volume["alpha"]["voxel_instance"]["pq"] < 1.0
+
+    # The aggregate is the unweighted mean over volumes, not the last volume's score.
+    aggregate = payload["scores"]["voxel_instance"]["pq"]
+    expected = (per_volume["alpha"]["voxel_instance"]["pq"]
+                + per_volume["beta"]["voxel_instance"]["pq"]) / 2
+    assert aggregate == pytest.approx(expected)
+    assert payload["scores"]["voxel_instance"]["volumes_scored"] == 2.0
+    assert payload["ranking"]["value"] == pytest.approx(expected)
+
+
+def test_a_missing_per_volume_artifact_is_refused(two_volumes):
+    """Scoring three of four volumes silently changes what the number covers."""
+    root, config, artifacts = two_volumes
+    import shutil
+
+    import evaluate
+    shutil.rmtree(artifacts / "beta.zarr")
+    with pytest.raises(SystemExit, match="missing an artifact"):
+        evaluate.cmd_score(type("Args", (), {
+            "config": config, "test": artifacts, "val": None, "record": root / "r2",
+            "run_dir": None, "label": "", "scratch": root / "s2",
+        })())
+
+
+def test_a_single_artifact_is_refused_for_a_multi_volume_task(two_volumes):
+    root, config, artifacts = two_volumes
+    import evaluate
+
+    with pytest.raises(SystemExit, match="single artifact but this task has 2 volumes"):
+        evaluate.cmd_score(type("Args", (), {
+            "config": config, "test": artifacts / "alpha.zarr", "val": None,
+            "record": root / "r3", "run_dir": None, "label": "", "scratch": root / "s3",
+        })())

@@ -72,7 +72,7 @@ class Submission:
     task_name: str
     #: What produced the prediction: run directory, step, and the artifact's own attrs.
     producer: dict[str, Any]
-    #: Metric name -> its result dict, for the reported (test) split.
+    #: Metric name -> its result dict, aggregated over the task's volumes.
     scores: dict[str, dict[str, float]]
     #: `rank_by` metric, its primary key, the value, and the direction. Denormalised so a renderer
     #: never has to import a metric class to sort a table.
@@ -83,6 +83,10 @@ class Submission:
     region: dict[str, Any]
     #: The task config, expanded.
     config: dict[str, Any]
+    #: Volume name -> metric name -> result dict, before aggregation. Kept because an aggregate
+    #: alone cannot distinguish "one modality failed outright" from "all four were mediocre", and
+    #: on an 8-volume eval set spanning three modalities that is the difference that matters.
+    per_volume: dict[str, dict[str, dict[str, float]]] = field(default_factory=dict)
     #: Copied from the producing run so the entry survives its run directory being deleted.
     provenance: dict[str, Any] = field(default_factory=dict)
     versions: dict[str, str] = field(default_factory=_component_versions)
@@ -93,7 +97,12 @@ class Submission:
         """A filesystem-safe name for this submission, stable across re-runs of the same eval."""
         if self.label:
             return self.label
-        run = str(self.producer.get("run") or self.producer.get("artifact") or "submission")
+        artifacts = self.producer.get("artifacts") or {}
+        run = str(
+            self.producer.get("run")
+            or next(iter(artifacts.values()), None)
+            or "submission"
+        )
         step = self.producer.get("step")
         stem = Path(run).name.replace("/", "_")
         return f"{stem}_step{step}" if step is not None else stem

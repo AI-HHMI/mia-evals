@@ -37,6 +37,16 @@ class BaseMetric(abc.ABC):
     consumes: str = "labels"
     #: Whether a larger value is a better model.
     higher_is_better: bool = True
+    #: Whether this metric accumulates state across the volumes of one evaluation, so that its
+    #: last return value is already the over-the-set answer.
+    #:
+    #: True for anything derived from counts -- one confusion matrix over every volume, because IoU
+    #: is a ratio of sums and averaging per-volume IoUs would weight a volume with three voxels of a
+    #: class like one with three million. False for a metric that is only defined per region, such
+    #: as anything matching instances or walking a skeleton: those the runner combines itself, as an
+    #: unweighted mean over volumes, which is what makes a small volume count as much as a large one
+    #: (and matches the eval set's own equal per-volume weighting).
+    accumulates: bool = False
     #: The key in this metric's result dict that a task may rank on. Metrics returning several
     #: numbers (nERL also yields VOI, merge and split counts) name the headline one here.
     primary: str = ""

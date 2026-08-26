@@ -23,6 +23,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from artifact import Artifact, open_artifact
 from config import TaskConfig, load_task_config
 from metrics.base import BaseMetric
@@ -88,41 +90,112 @@ def check_compatible(artifact: Artifact, processor: BasePostprocess, task: BaseT
         )
 
 
+def resolve_artifacts(spec: Path, volumes: tuple[Volume, ...]) -> dict[str, Artifact]:
+    """Map each volume to its own artifact.
+
+    One prediction per volume, never one artifact for all of them: a prediction over Kasthuri AC4
+    says nothing about a zebrafish cube, and reading one where the other was meant would score real
+    data from the wrong specimen. `spec` is therefore either a directory holding `<volume>.zarr` per
+    volume, or -- only when the task has exactly one volume -- that volume's artifact directly.
+    """
+    if spec.is_dir() and not (spec / "zarr.json").exists() and not (spec / ".zarray").exists():
+        found, missing = {}, []
+        for volume in volumes:
+            candidate = spec / f"{volume.name}.zarr"
+            if candidate.exists():
+                found[volume.name] = open_artifact(candidate)
+            else:
+                missing.append(candidate.name)
+        if missing:
+            raise SystemExit(
+                f"{spec} is missing an artifact for {len(missing)} of {len(volumes)} volume(s): "
+                f"{missing}. Every volume in the task's data config needs its own prediction; "
+                "scoring a subset silently changes what the reported number covers."
+            )
+        return found
+
+    if len(volumes) != 1:
+        raise SystemExit(
+            f"{spec} is a single artifact but this task has {len(volumes)} volumes "
+            f"({[v.name for v in volumes]}). Pass a directory containing <volume>.zarr for each."
+        )
+    return {volumes[0].name: open_artifact(spec)}
+
+
+def _aggregate(
+    per_volume: dict[str, dict[str, dict[str, float]]],
+    metric_objects: dict[str, BaseMetric],
+) -> dict[str, dict[str, float]]:
+    """Per-volume results -> one number per metric key, by each metric's own rule.
+
+    A metric that `accumulates` has already combined the volumes internally (one confusion matrix
+    over all of them), so its final return *is* the answer and averaging it again would be wrong.
+    Everything else is combined here as an **unweighted mean over volumes**, which is the only
+    aggregation consistent with an eval set that weights its volumes equally: size-weighted, the
+    8.4-gigavoxel zebrafish cube would be ~80% of the score and the two LICONN blocks ~1%.
+    """
+    combined: dict[str, dict[str, float]] = {}
+    for name, metric in metric_objects.items():
+        volumes = [per_volume[v][name] for v in per_volume if name in per_volume[v]]
+        if not volumes:
+            continue
+        if metric.accumulates:
+            combined[name] = dict(volumes[-1])
+            continue
+        keys = sorted({k for entry in volumes for k in entry})
+        combined[name] = {
+            key: float(np.mean([entry[key] for entry in volumes if key in entry]))
+            for key in keys
+        }
+        combined[name]["volumes_scored"] = float(len(volumes))
+    return combined
+
+
 def score_once(
-    artifact: Artifact,
+    artifacts: dict[str, Artifact],
     volumes: tuple[Volume, ...],
     task: BaseTask,
     processor: BasePostprocess,
     metric_objects: dict[str, BaseMetric],
     params: dict[str, Any],
     scratch: Path,
-) -> tuple[dict[str, dict[str, float]], dict[str, Any]]:
-    """Postprocess and score one artifact under one parameter set, over every volume."""
+) -> tuple[dict[str, dict[str, float]], dict[str, Any], dict[str, Any]]:
+    """Postprocess and score every volume under one parameter set.
+
+    Returns (aggregate, per-volume, regions). Both halves are kept: the aggregate is what ranks,
+    and the per-volume numbers are what make a bad aggregate diagnosable -- on this eval set one
+    modality failing completely and three working looks identical, in the mean, to all four being
+    mediocre.
+    """
     for metric in metric_objects.values():
-        # Stateful metrics accumulate across volumes on purpose (one confusion matrix over the
-        # whole set, not an average of per-volume means), so they must start clean per candidate.
-        if hasattr(metric, "reset"):
+        # A metric that accumulates must start clean for each candidate, or the second candidate
+        # scores against the first one's counts as well as its own.
+        if metric.accumulates and hasattr(metric, "reset"):
             metric.reset()
 
-    scores: dict[str, dict[str, float]] = {}
+    per_volume: dict[str, dict[str, dict[str, float]]] = {}
     regions: dict[str, Any] = {}
     for volume in volumes:
+        artifact = artifacts[volume.name]
         origin, shape = task.region(volume, artifact)
         context = task.context(volume, artifact)
-        context["scratch_dir"] = scratch
+        context["scratch_dir"] = scratch / volume.name
         prediction = processor(artifact.read(origin, shape), **params)
         truth = task.ground_truth(volume, artifact)
         regions[volume.name] = {
             "origin": list(origin), "shape": list(shape),
             "whole_region": context["whole_region"],
+            "artifact": str(artifact.path),
         }
-        for name, metric in metric_objects.items():
-            scores[name] = metric(prediction, truth, **context)
-    return scores, {"volumes": regions}
+        per_volume[volume.name] = {
+            name: metric(prediction, truth, **context)
+            for name, metric in metric_objects.items()
+        }
+    return _aggregate(per_volume, metric_objects), per_volume, {"volumes": regions}
 
 
 def fit(
-    artifact: Artifact,
+    artifacts: dict[str, Artifact],
     volumes: tuple[Volume, ...],
     task: BaseTask,
     processor: BasePostprocess,
@@ -134,8 +207,8 @@ def fit(
     ranking_metric = metric_objects[config.rank_by]
     best: tuple[float, dict[str, Any], dict[str, dict[str, float]]] | None = None
     for candidate in processor.search_space():
-        scores, _ = score_once(
-            artifact, volumes, task, processor, metric_objects, candidate, scratch
+        scores, _, _ = score_once(
+            artifacts, volumes, task, processor, metric_objects, candidate, scratch
         )
         value = scores[config.rank_by][ranking_metric.primary]
         signed = value if ranking_metric.higher_is_better else -value
@@ -152,8 +225,10 @@ def cmd_score(args: argparse.Namespace) -> None:
     task, processor, metric_objects = build(config)
     ranking_metric = metric_objects[config.rank_by]
 
-    test = open_artifact(args.test)
-    check_compatible(test, processor, task)
+    test_artifacts = resolve_artifacts(Path(args.test), config.volumes)
+    for artifact in test_artifacts.values():
+        check_compatible(artifact, processor, task)
+    representative = next(iter(test_artifacts.values()))
     candidates = processor.search_space()
     scratch = Path(args.scratch or (Path(args.test).parent / ".mia_evals_scratch"))
     scratch.mkdir(parents=True, exist_ok=True)
@@ -168,34 +243,42 @@ def cmd_score(args: argparse.Namespace) -> None:
         )
 
     if args.val is not None:
-        validation = open_artifact(args.val)
-        check_compatible(validation, processor, task)
+        val_artifacts = resolve_artifacts(Path(args.val), config.volumes)
+        for artifact in val_artifacts.values():
+            check_compatible(artifact, processor, task)
         print(f"fitting {config.postprocess.name} on {Path(args.val).name}", flush=True)
         params, val_scores = fit(
-            validation, config.volumes, task, processor, metric_objects, config, scratch
+            val_artifacts, config.volumes, task, processor, metric_objects, config, scratch
         )
         print(f"chose {processor.describe(params)}", flush=True)
     else:
         params, val_scores = candidates[0], {}
 
     print(f"scoring {Path(args.test).name}", flush=True)
-    scores, region = score_once(
-        test, config.volumes, task, processor, metric_objects, params, scratch
+    scores, per_volume, region = score_once(
+        test_artifacts, config.volumes, task, processor, metric_objects, params, scratch
     )
     value = scores[config.rank_by][ranking_metric.primary]
-    print(f"  {config.rank_by}.{ranking_metric.primary} = {value:.4f}", flush=True)
+    for name in sorted(per_volume):
+        each = per_volume[name][config.rank_by].get(ranking_metric.primary)
+        print(f"    {name:32s} {ranking_metric.primary} = {each:.4f}", flush=True)
+    print(f"  {config.rank_by}.{ranking_metric.primary} = {value:.4f} "
+          f"(unweighted mean over {len(per_volume)} volumes)", flush=True)
 
     submission = Submission(
         task_name=config.task_name,
         producer={
-            "artifact": str(Path(args.test).resolve()),
-            "run": test.attrs.get("run"),
-            "step": test.attrs.get("step"),
-            "kind": test.kind,
-            "convention": test.convention,
-            "artifact_attrs": {k: v for k, v in test.attrs.items() if k != "resolved_config"},
+            "artifacts": {n: str(a.path) for n, a in sorted(test_artifacts.items())},
+            "run": representative.attrs.get("run"),
+            "step": representative.attrs.get("step"),
+            "kind": representative.kind,
+            "convention": representative.convention,
+            "artifact_attrs": {
+                k: v for k, v in representative.attrs.items() if k != "resolved_config"
+            },
         },
         scores=scores,
+        per_volume=per_volume,
         ranking={
             "metric": config.rank_by,
             "key": ranking_metric.primary,
@@ -211,7 +294,7 @@ def cmd_score(args: argparse.Namespace) -> None:
         },
         region=region,
         config=config.as_record(),
-        provenance=_provenance(args, test),
+        provenance=_provenance(args, representative),
         label=args.label,
     )
     path = submission.write(Path(args.record))
@@ -260,10 +343,11 @@ def main() -> None:
     score = sub.add_parser("score", help="score an artifact against a task config")
     score.add_argument("config", type=Path, help="a task .toml from configs/tasks/")
     score.add_argument("--test", type=Path, required=True,
-                       help="the artifact to report on")
+                       help="directory of <volume>.zarr artifacts to report on (or a single "
+                            "artifact, if the task has one volume)")
     score.add_argument("--val", type=Path, default=None,
-                       help="artifact to fit the postprocessor's hyperparameter on; required "
-                            "whenever there is more than one candidate")
+                       help="artifacts to fit the postprocessor's hyperparameter on, same form as "
+                            "--test; required whenever there is more than one candidate")
     score.add_argument("--record", type=Path, default=DEFAULT_RECORDS,
                        help=f"where the submission record is written (default {DEFAULT_RECORDS})")
     score.add_argument("--run-dir", type=Path, default=None,
