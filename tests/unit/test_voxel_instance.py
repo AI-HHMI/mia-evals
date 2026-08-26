@@ -117,3 +117,56 @@ def test_matches_funlib_exactly():
         mine = variation_of_information(TRUTH, prediction)
         assert mine["voi_split"] == pytest.approx(reference["voi_split"], abs=1e-9)
         assert mine["voi_merge"] == pytest.approx(reference["voi_merge"], abs=1e-9)
+
+
+# --------------------------------------------------- the two code paths must not diverge
+
+
+def test_factorize_table_and_sort_paths_agree():
+    """`_factorize` counts into a table when it can and sorts when it cannot.
+
+    Two implementations of the same function is a standing invitation to divergence, so both are
+    run on the same input here. The sort path is reached by an id space too wide for a table --
+    genuine in this corpus, where MICrONS segment ids run past 2**40.
+    """
+    from metrics.voxel_instance import _factorize
+
+    packed = np.array([5, 5, 9, 1, 9, 1, 5], dtype=np.int64)
+    wide = np.array([2**41, 2**41, 2**45, 7, 2**45, 7, 2**41], dtype=np.int64)
+
+    ids_packed, codes_packed = _factorize(packed)
+    ids_wide, codes_wide = _factorize(wide)
+
+    # Same structure either way: sorted distinct values, and codes indexing into them.
+    assert ids_packed.tolist() == [1, 5, 9]
+    assert ids_wide.tolist() == [7, 2**41, 2**45]
+    assert codes_packed.tolist() == codes_wide.tolist()
+    assert ids_packed[codes_packed].tolist() == packed.tolist()
+    assert ids_wide[codes_wide].tolist() == wide.tolist()
+
+
+def test_contingency_dense_and_sparse_paths_agree(monkeypatch):
+    """The joint table is counted densely when it fits and sorted when it does not.
+
+    Both branches must return the same triples. Forced by lowering `DENSE_TABLE_LIMIT` rather than
+    by constructing a 128-million-cell case, so the *real* fallback runs -- a test that
+    reimplemented the fallback would only prove the reimplementation right.
+
+    The fallback is not hypothetical: it is the branch an over-fragmented prediction takes, which is
+    exactly what a badly thresholded model produces.
+    """
+    from metrics import voxel_instance
+
+    rng = np.random.default_rng(7)
+    truth = rng.integers(0, 12, size=4000, dtype=np.int64)
+    prediction = rng.integers(0, 40, size=4000, dtype=np.int64)
+
+    dense = voxel_instance.contingency(truth, prediction)
+    monkeypatch.setattr(voxel_instance, "DENSE_TABLE_LIMIT", 1)
+    sparse = voxel_instance.contingency(truth, prediction)
+
+    for left, right in zip(dense, sparse, strict=True):
+        assert np.array_equal(np.asarray(left), np.asarray(right))
+    # And the result is a real table, not two empties that trivially match.
+    assert dense[2].sum() == truth.size
+    assert dense[0].size > 100

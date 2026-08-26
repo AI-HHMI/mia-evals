@@ -30,6 +30,40 @@ import numpy as np
 from .base import BaseMetric
 from .registry import MetricRegistry
 
+#: Largest joint code table counted densely, in cells. Above this the joint is sorted instead.
+#: 128 M cells is 1 GB as int64. The bound exists because the dense table's size is the *product*
+#: of the two code spaces: 11,690 true objects against a few million spurious components -- which is
+#: what an over-fragmented prediction looks like -- would be 280 GB of mostly-zero counters.
+DENSE_TABLE_LIMIT = 1 << 27
+
+
+def _factorize(values: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Distinct values, and a small integer code per element. Linear time where it can be.
+
+    `np.unique(..., return_inverse=True)` sorts, which is O(n log n) and the dominant cost at these
+    sizes. A label array almost always holds few distinct ids packed into a modest numeric range, so
+    the codes can be built with counting instead: one `bincount` over the shifted values, then a
+    lookup table. Falls back to the sort when the range is too wide for a table -- an id space like
+    MICrONS' 64-bit segment ids, where a dense table would be terabytes.
+
+    Codes are int32: there cannot be more distinct ids than voxels, and a volume with 2**31 distinct
+    ids is not a segmentation. Halving the width matters at 7 gigavoxels, where an int64 code array
+    alone is 57 GB.
+    """
+    low = int(values.min())
+    span = int(values.max()) - low + 1
+    # A table is worth it while it stays comparable to the data itself; 2**22 is a floor so small
+    # arrays with a wide-ish range still take the fast path.
+    if 0 < span <= max(4 * values.size, 1 << 22) and span < (1 << 31):
+        shifted = (values - low).astype(np.int64, copy=False)
+        occupied = np.bincount(shifted, minlength=span)
+        present = np.flatnonzero(occupied)
+        table = np.zeros(span, dtype=np.int32)
+        table[present] = np.arange(present.size, dtype=np.int32)
+        return present.astype(np.int64) + low, table[shifted]
+    distinct, codes = np.unique(values, return_inverse=True)
+    return distinct, codes.astype(np.int32, copy=False)
+
 
 def contingency(
     truth: np.ndarray, prediction: np.ndarray, ignore_id: int | None = None
@@ -39,9 +73,14 @@ def contingency(
     Returns `(true_ids, pred_ids, counts, total)` where the three arrays are parallel: entry `i`
     says `counts[i]` voxels have true id `true_ids[i]` and predicted id `pred_ids[i]`.
 
-    Sparse rather than a dense matrix because instance ids are unbounded -- a zebrafish cube has
-    11,690 objects and a fragmented prediction can have far more, so a dense table would be
+    Sparse rather than a dense matrix because instance ids are unbounded -- a zebrafish cube holds
+    11,690 objects and a fragmented prediction can hold far more, so a dense table would be
     hundreds of millions of mostly-zero cells.
+
+    Built by factorising each side and counting the combined code, **not** by
+    `np.unique(pairs, axis=0)`. That reads better and is unusable: measured at 1.3 s per million
+    voxels, it costs ~3 minutes on a 134-megavoxel volume and ~2.5 hours on a 7-gigavoxel one, per
+    call, with a 113 GB temporary -- against five threshold candidates on each of two splits.
     """
     truth = np.asarray(truth).ravel()
     prediction = np.asarray(prediction).ravel()
@@ -53,12 +92,35 @@ def contingency(
     if ignore_id is not None:
         keep = truth != ignore_id
         truth, prediction = truth[keep], prediction[keep]
+    if truth.size == 0:
+        empty = np.zeros(0, dtype=np.int64)
+        return empty, empty, empty, 0
 
-    # Paired via a structured view so the two id spaces cannot collide: multiplying one id by a
-    # bound on the other overflows for int64 label ids, which is exactly the corpus' case.
-    pairs = np.stack([truth.astype(np.int64), prediction.astype(np.int64)], axis=1)
-    unique, counts = np.unique(pairs, axis=0, return_counts=True)
-    return unique[:, 0], unique[:, 1], counts, int(truth.size)
+    true_ids, true_codes = _factorize(truth)
+    pred_ids, pred_codes = _factorize(prediction)
+    # One key per voxel. int64 because the product of the two code spaces exceeds 2**31 long before
+    # either side does.
+    key = true_codes.astype(np.int64) * pred_ids.size + pred_codes
+
+    # Dense counting when the table fits (see DENSE_TABLE_LIMIT), sorting when it does not. Both
+    # branches must agree; `tests/unit/test_voxel_instance.py` lowers the limit to force the second.
+    table_size = true_ids.size * pred_ids.size
+    if table_size <= DENSE_TABLE_LIMIT:
+        counts = np.bincount(key, minlength=table_size)
+        occupied = np.flatnonzero(counts)
+        return (
+            true_ids[occupied // pred_ids.size],
+            pred_ids[occupied % pred_ids.size],
+            counts[occupied],
+            int(truth.size),
+        )
+    keys, counts = np.unique(key, return_counts=True)
+    return (
+        true_ids[keys // pred_ids.size],
+        pred_ids[keys % pred_ids.size],
+        counts,
+        int(truth.size),
+    )
 
 
 def _group_sums(ids: np.ndarray, counts: np.ndarray) -> np.ndarray:
