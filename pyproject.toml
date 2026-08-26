@@ -1,0 +1,90 @@
+[project]
+name = "mia-evals"
+version = "0.0.1"
+description = "Scoring and leaderboards for volumetric instance and semantic segmentation"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE", "third_party_licenses/banis-MIT.txt"]
+# Core reads prediction artifacts and ground truth, and computes semantic metrics. Deliberately
+# **no torch**: nothing in the core runs a model. See README, "Where the boundary is".
+dependencies = [
+    "numpy>=1.24",
+    "zarr>=3.0",
+    "miao-io>=0.3.0",
+]
+
+[project.optional-dependencies]
+# Instance-segmentation post-processing and metrics. Separate because `funlib.evaluate` is
+# git-install-only and numba is a compiler: a semantic-segmentation eval needs neither, and the
+# CPU scoring job is the only stage that needs either.
+instance = [
+    "numba>=0.59",
+    "connected-components-3d>=3.0",
+    "networkx>=3.0",
+    "tqdm>=4.0",
+    "funlib.evaluate @ git+https://github.com/funkelab/funlib.evaluate.git",
+]
+viz = [
+    "pillow>=9.0",
+]
+# TRANSITIONAL. `mia_predict.py` runs a mia-train checkpoint over a volume, and is slated to move
+# into mia-train as its own `predict` entrypoint -- see README, "Where the boundary is". Until it
+# does, running it from here needs torch and mia-train importable.
+predict = [
+    "torch>=2.0",
+]
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.4",
+    "mypy>=1.8",
+]
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+addopts = "-ra --strict-markers"
+markers = [
+    "unit: fast single-process CPU tests",
+    "parity: reproduces a recorded published-baseline number; needs the `instance` extra",
+    "slow: needs a real volume or a real checkpoint",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# The two recycled BANIS modules are held byte-identical to upstream on purpose (see
+# ACKNOWLEDGEMENTS.md), so they are exempt from lint rather than reformatted into a fork.
+exclude = [
+    "src/mia_evals/utils/connected_components.py",
+    "src/mia_evals/utils/instance_metrics.py",
+]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+files = ["src", "tests"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+# Same exemption, same reason: type-annotating upstream's code would make it a fork of upstream's
+# code.
+[[tool.mypy.overrides]]
+module = ["mia_evals.utils.connected_components", "mia_evals.utils.instance_metrics"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["zarr.*"]
+follow_imports = "skip"
