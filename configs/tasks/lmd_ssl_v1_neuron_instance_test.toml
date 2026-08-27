@@ -40,15 +40,39 @@ truth_kind = "sibling_artifact"   # <volume>.gt.zarr beside each prediction; see
 
 [postprocess]
 name = "cc_threshold"
-# Wider than BANIS' [3..7]. Those five logits are thresholds 0.646 to 0.802, calibrated for a
-# BANIS-trained model on NISB, and measured on arm 2 the entire threshold response lies below
-# them: at logit +3 a 256^3 block already yields 1,342 components against 34 ground-truth
-# objects, and it climbs to 24,660 by logit +16. A sweep that cannot reach the optimum is not a
-# fit, it is a fixed threshold with extra steps.
+# Pruned from the earlier [-12..12] sweep, and now crossed with a size filter. Both changes come
+# from one measurement (job 153755546): a 9-logit x 5-min_size grid on 256^3 blocks of the four
+# FIT volumes -- fit-split only, because establishing a search space on the reported split is the
+# same error as sweeping on it.
 #
-# Costs 2.4x the scoring time of the five-logit sweep (~3 min per call on the zebrafish cube),
-# which is worth it to stop the fitted value from sitting at the edge of its own range.
-logits = [-12, -9, -6, -3, 0, 3, 6, 9, 12]
+#   mean PQ over the four fit blocks
+#   logit    ms=0    ms=50   ms=500  ms=5000 ms=50000
+#    -12   0.0000   0.0000   0.0000   0.0000   0.0000
+#     -6   0.0029   0.0385   0.0385   0.0293   0.0000
+#     -3   0.0070   0.0800   0.0800   0.0602   0.0180
+#     +0   0.0051   0.1958   0.2084   0.1862   0.0615
+#     +3   0.0058   0.2393   0.2668   0.3041   0.2389   <- grid maximum
+#     +6   0.0066   0.1610   0.1872   0.2183   0.2164
+#     +9   0.0026   0.0894   0.1000   0.1130   0.1270
+#    +12   0.0008   0.0447   0.0565   0.0700   0.0800
+#
+# Logits at or below -6 score ~0 at every filter, and +9/+12 fall away monotonically, so [0, 3, 6]
+# brackets the maximum with a point either side. Kept wider than the block argmax alone would
+# justify because a block understates merging -- fewer objects are in contact than in the whole
+# volume -- and understated merging favours a lower threshold, so the whole-volume optimum should
+# if anything sit above the block's.
+#
+# **The two parameters are not separable, which is why this is a cross-product.** On
+# liconn_mouse_dg the best logit moves -3 -> +3 -> +6 as the filter tightens: unfiltered, a low
+# threshold wins because every speck is a false positive, and once specks are removed a higher
+# threshold wins because it merges less. Fitting the logit first and the filter second would have
+# landed on the wrong pair.
+logits = [0, 3, 6]
+
+# min_size = 0 is retained in the sweep so the unfiltered result stays inside this protocol rather
+# than in a superseded one: the record `2c_step50000` was produced by the pre-min_size sweep, whose
+# choice (logit +0, no filter) is candidate 1 here.
+min_sizes = [0, 500, 5000, 50000]
 
 [metric]
 names = ["voxel_instance"]

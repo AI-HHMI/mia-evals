@@ -67,3 +67,37 @@ def test_definitional_cases():
     aff[3, max(cut - LONG + 1, 0) : cut + 1] = 0.0  # long-range x pairs straddling it: full push
     labels = segment(aff, 1)
     assert len(np.unique(labels)) >= 2, f"expected a split, got {np.unique(labels)}"
+
+
+def test_mws_search_space_is_the_cross_product_and_names_min_size():
+    """The size filter matters more for mws than for cc_threshold; see the class docstring.
+
+    On kasthuri15_ac4 mws recovered 192/273 objects and cut voi_merge 6.753 -> 0.550, yet scored
+    PQ 0.0049 because it also returned 57,350 tiny fragments. The parameter must therefore be
+    swept and must appear in the description, or a leaderboard row cannot be read.
+    """
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+    from postprocess.mws import MutexWatershed
+
+    processor = MutexWatershed(repulsive_strides=[1, 2], min_sizes=[500, 0])
+    assert processor.search_space() == [
+        {"repulsive_stride": 1, "min_size": 0},
+        {"repulsive_stride": 1, "min_size": 500},
+        {"repulsive_stride": 2, "min_size": 0},
+        {"repulsive_stride": 2, "min_size": 500},
+    ]
+    assert "min_size" not in processor.describe({"repulsive_stride": 1, "min_size": 0})
+    assert "min_size=500" in processor.describe({"repulsive_stride": 1, "min_size": 500})
+
+
+def test_mws_default_applies_no_size_filter():
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+    from postprocess.mws import MutexWatershed
+
+    assert MutexWatershed(repulsive_strides=[1]).search_space() == [
+        {"repulsive_stride": 1, "min_size": 0}
+    ]
