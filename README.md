@@ -13,16 +13,19 @@ their dataset interface.
 ## Boundary between `mia-train` and `mia-evals`
 
 ```
-  mia-train (or anything else)                    mia-evals
-  ────────────────────────────                    ─────────
-  train.py                                        postprocess ─► metrics ─► record ─► leaderboard
-  predict.py ──► prediction artifact ────────────►
-                 (zarr + self-describing attrs)    numpy · zarr · miao · cc3d · funlib
+  mia-train (or anything else)              mia-evals
+  ────────────────────────────              ─────────
+  train.py
+      │
+      ▼
+  predict.py ──► prediction artifact ─────► postprocess ─► metrics ─► record ─► leaderboard
+           (zarr + self-describing attrs)
 ```
 
-Whatever produced the prediction writes a "prediction artifact". `mia-evals` simply reads and scores it. 
-A third-party generated segmentation works perfectly fine here. It enters at the artifact boundary 
-with no model, no checkpoint, and no config.
+A trained model generates a "prediction artifact" (affinity or boundary maps, per-voxel embeddings, 
+instance masks, or per-class scores). `mia-evals` simply reads and scores it. A third-party generated 
+segmentation works perfectly fine here. It enters at the artifact boundary with no model, no checkpoint, 
+and no config.
 
 ## How format diversity is handled
 
@@ -30,7 +33,7 @@ Many artifact kinds and many postprocessors funnel into exactly two scoreable fo
 attach to those, never to the kind, so, for example, nERL does not know or care whether the labelling 
 came from affinities, a watershed, or a `.zarr` from a collaborator.
 
-| artifact kind | shape | postprocessor | → canonical form |
+| artifact kind | shape | postprocessor | canonical form |
 | --- | --- | --- | --- |
 | `affinity` | `(2·rank, *spatial)` | `cc_threshold`, `mws` | instance labelling |
 | `boundary` | `(1, *spatial)` | `threshold_cc`, `seeded_watershed` | instance labelling |
