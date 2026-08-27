@@ -2,6 +2,11 @@
 
     python visualize_segmentation.py --prediction <artifact>.zarr --logit 0 [--slices 4]
     python visualize_segmentation.py --prediction <artifact>.zarr --block 128 128 128 256
+    python visualize_segmentation.py --prediction <labelling>.zarr --min-size 5000
+
+An affinity artifact is thresholded into components here. A labelling artifact -- such as a stored
+mutex watershed partition -- is rendered as it stands, because recomputing one costs ~33 minutes
+and tens of GB and belongs in a batch job that persists its result, not in a figure script.
 
 Why this exists: PQ = 0.0031 and voi_merge = 6.74 are not legible. They cannot distinguish "the
 model merged everything into one object" from "the model shattered everything into dust", and those
@@ -73,11 +78,18 @@ def colourise(labels: np.ndarray, colours: dict[int, tuple[int, int, int]]) -> n
 
 
 def agreement(truth: np.ndarray, prediction: np.ndarray) -> np.ndarray:
-    """Green where a true object's majority predicted label is its alone; red where shared.
+    """Per true object: correct (green), merged with another (red), or not predicted (blue).
 
-    This is the merge test made visual, and it is per *object* rather than per voxel: a true object
-    whose voxels mostly carry a label that some other true object also mostly carries has been
-    fused with it, which is exactly what voi_merge counts and what PQ punishes.
+    Per *object* rather than per voxel, because that is what the metrics count: a true object whose
+    voxels mostly carry a label some other true object also mostly carries has been fused with it,
+    which is what voi_merge measures and PQ punishes.
+
+    **Three categories, not two.** An earlier version had only "majority label is shared" versus
+    "not shared", and background counted as a label like any other -- so once a size filter deleted
+    the small components, every true object whose territory became background shared label 0 and
+    rendered as *merged*. Missed and merged are opposite failures needing opposite fixes, and
+    telling them apart is the entire reason this panel exists; conflating them made the panel
+    actively misleading exactly when the filter was doing its job.
     """
     out = np.zeros((*truth.shape, 3), dtype=np.uint8)
     majority: dict[int, int] = {}
@@ -89,10 +101,18 @@ def agreement(truth: np.ndarray, prediction: np.ndarray) -> np.ndarray:
             continue
         values, counts = np.unique(inside, return_counts=True)
         majority[int(identifier)] = int(values[counts.argmax()])
-    shared = {label for label in majority.values()
-              if list(majority.values()).count(label) > 1}
+
+    # Background is excluded before asking which labels are shared, so "several objects were all
+    # deleted" is never reported as "several objects were fused together".
+    foreground = [label for label in majority.values() if label != 0]
+    shared = {label for label in foreground if foreground.count(label) > 1}
     for identifier, label in majority.items():
-        out[truth == identifier] = (200, 40, 40) if label in shared else (40, 170, 60)
+        if label == 0:
+            out[truth == identifier] = (60, 110, 200)      # not predicted at all
+        elif label in shared:
+            out[truth == identifier] = (200, 40, 40)       # fused with another true object
+        else:
+            out[truth == identifier] = (40, 170, 60)       # its own label
     return out
 
 
@@ -121,6 +141,11 @@ def main() -> None:
                              "labelling). Use the value the scorer fitted, or the figure shows a "
                              "segmentation nobody scored")
     parser.add_argument("--slices", type=int, default=3, help="how many z slices to lay out")
+    parser.add_argument("--min-size", type=int, default=0,
+                        help="drop components below this many voxels, as the scorer's fitted "
+                             "min_size does. Changes the picture far more than it changes the "
+                             "topology: it clears the speckle out of the prediction panel and "
+                             "leaves the largest component untouched")
     parser.add_argument("--block", type=int, nargs=4, default=None,
                         metavar=("Z", "Y", "X", "SIZE"),
                         help="component and render only this sub-block, for a volume too large to "
@@ -156,12 +181,19 @@ def main() -> None:
     else:
         processor = PostprocessRegistry.build("identity")
         params = {}
-        note = "identity"
+        # A stored labelling records how it was produced in `convention`; using it means the panel
+        # caption names the real algorithm rather than the no-op that read it back.
+        note = str(prediction_artifact.convention or "identity")
+    if args.min_size:
+        note += f" + min_size={args.min_size:,d}"
 
     print(f"reading {shape} at {origin} from {args.prediction.name}", flush=True)
     raw = prediction_artifact.read(origin, shape, processor.reads_channels())
     print(f"postprocessing with {note} (3D, then sliced)", flush=True)
     predicted = np.asarray(processor(raw, **params))
+    if args.min_size:
+        from postprocess.size_filter import drop_small_components
+        predicted = drop_small_components(predicted.copy(), args.min_size)
     truth = truth_artifact.read(origin, shape)
 
     sizes = np.bincount(predicted.ravel())
@@ -187,7 +219,7 @@ def main() -> None:
             ("largest component", np.where(
                 (p == biggest)[..., None], np.uint8(255), np.uint8(25)
             ).repeat(3, axis=-1) if biggest else np.zeros((*p.shape, 3), np.uint8)),
-            ("agreement (green=unique, red=merged)", agreement(t, p)),
+            ("green=ok  red=merged  blue=missed", agreement(t, p)),
         ]))
 
     total_height = sum(r.height for r in rows) + PAD * (len(rows) + 1)
@@ -197,8 +229,11 @@ def main() -> None:
         canvas.paste(row, (0, offset))
         offset += row.height + PAD
 
+    # Named after the postprocessing actually applied, not after a threshold that a labelling
+    # artifact never used -- otherwise an mws figure lands on top of a cc_threshold one.
+    slug = "".join(c if c.isalnum() else "_" for c in note).strip("_").replace("__", "_")
     out = args.out or args.prediction.parent / (
-        f"seg_{args.prediction.name.removesuffix('.zarr')}_logit{args.logit:+g}.png"
+        f"seg_{args.prediction.name.removesuffix('.zarr')}_{slug}.png"
     )
     canvas.save(out)
     print(f"wrote {out}", flush=True)
