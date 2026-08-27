@@ -87,12 +87,6 @@ class InstanceSegmentation(BaseTask):
             return artifact.origin, artifact.spatial_shape
         return super().region(volume, artifact)
 
-    def context(self, volume: Volume, artifact: Artifact) -> dict[str, Any]:
-        context = super().context(volume, artifact)
-        if self.truth_kind == "sibling_artifact":
-            context["whole_region"] = bool(artifact.attrs.get("covers_full_box", False))
-        return context
-
     def truth_artifact_path(self, volume: Volume, artifact: Artifact) -> Path:
         """`<volume>.gt.zarr` beside the prediction."""
         return artifact.path.parent / f"{volume.name}.gt.zarr"

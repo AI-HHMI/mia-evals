@@ -103,11 +103,41 @@ class BaseTask(abc.ABC):
         return tuple(int(v) for v in low), tuple(int(v) for v in (high - low))
 
     def context(self, volume: Volume, artifact: Artifact) -> dict[str, Any]:
-        """Everything a metric may need about this region, resolved by the task."""
+        """Everything a metric may need about this region, resolved by the task.
+
+        `whole_region` is never claimed without evidence. It previously read
+
+            whole = volume.bounding_box is None or (origin == ... and shape == ...)
+
+        which treats "this data config declares no bounding box" as "the artifact covers the whole
+        volume". Those are different claims: the absence of a box says the volume is *annotated*
+        throughout, and says nothing about how much of it the *artifact* covers. NISB cubes are
+        fully annotated and so declare no box, so a 512^3 prediction over one cube reported
+        `whole_region = True` -- which made `skeleton_erl` hand `funlib` an uncropped 784,783-node
+        skeleton in absolute coordinates and raise `IndexError: index 865 is out of bounds for axis
+        2 with size 512`.
+
+        The crash was the mild half. `whole_region` is also what the leaderboard groups on, and nERL
+        is not comparable across extents (0.3045 over a whole cube against 0.4192 on a 512^3 block
+        of it), so the same bug could publish a sub-region score labelled as a whole-cube one and
+        rank it against genuine whole-cube numbers.
+
+        The artifact's own extent cannot be checked against the source store either, because a
+        data config's `bounding_box` counts native voxels while a resampled prediction lives on a
+        different lattice -- see `region()`. So the producer declares it, and absent a declaration
+        the answer is no: under-claiming crops a skeleton that did not need cropping (a no-op, since
+        every node is inside) and labels a row as a sub-region, while over-claiming corrupts a
+        published number.
+        """
         origin, shape = self.region(volume, artifact)
-        whole = volume.bounding_box is None or (
-            origin == tuple(volume.origin or ()) and shape == tuple(volume.shape or ())
-        )
+        declared = artifact.attrs.get("covers_full_box")
+        if declared is not None:
+            whole = bool(declared)
+        elif volume.bounding_box is not None:
+            whole = (origin == tuple(volume.origin or ())
+                     and shape == tuple(volume.shape or ()))
+        else:
+            whole = False
         return {
             "origin": origin,
             "shape": shape,
