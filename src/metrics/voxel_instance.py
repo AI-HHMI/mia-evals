@@ -133,6 +133,11 @@ def _group_sums(ids: np.ndarray, counts: np.ndarray) -> np.ndarray:
     return np.add.reduceat(counts, np.concatenate([[0], boundaries]))
 
 
+#: The sparse joint table: (true_ids, pred_ids, counts, total). Passed between metrics so a
+#: caller computing several of them factorises the two labellings once rather than once each.
+Table = tuple[np.ndarray, np.ndarray, np.ndarray, int]
+
+
 def _marginal(ids: np.ndarray, counts: np.ndarray, total: int) -> np.ndarray:
     """Per-group probabilities of one marginal."""
     return _group_sums(ids, counts) / total
@@ -160,7 +165,12 @@ def variation_of_information(
 
     Verified equal to `funlib.evaluate.rand_voi` on constructed over- and under-segmentations.
     """
-    ids_t, ids_p, counts, total = contingency(truth, prediction, ignore_id)
+    return voi_from_table(contingency(truth, prediction, ignore_id), background_id)
+
+
+def voi_from_table(table: Table, background_id: int | None = 0) -> dict[str, float]:
+    """VOI from an already-computed contingency table. See `variation_of_information`."""
+    ids_t, ids_p, counts, total = table
     if background_id is not None:
         keep = ids_t != background_id
         ids_t, ids_p, counts = ids_t[keep], ids_p[keep], counts[keep]
@@ -192,7 +202,12 @@ def adapted_rand_error(
     The SNEMI3D definition: over pairs of voxels, does the prediction agree with the truth about
     whether they belong to one object?
     """
-    ids_t, ids_p, counts, _ = contingency(truth, prediction, ignore_id)
+    return rand_error_from_table(contingency(truth, prediction, ignore_id), background_id)
+
+
+def rand_error_from_table(table: Table, background_id: int | None = 0) -> float:
+    """Adapted Rand error from an already-computed table. See `adapted_rand_error`."""
+    ids_t, ids_p, counts, _ = table
     if background_id is not None:
         keep = ids_t != background_id
         ids_t, ids_p, counts = ids_t[keep], ids_p[keep], counts[keep]
@@ -222,9 +237,18 @@ def panoptic_quality(
     by more than half its union -- which is why 0.5 is the standard choice and why this needs no
     greedy assignment.
     """
+    return pq_from_table(
+        contingency(truth, prediction, ignore_id), iou_threshold, background_id
+    )
+
+
+def pq_from_table(
+    table: Table, iou_threshold: float = 0.5, background_id: int | None = 0
+) -> dict[str, float]:
+    """Panoptic quality from an already-computed table. See `panoptic_quality`."""
     if not 0.0 < iou_threshold <= 1.0:
         raise ValueError(f"iou_threshold must be in (0, 1], got {iou_threshold}")
-    ids_t, ids_p, counts, _ = contingency(truth, prediction, ignore_id)
+    ids_t, ids_p, counts, _ = table
 
     def sizes(ids: np.ndarray) -> dict[int, int]:
         """Voxels per id in this region, summed over the joint table's rows."""
@@ -286,15 +310,15 @@ class VoxelInstance(BaseMetric):
         self.iou_threshold = float(iou_threshold)
 
     def __call__(self, prediction: np.ndarray, truth: Any, **context: Any) -> dict[str, float]:
-        truth = np.asarray(truth)
         ignore_id = context.get("ignore_id")
         background_id = context.get("background_id", 0)
-        scores = panoptic_quality(
-            truth, prediction, self.iou_threshold, ignore_id, background_id
-        )
-        scores.update(variation_of_information(truth, prediction, ignore_id, background_id))
-        scores["adapted_rand_error"] = adapted_rand_error(
-            truth, prediction, ignore_id, background_id
-        )
+        # ONE table for all three. Each metric used to call `contingency` itself, so a
+        # 7-gigavoxel volume factorised both labellings three times and the scoring job was
+        # killed by the memory limit -- each pass allocates two int32 code arrays, 56 GB at that
+        # size. The module docstring claimed "computed once" long before the code did it.
+        table = contingency(np.asarray(truth), prediction, ignore_id)
+        scores = pq_from_table(table, self.iou_threshold, background_id)
+        scores.update(voi_from_table(table, background_id))
+        scores["adapted_rand_error"] = rand_error_from_table(table, background_id)
         scores["iou_threshold"] = self.iou_threshold
         return scores

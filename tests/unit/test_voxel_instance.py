@@ -170,3 +170,44 @@ def test_contingency_dense_and_sparse_paths_agree(monkeypatch):
     # And the result is a real table, not two empties that trivially match.
     assert dense[2].sum() == truth.size
     assert dense[0].size > 100
+
+
+def test_the_contingency_table_is_computed_once_per_call(monkeypatch):
+    """Three metrics, one table — which the module docstring claimed long before the code did.
+
+    Each metric used to call `contingency` itself. On a 7-gigavoxel volume that factorises both
+    labellings three times over, and every pass allocates two int32 code arrays plus a 57 GB int64
+    key: the scoring job was killed by LSF's memory limit part-way through the reported half. The
+    waste is invisible at test sizes, so it is counted here rather than measured.
+    """
+    from metrics import voxel_instance
+
+    calls = []
+    real = voxel_instance.contingency
+    monkeypatch.setattr(
+        voxel_instance, "contingency",
+        lambda *a, **k: (calls.append(1), real(*a, **k))[1],
+    )
+    metric = voxel_instance.VoxelInstance()
+    scores = metric(_oversegmented(), TRUTH, background_id=0)
+
+    assert len(calls) == 1, f"contingency computed {len(calls)} times, must be once"
+    # And the three families are all present, so none was dropped in the plumbing.
+    for key in ("pq", "sq", "rq", "voi_split", "voi_merge", "adapted_rand_error"):
+        assert key in scores, key
+
+
+def test_table_consuming_cores_agree_with_the_array_wrappers():
+    """The public array-taking functions and the `*_from_table` cores must not diverge."""
+    from metrics.voxel_instance import (
+        contingency,
+        pq_from_table,
+        rand_error_from_table,
+        voi_from_table,
+    )
+
+    prediction = _oversegmented()
+    table = contingency(TRUTH, prediction)
+    assert pq_from_table(table) == panoptic_quality(TRUTH, prediction)
+    assert voi_from_table(table) == variation_of_information(TRUTH, prediction)
+    assert rand_error_from_table(table) == adapted_rand_error(TRUTH, prediction)
