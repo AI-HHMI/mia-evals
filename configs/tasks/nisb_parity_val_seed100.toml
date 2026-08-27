@@ -1,0 +1,31 @@
+task_name = "nisb_base_neuron_instance_parity"
+
+notes = """
+The parity gate's task: score one NISB affinity artifact through `src/` and require it to match
+what the pre-refactor `mia_score.py` produced on the same artifact with the same sweep.
+
+Points at the VAL cube because that is the split the surviving affinity artifacts cover. This is
+not a benchmark entry and must never be read as one -- it exists to prove the refactor did not
+change the numbers, not to report a number.
+
+The sweep is pinned to [3, 4, 5, 6, 7] on purpose. `mia_score.py` defaults to range(-1, 12) and
+this config's sibling to [3..7]; a gate run with mismatched sweeps fails for a reason that has
+nothing to do with the refactor, which is the least useful way for a gate to fail.
+"""
+
+[data]
+config_path = "../data/nisb_base_val.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "skeleton"
+skeleton_name = "skeleton.pkl"
+
+[postprocess]
+name = "cc_threshold"
+logits = [3, 4, 5, 6, 7]
+min_sizes = [0]          # the old path had no size filter; parity means parity
+
+[metric]
+names = ["skeleton_erl"]
+rank_by = "skeleton_erl"

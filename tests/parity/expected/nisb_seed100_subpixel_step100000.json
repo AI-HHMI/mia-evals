@@ -1,0 +1,140 @@
+{
+  "artifact": "/nrs/scicompsoft/orhane/scratch/mws_vs_cc_sp/aff6.zarr",
+  "artifact_attrs": {
+    "channels": 6,
+    "convention": "sigmoid(0.2 * logit)",
+    "cube": "/groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/val/seed100.zarr",
+    "kind": "affinity",
+    "origin": [
+      1024,
+      1024,
+      384
+    ],
+    "patch": 256,
+    "run": "subpixel_decoder__subpixel_256_20260811_143947",
+    "shape": [
+      512,
+      512,
+      512
+    ],
+    "step": 100000,
+    "stride": 128
+  },
+  "artifact_sha256": "9d962e32ecffe1cdfe090306d31d4413feddf06b68223aa1f263247ddad61270",
+  "cube": "/groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/val/seed100.zarr",
+  "generated_by": "mia_score.py (pre-refactor path), verified equal to src/evaluate.py",
+  "logits": [
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "origin": [
+    1024,
+    1024,
+    384
+  ],
+  "parity": "exact",
+  "run": "subpixel_decoder__subpixel_256_20260811_143947",
+  "shape": [
+    512,
+    512,
+    512
+  ],
+  "skeleton": "/groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/val/seed100.zarr/skeleton.pkl",
+  "skeleton_nodes": 9057,
+  "skeleton_nodes_full_cube": 784783,
+  "step": 100000,
+  "sweep": [
+    {
+      "erl": 11987.3984375,
+      "logit": 3.0,
+      "max_erl": 31463.90625,
+      "n_mergers": 100.0,
+      "n_non0_mergers": 25.0,
+      "n_splits": 39.0,
+      "nerl": 0.3809888958930969,
+      "nerl_100": 0.6131463050842285,
+      "nerl_20": 0.6094789505004883,
+      "nerl_5": 0.47027212381362915,
+      "nerl_inf": 0.7418804168701172,
+      "threshold": 0.6456563062257954,
+      "voi_merge": 0.42674935970786,
+      "voi_split": 1.121958522039681,
+      "voi_sum": 1.548707881747541
+    },
+    {
+      "erl": 14716.2529296875,
+      "logit": 4.0,
+      "max_erl": 31463.90625,
+      "n_mergers": 96.0,
+      "n_non0_mergers": 13.0,
+      "n_splits": 30.0,
+      "nerl": 0.46771857142448425,
+      "nerl_100": 0.7329481244087219,
+      "nerl_20": 0.7294298410415649,
+      "nerl_5": 0.5977789759635925,
+      "nerl_inf": 0.7329481244087219,
+      "threshold": 0.6899744811276125,
+      "voi_merge": 0.39895390099683237,
+      "voi_split": 1.1489475670174008,
+      "voi_sum": 1.5479014680142331
+    },
+    {
+      "erl": 18387.673828125,
+      "logit": 5.0,
+      "max_erl": 31463.90625,
+      "n_mergers": 100.0,
+      "n_non0_mergers": 10.0,
+      "n_splits": 34.0,
+      "nerl": 0.5844053030014038,
+      "nerl_100": 0.7144737839698792,
+      "nerl_20": 0.7144737839698792,
+      "nerl_5": 0.7133094668388367,
+      "nerl_inf": 0.7144737839698792,
+      "threshold": 0.7310585786300049,
+      "voi_merge": 0.47528674206013477,
+      "voi_split": 1.1957026365707426,
+      "voi_sum": 1.6709893786308774
+    },
+    {
+      "erl": 17528.869140625,
+      "logit": 6.0,
+      "max_erl": 31463.90625,
+      "n_mergers": 104.0,
+      "n_non0_mergers": 6.0,
+      "n_splits": 39.0,
+      "nerl": 0.5571103692054749,
+      "nerl_100": 0.6846937537193298,
+      "nerl_20": 0.6846937537193298,
+      "nerl_5": 0.6844858527183533,
+      "nerl_inf": 0.6846937537193298,
+      "threshold": 0.7685247834990178,
+      "voi_merge": 0.6436435633856243,
+      "voi_split": 1.2589827234824886,
+      "voi_sum": 1.902626286868113
+    },
+    {
+      "erl": 17190.787109375,
+      "logit": 7.0,
+      "max_erl": 31463.90625,
+      "n_mergers": 105.0,
+      "n_non0_mergers": 4.0,
+      "n_splits": 36.0,
+      "nerl": 0.5463653206825256,
+      "nerl_100": 0.6327731609344482,
+      "nerl_20": 0.6327731609344482,
+      "nerl_5": 0.6325652599334717,
+      "nerl_inf": 0.6327731609344482,
+      "threshold": 0.8021838885585818,
+      "voi_merge": 0.8747093224931861,
+      "voi_split": 1.3263196926324383,
+      "voi_sum": 2.2010290151256244
+    }
+  ],
+  "task_config": "configs/tasks/nisb_parity_val_seed100.toml",
+  "volume": "nisb_base_val_seed100",
+  "what_this_proves": "src/evaluate.py reproduces mia_score.py exactly on this artifact: 65 values over 5 logits. Both paths share utils.connected_components and utils.instance_metrics (byte-identical to BANIS 0ca3682), so this pins the plumbing -- region, threshold, skeleton crop, split/merge convention -- not the metric mathematics. NOT a published benchmark figure: this is the val cube, and the sweep is pinned to [3,4,5,6,7].",
+  "whole_cube": false
+}
