@@ -4,7 +4,7 @@
 # config. Run it as two artifacts: fit the threshold on the val cube, report on the test cube.
 #
 #   python src/predict.py ...                          # in mia-train, once per cube
-#   python src/evaluate.py score configs/tasks/nisb_base_neuron_instance.toml \
+#   mia-evals score configs/tasks/nisb_base_neuron_instance.toml \
 #       --val  aff_seed100.zarr \
 #       --test aff_seed101.zarr \
 #       --run-dir /nrs/.../<run>

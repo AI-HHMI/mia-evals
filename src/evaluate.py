@@ -1,8 +1,8 @@
 """Single entrypoint: score a prediction artifact against a task, and render the leaderboard.
 
-    python src/evaluate.py score  configs/tasks/<task>.toml --test <artifact.zarr> \\
+    mia-evals score  configs/tasks/<task>.toml --test <artifact.zarr> \\
         [--val <artifact.zarr>] [--record leaderboard/records]
-    python src/evaluate.py leaderboard [--check]
+    mia-evals leaderboard [--check]
 
 **Fit on validation, apply to test, and no way around it.** A postprocessor with more than one
 candidate in its search space and no `--val` artifact is a hard error, not a default. The
@@ -357,7 +357,7 @@ def cmd_leaderboard(args: argparse.Namespace) -> None:
             return
         raise SystemExit(
             f"{output} does not match {records}. Regenerate it with\n"
-            "    python src/evaluate.py leaderboard"
+            "    mia-evals leaderboard"
         )
     print(f"wrote {leaderboard.write(records, output)}")
 

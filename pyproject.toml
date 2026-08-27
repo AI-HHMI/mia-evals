@@ -13,6 +13,14 @@ dependencies = [
     "miao-io>=0.3.0",
 ]
 
+[project.scripts]
+# Installed entry points, so none of these depend on the working directory. Before this, the
+# scorer ran as `python src/evaluate.py` and the figures as `python visualize_*.py` from the
+# repository root, and `pip install mia-evals` shipped none of them.
+mia-evals = "evaluate:main"
+mia-evals-viz-affinities = "viz.affinities:main"
+mia-evals-viz-segmentation = "viz.segmentation:main"
+
 [project.optional-dependencies]
 # Instance-segmentation post-processing and metrics. Separate because `funlib.evaluate` is
 # git-install-only and numba is a compiler: a semantic-segmentation eval needs neither, and the
@@ -27,12 +35,6 @@ instance = [
 viz = [
     "pillow>=9.0",
 ]
-# TRANSITIONAL. `mia_predict.py` runs a mia-train checkpoint over a volume, and is slated to move
-# into mia-train as its own `predict` entrypoint -- see README, "Where the boundary is". Until it
-# does, running it from here needs torch and mia-train importable.
-predict = [
-    "torch>=2.0",
-]
 dev = [
     "pytest>=7.0",
     "ruff>=0.4",
@@ -46,10 +48,16 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# `packages.find` collects packages only, so these five would not have been installed at all --
+# `mia-evals = "evaluate:main"` would import-error on a fresh `pip install`. They are modules
+# rather than a package because the layout is flat by choice: `src/` holds the library directly.
+[tool.setuptools]
+py-modules = ["artifact", "components", "config", "evaluate", "registry"]
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 testpaths = ["tests"]
-pythonpath = ["src", "."]
+pythonpath = ["src"]
 addopts = "-ra --strict-markers"
 markers = [
     "unit: fast single-process CPU tests",

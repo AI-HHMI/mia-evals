@@ -1,8 +1,8 @@
 """Look at a predicted instance segmentation beside the ground truth it is scored against.
 
-    python visualize_segmentation.py --prediction <artifact>.zarr --logit 0 [--slices 4]
-    python visualize_segmentation.py --prediction <artifact>.zarr --block 128 128 128 256
-    python visualize_segmentation.py --prediction <labelling>.zarr --min-size 5000
+    mia-evals-viz-segmentation --prediction <artifact>.zarr --logit 0 [--slices 4]
+    mia-evals-viz-segmentation --prediction <artifact>.zarr --block 128 128 128 256
+    mia-evals-viz-segmentation --prediction <labelling>.zarr --min-size 5000
 
 An affinity artifact is thresholded into components here. A labelling artifact -- such as a stored
 mutex watershed partition -- is rendered as it stands, because recomputing one costs ~33 minutes
@@ -39,13 +39,10 @@ merging.
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw
-
-sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 PAD = 6
 LABEL_HEIGHT = 18

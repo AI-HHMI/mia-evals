@@ -25,7 +25,7 @@ from typing import Any
 from .record import Submission, load_records
 
 HEADER = """<!-- GENERATED FILE -- do not edit by hand.
-     Regenerate with `python src/evaluate.py leaderboard`, or verify with `--check`.
+     Regenerate with `mia-evals leaderboard`, or verify with `--check`.
      Rows come from leaderboard/records/; edit a record, not this table. -->
 
 # Leaderboard

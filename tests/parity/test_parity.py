@@ -81,7 +81,10 @@ def test_src_reproduces_the_recorded_numbers(fixture_path, tmp_path):
     from config import load_task_config
     from evaluate import build, resolve_artifacts, score_once
 
-    config = load_task_config(Path(expected["task_config"]))
+    task_config = Path(expected["task_config"])
+    if not task_config.is_absolute():
+        task_config = Path(__file__).resolve().parents[2] / task_config
+    config = load_task_config(task_config)
     task, processor, metrics = build(config)
     volume_name = expected["volume"]
     volumes = tuple(v for v in config.volumes if v.name == volume_name)

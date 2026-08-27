@@ -1,6 +1,6 @@
 """Look at predicted affinities beside the ground truth they were trained on.
 
-    python visualize_affinities.py --affinities <aff.zarr> --cube <cube> [--slices 4]
+    mia-evals-viz-affinities --affinities <aff.zarr> --cube <cube> [--slices 4]
 
 Reads a prediction artifact, like everything else here -- it does not run a model, so it needs
 neither torch nor a GPU, only numpy, zarr and PIL. Produce the artifact first with mia-train's
@@ -29,12 +29,30 @@ from pathlib import Path
 
 import numpy as np
 import zarr
-from mia_nisb import open_labels, open_raw
 from PIL import Image, ImageDraw
 
 PAD = 6
 HEADER = 34
 LABEL = 16
+
+
+#: NISB's own layout. Local to this module rather than shared: these two readers were the only part
+#: of the deleted `mia_nisb.py` still in use, and a repository moving to generic OME-Zarr access
+#: through `miao` should not grow a second home for one benchmark's hardcoded label key.
+RAW_KEY = "raw"
+LABEL_KEY = "labels/public_gt-cell-nisb"
+NATIVE_LEVEL = "s0"
+
+
+def open_raw(cube: Path, level: str = NATIVE_LEVEL) -> zarr.Array:
+    """The EM image of a cube as **(c, x, y, z)** uint8 -- channel first."""
+    return zarr.open(str(cube), mode="r")[f"{RAW_KEY}/{level}"]
+
+
+def open_labels(cube: Path, level: str = NATIVE_LEVEL) -> zarr.Array:
+    """The ground-truth instance segmentation as (x, y, z) uint16."""
+    return zarr.open(str(cube), mode="r")[f"{LABEL_KEY}/{level}"]
+
 
 
 def colourise_segmentation(seg: np.ndarray) -> np.ndarray:

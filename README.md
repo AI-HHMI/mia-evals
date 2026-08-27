@@ -10,11 +10,18 @@ than models.
 Training lives in [`mia-train`](https://github.com/AI-HHMI/mia-train); data is read through
 [`miao`](https://pypi.org/project/miao-io/).
 
-> **Status.** The registries, the artifact contract, the runner and the leaderboard are built and
-> tested. What is *not* yet done is the parity gate: `mia_score.py` at the repository root is the
-> original NISB scorer, kept until the new path is shown to reproduce its numbers on the same
-> artifact. Until then it, not `src/`, is what published NISB figures came from. This repository
-> derives from BANIS; see [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md).
+> **Status.** The registries, the artifact contract, the runner, the leaderboard and the parity gate
+> are built and tested. `src/` reproduces the pre-refactor scorer exactly on a recorded artifact —
+> 65 values across 5 logits — so it, not a root script, is now the scoring path. The old driver
+> (`mia_score.py`, `mia_nisb.py`) has been deleted; its verified numbers live in
+> [`tests/parity/expected/`](tests/parity/expected/) and are what the gate compares against.
+>
+> The gate pins the *plumbing* — which region is read, how the threshold is applied, whether the
+> skeleton is cropped, which convention split and merge are reported under. It cannot catch an error
+> inside the metric mathematics, because both paths shared the same byte-identical BANIS core. That
+> is the class of bug it was built for, and it found one on its first run (`whole_region` inferred
+> from a missing bounding box, feeding `funlib` an uncropped 784,783-node skeleton where 9,057 were
+> in scope). This repository derives from BANIS; see [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md).
 
 ## Where the boundary is
 
@@ -118,15 +125,20 @@ pip install -e '.[instance]'          # + numba, cc3d, networkx, funlib.evaluate
 python <mia-train>/src/predict.py <run_dir> --cube <cube>.zarr --out aff.zarr --patch 256
 
 # 2. fit the threshold on val, report on test, write a record
-python src/evaluate.py score configs/tasks/nisb_base_neuron_instance.toml \
+mia-evals score configs/tasks/nisb_base_neuron_instance.toml \
     --val aff_seed100.zarr --test aff_seed101.zarr --run-dir <run_dir>
 
 # 3. rebuild the table (CI runs the same with --check)
-python src/evaluate.py leaderboard
+mia-evals leaderboard
 
 # look at what was predicted, beside the ground truth
-python visualize_affinities.py --affinities aff.zarr --cube <cube>.zarr
+mia-evals-viz-affinities --affinities aff.zarr --cube <cube>.zarr
+mia-evals-viz-segmentation --prediction <artifact>.zarr --logit 0 --min-size 5000
 ```
+
+Installed entry points rather than scripts at the repository root: `pip install mia-evals` ships
+these, and none of them depend on the working directory. `mia-evals` is `src/evaluate.py`, and the
+two figure commands live in [`src/viz/`](src/viz/).
 
 Step 2 refuses to run a multi-candidate sweep without `--val`: sweeping on the reported split and
 keeping the best is selecting on the number being published. A single-candidate postprocessor —
@@ -143,10 +155,11 @@ subcommands belong here, and move once the metrics they need exist.
 
 ## Refactoring plan
 
-1. **Parity.** ✅ registries, artifact contract, runner, leaderboard. ⬜ the gate itself: score one
-   artifact through both `mia_score.py` and `src/evaluate.py` and require *exact* equality, then
-   separately compare the hand-rolled tiler against a `miao`-sequential one before thresholding.
-   Confounding the two makes a discrepancy undiagnosable, which is why they are two gates.
+1. **Parity.** ✅ registries, artifact contract, runner, leaderboard. ✅ the gate itself: exact
+   equality on 65 values across 5 logits, recorded in `tests/parity/expected/` and checked by
+   `pytest -m parity` (needs the `instance` *and* `dev` extras). ⬜ separately compare the
+   hand-rolled tiler against a `miao`-sequential one before thresholding. Confounding the two makes
+   a discrepancy undiagnosable, which is why they are two gates.
 2. **Generalise.** ✅ voxel instance metrics (VOI/Rand/PQ, pinned to funlib's VOI convention);
    ⬜ absorb `mia-train/src/evals/` (registered there but
    skeleton-based, and the corpus' instance volumes ship dense voxel GT and no skeletons.

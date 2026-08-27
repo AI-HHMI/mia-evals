@@ -6,7 +6,7 @@
 #
 # Fit the postprocessing threshold on the other half and report here:
 #
-#   python src/evaluate.py score configs/tasks/lmd_ssl_v1_neuron_instance_test.toml \
+#   mia-evals score configs/tasks/lmd_ssl_v1_neuron_instance_test.toml \
 #       --test  <artifacts>/test  \
 #       --val   <artifacts>/fit   \
 #       --val-config configs/tasks/lmd_ssl_v1_neuron_instance_fit.toml \
