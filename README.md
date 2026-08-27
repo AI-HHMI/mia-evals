@@ -2,31 +2,18 @@
 
 Scoring and leaderboards for volumetric instance and semantic segmentation.
 
-`mia-evals` answers one question — *how good is this segmentation?* — for models that disagree
-about what they emit. Some predict affinity maps, some predict per-class scores, some hand you
-finished instance masks. It takes all of them, because it scores **prediction artifacts** rather
-than models.
+`mia-evals` is agnostic to output format. It can work with affinity maps, boundaries, embeddings, 
+per-class scores, or finished instance masks. More precisely, it scores **prediction artifacts** 
+rather than models.
 
-Training lives in [`mia-train`](https://github.com/AI-HHMI/mia-train); data is read through
-[`miao`](https://pypi.org/project/miao-io/).
+[`mia-train`](https://github.com/AI-HHMI/mia-train) is the sister repository that handles everything
+related to model training. Both repositories use [`miao`](https://pypi.org/project/miao-io/) as 
+their dataset interface.
 
-> **Status.** The registries, the artifact contract, the runner, the leaderboard and the parity gate
-> are built and tested. `src/` reproduces the pre-refactor scorer exactly on a recorded artifact —
-> 65 values across 5 logits — so it, not a root script, is now the scoring path. The old driver
-> (`mia_score.py`, `mia_nisb.py`) has been deleted; its verified numbers live in
-> [`tests/parity/expected/`](tests/parity/expected/) and are what the gate compares against.
->
-> The gate pins the *plumbing* — which region is read, how the threshold is applied, whether the
-> skeleton is cropped, which convention split and merge are reported under. It cannot catch an error
-> inside the metric mathematics, because both paths shared the same byte-identical BANIS core. That
-> is the class of bug it was built for, and it found one on its first run (`whole_region` inferred
-> from a missing bounding box, feeding `funlib` an uncropped 784,783-node skeleton where 9,057 were
-> in scope). This repository derives from BANIS; see [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md).
+## The boundary between `mia-train` and `mia-evals`
 
-## Where the boundary is
-
-Whatever produced the prediction writes an artifact; `mia-evals` reads it. Nothing in the core
-imports torch, and there is no privileged path for "our own" models.
+Whatever produced the prediction writes an "artifact". `mia-evals` simply reads and scores it. Nothing in 
+the core imports `torch`, and there is no privileged path for "our own" models.
 
 ```
   mia-train (or anything else)                    mia-evals
@@ -34,24 +21,20 @@ imports torch, and there is no privileged path for "our own" models.
   train.py                                        postprocess ─► metrics ─► record ─► leaderboard
   predict.py ──► prediction artifact ────────────►
                  (zarr + self-describing attrs)    numpy · zarr · miao · cc3d · funlib
-                                                   no torch, ever
 ```
 
-Two things follow, and both are the point:
+This means that:
 
-- **A segmentation someone emails you is a first-class submission.** It enters at the artifact
+- A third-party generated segmentation is a first-class submission here. It enters at the artifact
   boundary with no model, no checkpoint and no config.
-- **The model is never rebuilt from outside.** Reconstructing a training run in a second repository
-  means tracking its config schema, its checkpoint layout and the order it applies LoRA — and
-  getting that wrong loads the base weights, silently ignores the adapter, and scores the
-  *un-adapted* encoder to a plausible-looking number. Prediction belongs with the code that trained
+- The model is never rebuilt here, so generating model predictions belongs to the code that trained
   the model.
 
 ## How format diversity is handled
 
-Many artifact kinds and many postprocessors funnel into exactly **two** scoreable forms. Metrics
-attach to those, never to the kind, so nERL does not know or care whether the labelling came from
-affinities, a watershed, or a `.zarr` from a collaborator.
+Many artifact kinds and many postprocessors funnel into exactly two scoreable forms. Metrics
+attach to those, never to the kind, so, for example, nERL does not know or care whether the labelling 
+came from affinities, a watershed, or a `.zarr` from a collaborator.
 
 | artifact kind | shape | postprocessor | → canonical form |
 | --- | --- | --- | --- |
@@ -62,28 +45,14 @@ affinities, a watershed, or a `.zarr` from a collaborator.
 | `class_scores` | `(K, *spatial)` | `argmax`, `per_class_threshold` | class labelling |
 | `class_labels` | `(*spatial)` int | `identity` | class labelling |
 
-Adding a model that emits masks directly is an `identity` entry, not a new code path. A 2D model is
-handled upstream of the boundary by orthoplane averaging, so it arrives as a 3D artifact like
-anything else.
-
-Three rules make that hold:
-
-1. **`background_id` and `ignore_id` are recorded in the artifact.** Producers disagree about `0`.
-   For thresholded connected components `0` means "no edge survived here", *not* background — and a
-   submission where `0` is a real instance would otherwise have its largest object silently scored
-   as background.
-2. **Each metric declares what it consumes** — `labels`, `scores`, or both — and retention follows.
-   mIoU needs the argmax; AP needs the scores. A 51 GB affinity artifact deleted after scoring
-   nERL cannot be revisited for AP.
-3. **The hyperparameter fit belongs to the postprocessor.** `cc_threshold` fits a scalar, `mws` a
-   stride, `per_class_threshold` K values, `identity` nothing. Fit on val, apply to test — always,
-   because a threshold chosen on the split being reported is selecting on the number.
+A 2D model is handled upstream of the boundary by orthoplane averaging, so it arrives as a 3D artifact 
+like anything else.
 
 ## Configuration
 
-A task is one `.toml`. It references a `miao` YAML for the data rather than restating it, because
-those configs are generated with provenance headers and a drift check, and because `miao`'s schema
-is `extra="forbid"` — a data config cannot carry task or metric keys.
+A task is define in a `.toml` file. It references a `miao` YAML for the data rather than restating it, 
+because those configs are generated with provenance headers and a drift check, and because `miao`'s schema
+declares `extra="forbid"`, so a data config cannot carry task or metric keys.
 
 ```toml
 task_name = "nisb_base_neuron_instance"
@@ -98,23 +67,22 @@ volumes = ["em-mouse-Kasthuri15-ac3ac4-cortex/crop-001_ac3_100slices"]   # this 
 ```
 
 Split membership lives here, as a name filter over the YAML's volumes, for the same reason: `miao`
-rejects a `split:` key. One data config per dataset; one task file per (dataset × split × task).
+rejects a `split:` key. One data config per dataset, one task file per (dataset × split × task).
 
 ## Leaderboard
 
-Derived, never hand-edited. Each eval writes one small `record.json` — metrics per split, the
-checkpoint's run directory and step, **a copy of** that run's resolved config and git commit (so
-the entry survives its run directory being deleted), the postprocessor and its fitted
-hyperparameter, the region scored, and every component version. Records are git-tracked and
-reviewable in a PR; the artifacts they describe stay on `/nrs`.
+Leaderboard entries are always derived, not hand-edited. Each eval writes one small `record.json` 
+that includes metrics per split, the checkpoint's run directory and step, a copy of that run's resolved 
+config and git commit (so the entry survives its run directory being deleted), the postprocessor and its 
+fitted hyperparameter, the region scored, and every component version. Records are git-tracked and
+reviewable in a PR.
 
 Two things the renderer has to enforce:
 
 - **Show the postprocessor as a column.** Affinities-plus-CC against a model emitting masks
   directly is a fair end-to-end comparison, but "A beats B" can be a post-processing difference,
   and a table that hides it invites the wrong reading.
-- **Never mix extents in one table.** nERL is not comparable across regions — the same model scored
-  0.3045 over a whole cube and 0.4192 on a 512³ block of it.
+- **Never mix extents in one table.** nERL is not comparable across regions.
 
 ## Running it
 
@@ -138,19 +106,19 @@ mia-evals-viz-segmentation --prediction <artifact>.zarr --logit 0 --min-size 500
 
 Installed entry points rather than scripts at the repository root: `pip install mia-evals` ships
 these, and none of them depend on the working directory. `mia-evals` is `src/evaluate.py`, and the
-two figure commands live in [`src/viz/`](src/viz/).
+two figure commands are in [`src/viz/`](src/viz/).
 
 Step 2 refuses to run a multi-candidate sweep without `--val`: sweeping on the reported split and
-keeping the best is selecting on the number being published. A single-candidate postprocessor —
-`identity`, for a finished segmentation — needs no `--val` at all.
+keeping the best is selecting on the number being published. A single-candidate postprocessor,
+`identity` for a finished segmentation, needs no `--val` at all.
 
 **Layout.** `src/artifact.py` is the contract; `src/postprocess/`, `src/metrics/` and `src/tasks/`
 are the three registries; `src/config.py` parses a task `.toml` and resolves the `miao` YAML it
 references; `src/report/` writes records and renders the table; `src/utils/` holds the two
 functions recycled verbatim from BANIS. Adding a component is one line in `src/components.py`.
 
-Prediction and pseudo-labelling now live in `mia-train` (`src/predict.py`, `src/pseudolabel.py`) —
-they run a model, which is the other side of the boundary. Only the pseudo-label *scoring*
+Prediction and pseudo-labelling now reside in `mia-train` (`src/predict.py`, `src/pseudolabel.py`). 
+They run a model, which is the other side of the boundary. Only the pseudo-label scoring
 subcommands belong here, and move once the metrics they need exist.
 
 ## Refactoring plan
@@ -165,7 +133,7 @@ subcommands belong here, and move once the metrics they need exist.
    skeleton-based, and the corpus' instance volumes ship dense voxel GT and no skeletons.
 3. **OME-Zarr semantic segmentation.** Replace `mia-train`'s HuggingFace CellMap path with a `miao`
    config over `/groups/miaai/miaai/lmd-v0.0.1/data`. Verify the 2D orthoplane path survives first
-   — it is the reason the 2D dataset exists.
+   (it is the reason the 2D dataset exists).
 4. **Leaderboard.** Records, renderer, `--check` in CI; backfill from the existing `*_scores.json`.
 5. **Clean up `mia-train`.** Move prediction in, move the pseudo-labelling scorer out, point the
    experiment scripts at this CLI.
