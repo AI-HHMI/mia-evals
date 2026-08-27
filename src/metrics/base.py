@@ -50,6 +50,13 @@ class BaseMetric(abc.ABC):
     #: The key in this metric's result dict that a task may rank on. Metrics returning several
     #: numbers (nERL also yields VOI, merge and split counts) name the headline one here.
     primary: str = ""
+    #: Secondary keys worth a leaderboard column, in the order they should appear. Declared by the
+    #: metric because it knows which of its outputs are diagnostic and which are settings or raw
+    #: counts: left to the renderer, a table gets the alphabetically-first six, which for
+    #: `voxel_instance` meant the constant `iou_threshold` and a count that is dominated by
+    #: two-voxel fragments, while the split/merge terms that say HOW a segmentation failed were
+    #: dropped. Empty means "no secondary columns".
+    report_keys: tuple[str, ...] = ()
 
     def __init__(self, **settings: Any) -> None:
         self.settings = settings

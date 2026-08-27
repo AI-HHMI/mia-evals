@@ -32,6 +32,21 @@ HEADER = """<!-- GENERATED FILE -- do not edit by hand.
 """
 
 
+def _report_keys(metric_name: str) -> tuple[str, ...]:
+    """The secondary columns a metric asks for, or none if it is not registered here.
+
+    Looked up rather than stored in the record so that adding a column to a metric changes every
+    table on the next render, without rewriting records that were correct when written.
+    """
+    try:
+        import components  # noqa: F401  (populates the registry)
+        from metrics.registry import MetricRegistry
+
+        return tuple(MetricRegistry.get(metric_name).report_keys)
+    except (ImportError, KeyError):
+        return ()
+
+
 def _region_key(submission: Submission) -> str:
     """A short label for the extent scored, used to group rows that may be compared."""
     volumes = submission.region.get("volumes") or {}
@@ -80,15 +95,20 @@ def render(records: dict[str, list[Submission]]) -> str:
             higher = bool(ranking.get("higher_is_better", True))
             group.sort(key=lambda s: s.ranking.get("value", 0.0), reverse=higher)
 
-            # Union across rows: two submissions of one task may report different metric families
-            # (a skeleton one and a voxel one), and dropping a column because one row lacks it
-            # would hide a number that was measured.
+            # Columns in the order the *metrics* declare, not discovery order. A union over
+            # sorted keys gave the alphabetically-first six, which for an instance task meant a
+            # constant setting and a misleading count while the diagnostic split/merge terms were
+            # dropped. `report_keys` lives on the metric because it knows which of its outputs are
+            # diagnostic; anything a metric does not name stays out of the table and remains in
+            # the record.
             extra: list[str] = []
             for submission in group:
-                for name, values in sorted(submission.scores.items()):
-                    for inner in sorted(values):
+                for name in sorted(submission.scores):
+                    for inner in _report_keys(name):
                         column = f"{name}.{inner}"
-                        if column != f"{metric}.{key}" and column not in extra:
+                        if (column != f"{metric}.{key}"
+                                and column not in extra
+                                and inner in submission.scores[name]):
                             extra.append(column)
 
             out.append(f"\n**Region:** {region}\n")

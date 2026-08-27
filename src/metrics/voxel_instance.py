@@ -304,6 +304,11 @@ class VoxelInstance(BaseMetric):
     consumes = "labels"
     higher_is_better = True
     primary = "pq"
+    # voi_merge and voi_split first: they are what distinguishes one merged blob from a shattered
+    # one, and both failures give PQ near zero. `instances_predicted` is deliberately absent -- it
+    # is dominated by dust (median component size measured at 2 voxels on a real prediction) and
+    # reads as over-segmentation when the actual failure was the opposite.
+    report_keys = ("voi_merge", "voi_split", "sq", "rq", "adapted_rand_error")
 
     def __init__(self, iou_threshold: float = 0.5, **settings: Any) -> None:
         super().__init__(iou_threshold=iou_threshold, **settings)

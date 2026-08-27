@@ -96,6 +96,7 @@ class Semantic(BaseMetric):
     higher_is_better = True
     accumulates = True          # one confusion matrix over every volume; see BaseMetric
     primary = "mean_iou"
+    report_keys = ("mean_dice", "pixel_accuracy", "classes_present")
 
     def __init__(
         self,

@@ -75,6 +75,7 @@ class SkeletonExpectedRunLength(BaseMetric):
     consumes = "labels"
     higher_is_better = True
     primary = "nerl"
+    report_keys = ("voi_sum", "voi_split", "voi_merge", "n_non0_mergers", "n_splits")
 
     def __call__(self, prediction: np.ndarray, truth: Any, **context: Any) -> dict[str, float]:
         from utils.instance_metrics import compute_metrics
