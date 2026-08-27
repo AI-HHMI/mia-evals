@@ -10,10 +10,7 @@ rather than models.
 related to model training. Both repositories use [`miao`](https://pypi.org/project/miao-io/) as 
 their dataset interface.
 
-## The boundary between `mia-train` and `mia-evals`
-
-Whatever produced the prediction writes an "artifact". `mia-evals` simply reads and scores it. Nothing in 
-the core imports `torch`, and there is no privileged path for "our own" models.
+## Boundary between `mia-train` and `mia-evals`
 
 ```
   mia-train (or anything else)                    mia-evals
@@ -23,12 +20,9 @@ the core imports `torch`, and there is no privileged path for "our own" models.
                  (zarr + self-describing attrs)    numpy · zarr · miao · cc3d · funlib
 ```
 
-This means that:
-
-- A third-party generated segmentation is a first-class submission here. It enters at the artifact
-  boundary with no model, no checkpoint and no config.
-- The model is never rebuilt here, so generating model predictions belongs to the code that trained
-  the model.
+Whatever produced the prediction writes a "prediction artifact". `mia-evals` simply reads and scores it. 
+A third-party generated segmentation works perfectly fine here. It enters at the artifact boundary 
+with no model, no checkpoint, and no config.
 
 ## How format diversity is handled
 
@@ -48,26 +42,51 @@ came from affinities, a watershed, or a `.zarr` from a collaborator.
 A 2D model is handled upstream of the boundary by orthoplane averaging, so it arrives as a 3D artifact 
 like anything else.
 
-## Configuration
+## Configs
 
-A task is define in a `.toml` file. It references a `miao` YAML for the data rather than restating it, 
-because those configs are generated with provenance headers and a drift check, and because `miao`'s schema
-declares `extra="forbid"`, so a data config cannot carry task or metric keys.
+A task is defined in a `.toml` config file. It references a `miao` YAML for the data rather than restating
+it, so the same volume definitions serve training and scoring:
 
 ```toml
 task_name = "nisb_base_neuron_instance"
 
 [data]
-config_path = "/groups/miaai/miaai/lmd-v0.0.1/configs/evals/v1/neuron_instance_seg/ac3_ac4_mouse_atum.yaml"
-volumes = ["em-mouse-Kasthuri15-ac3ac4-cortex/crop-001_ac3_100slices"]   # this task's test split
+config_path = "../data/nisb_base_test.yaml"
 
-[predict]      kind = "affinity", tile = 256, overlap = 128, channels = 6
-[postprocess]  name = "cc_threshold", fit_on = "val", sweep_logits = [3, 4, 5, 6, 7]
-[metric]       names = ["nerl", "voi"], rank_by = "nerl", higher_is_better = true
+[task]
+name = "instance_seg"
+truth_kind = "skeleton"          # NISB ships a traced skeleton inside each cube's zarr group
+skeleton_name = "skeleton.pkl"
+
+[postprocess]
+name = "cc_threshold"
+logits = [3, 4, 5, 6, 7]         # fitted on --val, applied to --test
+min_sizes = [0]                  # drop components below N voxels; swept like the threshold
+
+[metric]
+names = ["skeleton_erl"]
+rank_by = "skeleton_erl"         # ranks on that metric's own `primary` key and direction
 ```
 
-Split membership lives here, as a name filter over the YAML's volumes, for the same reason: `miao`
-rejects a `split:` key. One data config per dataset, one task file per (dataset × split × task).
+Every section is required except `[task]`'s optional keys. `rank_by` names a metric, not a metric
+*key*: which number ranks and whether higher is better are properties of the metric class
+(`primary`, `higher_is_better`), so a config cannot declare a direction that contradicts the metric
+it is ranking. 
+
+**Splits.** `miao` validates strictly and rejects keys it does not recognise, so a per-volume
+`split: test` in the data YAML makes it reject the entire file. Split membership therefore lives
+outside the YAML, and there are two ways to express it:
+
+- **A data config per split:** what every config here currently does: `nisb_base_val.yaml` and
+  `nisb_base_test.yaml`, or the `lmd_*_singlescale.yaml` pair. Readable, and the file name states
+  the split.
+- **A name filter in the task file:** `volumes = ["...crop-001_ac3_100slices"]` under `[data]`,
+  selecting a subset of one dataset-wide YAML. Avoids duplicating volume definitions when a dataset
+  is split several ways.
+
+Either way you need one task file per (dataset × split × task): three independent choices
+multiplying, which is why `configs/tasks/` grows faster than the number of datasets suggests. The
+runner refuses to fit and report on overlapping volumes, so the two splits must genuinely differ.
 
 ## Leaderboard
 
@@ -107,19 +126,6 @@ mia-evals-viz-segmentation --prediction <artifact>.zarr --logit 0 --min-size 500
 Installed entry points rather than scripts at the repository root: `pip install mia-evals` ships
 these, and none of them depend on the working directory. `mia-evals` is `src/evaluate.py`, and the
 two figure commands are in [`src/viz/`](src/viz/).
-
-Step 2 refuses to run a multi-candidate sweep without `--val`: sweeping on the reported split and
-keeping the best is selecting on the number being published. A single-candidate postprocessor,
-`identity` for a finished segmentation, needs no `--val` at all.
-
-**Layout.** `src/artifact.py` is the contract; `src/postprocess/`, `src/metrics/` and `src/tasks/`
-are the three registries; `src/config.py` parses a task `.toml` and resolves the `miao` YAML it
-references; `src/report/` writes records and renders the table; `src/utils/` holds the two
-functions recycled verbatim from BANIS. Adding a component is one line in `src/components.py`.
-
-Prediction and pseudo-labelling now reside in `mia-train` (`src/predict.py`, `src/pseudolabel.py`). 
-They run a model, which is the other side of the boundary. Only the pseudo-label scoring
-subcommands belong here, and move once the metrics they need exist.
 
 ## Refactoring plan
 
