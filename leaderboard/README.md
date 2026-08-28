@@ -1,5 +1,5 @@
 <!-- GENERATED FILE -- do not edit by hand.
-     Regenerate with `python src/evaluate.py leaderboard`, or verify with `--check`.
+     Regenerate with `mia-evals leaderboard`, or verify with `--check`.
      Rows come from leaderboard/records/; edit a record, not this table. -->
 
 # Leaderboard
@@ -12,4 +12,5 @@
 
 | # | model | voxel_instance.pq (higher is better) | postprocess | voxel_instance.voi_merge | voxel_instance.voi_split | voxel_instance.sq | voxel_instance.rq | voxel_instance.adapted_rand_error |
 |---|---|---|---|---|---|---|---|---|
-| 1 | 2c_step50000 | 0.0031 | cc_threshold(logit=+0, thr=0.5000) | 6.7441 | 0.4306 | 0.5048 | 0.0044 | 0.8968 |
+| 1 | 2c_step50000_sizefilter | 0.1420 | cc_threshold(logit=+3, thr=0.6457, min_size=50000) | 3.7074 | 1.0675 | 0.6507 | 0.2110 | 0.7435 |
+| 2 | 2c_step50000 | 0.0031 | cc_threshold(logit=+0, thr=0.5000) | 6.7441 | 0.4306 | 0.5048 | 0.0044 | 0.8968 |
