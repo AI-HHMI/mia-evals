@@ -56,33 +56,170 @@ def _find(parent: np.ndarray, x: np.int64) -> np.int64:
 
 
 @njit(inline="always")
-def _pack(a: np.int64, b: np.int64, n_nodes: np.int64) -> np.int64:
-    """Order-independent key for a root pair."""
+def _ordered(a: np.int64, b: np.int64) -> tuple[np.int64, np.int64]:
+    """The pair with the smaller root first, so lookups are order-independent."""
     if a < b:
-        return a * n_nodes + b
-    return b * n_nodes + a
+        return a, b
+    return b, a
 
 
 @njit(inline="always")
-def _hash_slot(key: np.int64, mask: np.int64) -> np.int64:
-    # Fibonacci hashing: key * 2^64/phi, taking the high bits via the mask after a shift. Cheap and
-    # adequate here -- the keys are structured (a * n + b), so the low bits alone collide heavily.
-    h = np.uint64(key) * np.uint64(11400714819323198485)
-    return np.int64((h >> np.uint64(29)) & np.uint64(mask))
+def _hash_pair(a: np.int64, b: np.int64, mask: np.int64) -> np.int64:
+    """Fibonacci-mixed hash of an ordered pair.
+
+    The pair is hashed rather than packed into a single key. `a * n_nodes + b` overflows int64 once
+    n_nodes exceeds about 3 G -- at 7.08 G voxels the largest key would be ~5e19 against int64's
+    9.2e18 -- so a packed key silently aliases distinct pairs at exactly the scale this is for.
+    Mixing both components separately has no such ceiling.
+    """
+    h = np.uint64(a) * np.uint64(11400714819323198485)
+    h ^= np.uint64(b) * np.uint64(14029467366897019727)
+    h ^= h >> np.uint64(29)
+    return np.int64(h & np.uint64(mask))
 
 
 @njit(cache=True, nogil=True)
-def _pair_find(keys: np.ndarray, key: np.int64, mask: np.int64) -> np.int64:
-    """Slot holding `key`, or the first empty slot where it would be inserted."""
-    slot = _hash_slot(key, mask)
+def _pair_find(
+    key_a: np.ndarray, key_b: np.ndarray, a: np.int64, b: np.int64, mask: np.int64
+) -> np.int64:
+    """Slot holding the ordered pair (a, b), or the first empty slot for inserting it.
+
+    Both components are compared, so a hash collision costs a probe rather than a wrong answer. A
+    64-bit hash alone would alias about three pairs in a 10^10-pair run, and each alias would be a
+    spurious mutex silently blocking a legitimate merge.
+    """
+    slot = _hash_pair(a, b, mask)
     while True:
-        current = keys[slot]
-        if current == EMPTY or current == key:
+        if key_a[slot] == EMPTY:
+            return slot
+        if key_a[slot] == a and key_b[slot] == b:
             return slot
         slot = (slot + 1) & mask
 
 
 @njit(cache=True, nogil=True)
+def make_state(
+    n_nodes: np.int64, pair_capacity: np.int64, pool_capacity: np.int64
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
+           np.ndarray]:
+    """Allocate the union-find and mutex structures.
+
+    Returned as a tuple of arrays rather than a class so the state can be threaded through repeated
+    `process_edges` calls: whole-volume runs feed edges in priority-ordered batches and must carry
+    the partition across them, since the algorithm is defined on one global ordering.
+
+    `counters` holds [pairs_used, pool_used] so those high-water marks survive between calls.
+    """
+    parent = np.arange(n_nodes, dtype=np.int64)
+    key_a = np.full(pair_capacity, EMPTY, dtype=np.int64)
+    key_b = np.full(pair_capacity, EMPTY, dtype=np.int64)
+    head = np.full(n_nodes, -1, dtype=np.int64)
+    chain_len = np.zeros(n_nodes, dtype=np.int64)
+    pool_val = np.empty(pool_capacity, dtype=np.int64)
+    pool_next = np.empty(pool_capacity, dtype=np.int64)
+    counters = np.zeros(2, dtype=np.int64)
+    return parent, key_a, key_b, head, chain_len, pool_val, pool_next, counters
+
+
+@njit(cache=True, nogil=True)
+def process_edges(
+    u: np.ndarray,
+    v: np.ndarray,
+    attractive: np.ndarray,
+    parent: np.ndarray,
+    key_a: np.ndarray,
+    key_b: np.ndarray,
+    head: np.ndarray,
+    chain_len: np.ndarray,
+    pool_val: np.ndarray,
+    pool_next: np.ndarray,
+    counters: np.ndarray,
+) -> None:
+    """Consume one batch of edges, already in descending priority order, updating the state.
+
+    Edges must arrive in globally descending priority across all calls. The algorithm's result is
+    defined by that order, so a batch containing an edge weaker than one in a later batch changes
+    the answer -- which is why the streaming driver buckets by priority rather than by position.
+    """
+    mask = np.int64(key_a.shape[0] - 1)
+    for i in range(u.shape[0]):
+        ru = _find(parent, u[i])
+        rv = _find(parent, v[i])
+        if ru == rv:
+            continue
+
+        lo, hi = _ordered(ru, rv)
+        slot = _pair_find(key_a, key_b, lo, hi, mask)
+        forbidden = key_a[slot] != EMPTY
+
+        if attractive[i]:
+            if forbidden:
+                continue
+            if chain_len[ru] >= chain_len[rv]:
+                big = ru
+                small = rv
+            else:
+                big = rv
+                small = ru
+            parent[small] = big
+
+            node = head[small]
+            while node != -1:
+                other = _find(parent, pool_val[node])
+                nxt = pool_next[node]
+                if other != big:
+                    nlo, nhi = _ordered(big, other)
+                    nslot = _pair_find(key_a, key_b, nlo, nhi, mask)
+                    if key_a[nslot] == EMPTY:
+                        if counters[0] + 1 > key_a.shape[0] // 2:
+                            raise RuntimeError("mws: pair table too small")
+                        key_a[nslot] = nlo
+                        key_b[nslot] = nhi
+                        counters[0] += 1
+                        if counters[1] + 2 > pool_val.shape[0]:
+                            raise RuntimeError("mws: partner pool too small")
+                        pool_val[counters[1]] = other
+                        pool_next[counters[1]] = head[big]
+                        head[big] = counters[1]
+                        chain_len[big] += 1
+                        counters[1] += 1
+                        pool_val[counters[1]] = big
+                        pool_next[counters[1]] = head[other]
+                        head[other] = counters[1]
+                        chain_len[other] += 1
+                        counters[1] += 1
+                node = nxt
+            head[small] = -1
+            chain_len[small] = 0
+        else:
+            if not forbidden:
+                if counters[0] + 1 > key_a.shape[0] // 2:
+                    raise RuntimeError("mws: pair table too small")
+                key_a[slot] = lo
+                key_b[slot] = hi
+                counters[0] += 1
+                if counters[1] + 2 > pool_val.shape[0]:
+                    raise RuntimeError("mws: partner pool too small")
+                pool_val[counters[1]] = rv
+                pool_next[counters[1]] = head[ru]
+                head[ru] = counters[1]
+                chain_len[ru] += 1
+                counters[1] += 1
+                pool_val[counters[1]] = ru
+                pool_next[counters[1]] = head[rv]
+                head[rv] = counters[1]
+                chain_len[rv] += 1
+                counters[1] += 1
+
+
+@njit(cache=True, nogil=True)
+def finalize(parent: np.ndarray) -> np.ndarray:
+    """Resolve every node to its root, so the caller sees a flat labelling."""
+    for i in range(parent.shape[0]):
+        parent[i] = _find(parent, i)
+    return parent
+
+
 def mutex_watershed_kernel(
     u: np.ndarray,
     v: np.ndarray,
@@ -92,107 +229,24 @@ def mutex_watershed_kernel(
     pair_capacity: np.int64,
     pool_capacity: np.int64,
 ) -> tuple[np.ndarray, np.int64, np.int64]:
-    """Edges in `order` -> a root per node. Returns (parent, pairs_used, pool_used).
+    """One-shot form: all edges at once, `order` giving descending priority.
 
-    `pair_capacity` must be a power of two and comfortably larger than the number of distinct
-    forbidden root pairs that coexist; `pool_capacity` bounds total partner-chain entries. Both are
-    returned as high-water marks so the caller can detect a too-small guess rather than silently
-    corrupting the result -- exceeding either raises.
+    Kept because it is what the tests compare against the Python reference, and what a
+    single-block call wants. Whole volumes go through `process_edges` in batches instead.
+
+    The edge arrays are gathered into priority order rather than indirected through `order` inside
+    the loop. Indirection costs three random reads per edge into arrays of 10^8 elements; the
+    gather is one sequential pass and the loop then reads sequentially.
     """
-    parent = np.arange(n_nodes, dtype=np.int64)
-
-    # Global set of forbidden root pairs, for O(1) membership.
-    pair_keys = np.full(pair_capacity, EMPTY, dtype=np.int64)
-    mask = pair_capacity - 1
-    pairs_used = np.int64(0)
-
-    # Per-root partner chains: head[root] -> pool index, pool_next linking, pool_val the partner.
-    head = np.full(n_nodes, -1, dtype=np.int64)
-    chain_len = np.zeros(n_nodes, dtype=np.int64)
-    pool_val = np.empty(pool_capacity, dtype=np.int64)
-    pool_next = np.empty(pool_capacity, dtype=np.int64)
-    pool_used = np.int64(0)
-
-    for idx in range(order.shape[0]):
-        e = order[idx]
-        ru = _find(parent, u[e])
-        rv = _find(parent, v[e])
-        if ru == rv:
-            continue
-
-        key = _pack(ru, rv, n_nodes)
-        slot = _pair_find(pair_keys, key, mask)
-        forbidden = pair_keys[slot] == key
-
-        if attractive[e]:
-            if forbidden:
-                continue
-            # Union by chain length, so the shorter partner list is the one walked.
-            if chain_len[ru] >= chain_len[rv]:
-                big = ru
-                small = rv
-            else:
-                big = rv
-                small = ru
-            parent[small] = big
-
-            # Re-key every constraint of `small` onto `big`.
-            node = head[small]
-            while node != -1:
-                other = _find(parent, pool_val[node])
-                nxt = pool_next[node]
-                if other != big:
-                    old = _pack(small, pool_val[node], n_nodes)
-                    old_slot = _pair_find(pair_keys, old, mask)
-                    if pair_keys[old_slot] == old:
-                        # Tombstone-free deletion is not possible in open addressing without
-                        # rehashing, so the stale key is left in place. It can only ever be looked
-                        # up for a root that no longer exists, since `small` is no longer a root.
-                        pass
-                    new_key = _pack(big, other, n_nodes)
-                    new_slot = _pair_find(pair_keys, new_key, mask)
-                    if pair_keys[new_slot] != new_key:
-                        if pairs_used + 1 > pair_capacity // 2:
-                            raise RuntimeError("mws: pair table too small")
-                        pair_keys[new_slot] = new_key
-                        pairs_used += 1
-                        if pool_used + 2 > pool_capacity:
-                            raise RuntimeError("mws: partner pool too small")
-                        pool_val[pool_used] = other
-                        pool_next[pool_used] = head[big]
-                        head[big] = pool_used
-                        chain_len[big] += 1
-                        pool_used += 1
-                        pool_val[pool_used] = big
-                        pool_next[pool_used] = head[other]
-                        head[other] = pool_used
-                        chain_len[other] += 1
-                        pool_used += 1
-                node = nxt
-            head[small] = -1
-            chain_len[small] = 0
-        else:
-            if not forbidden:
-                if pairs_used + 1 > pair_capacity // 2:
-                    raise RuntimeError("mws: pair table too small")
-                pair_keys[slot] = key
-                pairs_used += 1
-                if pool_used + 2 > pool_capacity:
-                    raise RuntimeError("mws: partner pool too small")
-                pool_val[pool_used] = rv
-                pool_next[pool_used] = head[ru]
-                head[ru] = pool_used
-                chain_len[ru] += 1
-                pool_used += 1
-                pool_val[pool_used] = ru
-                pool_next[pool_used] = head[rv]
-                head[rv] = pool_used
-                chain_len[rv] += 1
-                pool_used += 1
-
-    for i in range(n_nodes):
-        parent[i] = _find(parent, i)
-    return parent, pairs_used, pool_used
+    state = make_state(n_nodes, pair_capacity, pool_capacity)
+    parent, key_a, key_b, head, chain_len, pool_val, pool_next, counters = state
+    process_edges(
+        np.ascontiguousarray(u[order]),
+        np.ascontiguousarray(v[order]),
+        np.ascontiguousarray(attractive[order]),
+        parent, key_a, key_b, head, chain_len, pool_val, pool_next, counters,
+    )
+    return finalize(parent), counters[0], counters[1]
 
 
 def _numba_version() -> str:
