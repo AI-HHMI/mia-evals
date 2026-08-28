@@ -36,11 +36,17 @@ came from affinities, a watershed, or a `.zarr` from a collaborator.
 | artifact kind | shape | postprocessor | canonical form |
 | --- | --- | --- | --- |
 | `affinity` | `(2·rank, *spatial)` | `cc_threshold`, `mws` | instance labelling |
-| `boundary` | `(1, *spatial)` | `threshold_cc`, `seeded_watershed` | instance labelling |
-| `embedding` | `(D, *spatial)` | `mean_shift` | instance labelling |
 | `instances` | `(*spatial)` int | `identity` | instance labelling |
 | `class_scores` | `(K, *spatial)` | `argmax`, `per_class_threshold` | class labelling |
 | `class_labels` | `(*spatial)` int | `identity` | class labelling |
+| `boundary` | `(1, *spatial)` | *none yet* | instance labelling |
+| `embedding` | `(D, *spatial)` | *none yet* | instance labelling |
+| `sdt` | `(1, *spatial)` | *none yet* | instance labelling |
+
+The last three are part of the artifact contract, so they can be written, opened and validated, but
+no postprocessor accepts them yet, so nothing can turn them into a labelling to score. Adding one is
+a class in `src/postprocess/` and a line in `src/components.py`; the runner and the metrics do not
+change.
 
 A 2D model is handled upstream of the boundary by orthoplane averaging, so it arrives as a 3D artifact 
 like anything else.
