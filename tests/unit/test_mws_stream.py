@@ -70,10 +70,15 @@ def test_streaming_equals_one_shot(tmp_path, size, block):
     def read_block(origin, sz):
         return aff[(slice(None),) + tuple(slice(o, o + s) for o, s in zip(origin, sz, strict=True))]
 
-    streamed = segment_streaming(read_block, shape, tmp_path, block=block, n_buckets=32)
+    streamed, stats = segment_streaming(read_block, shape, tmp_path, block=block, n_buckets=32)
     assert np.array_equal(canonical(one_shot(aff)), canonical(streamed)), (
         f"streaming with block={block} disagrees with the one-shot kernel"
     )
+    # The high-water marks are what a caller sizes the next, larger run from, so they must be
+    # reported and must be under the capacity that was actually allocated.
+    assert 0 < stats["pair_insertions"] <= stats["pair_capacity"] // 2
+    assert 0 < stats["pool_used"] <= stats["pool_capacity"]
+    assert stats["edges"] > 0
 
 
 def test_streaming_also_equals_the_python_reference(tmp_path):
@@ -86,7 +91,7 @@ def test_streaming_also_equals_the_python_reference(tmp_path):
     def read_block(origin, sz):
         return aff[(slice(None),) + tuple(slice(o, o + s) for o, s in zip(origin, sz, strict=True))]
 
-    streamed = segment_streaming(read_block, shape, tmp_path, block=8, n_buckets=32)
+    streamed, _ = segment_streaming(read_block, shape, tmp_path, block=8, n_buckets=32)
     assert np.array_equal(canonical(reference), canonical(streamed))
 
 

@@ -182,8 +182,18 @@ def segment_streaming(
     pair_capacity: int | None = None,
     pool_capacity: int | None = None,
     keep_buckets: bool = False,
-) -> np.ndarray:
-    """Exact mutex watershed over the whole volume, without holding the edge list."""
+) -> tuple[np.ndarray, dict[str, int]]:
+    """Exact mutex watershed over the whole volume, without holding the edge list.
+
+    Labels are union-find root ids, not compacted to 1..k, and background is not special: every
+    voxel belongs to some cluster. Compaction is skipped on purpose; see the comment at the return.
+
+    Returns the labelling and a stats dict. The high-water marks are part of the return rather
+    than printed and forgotten: capacity has to be sized per volume, and the only honest basis for
+    that is what a comparable volume actually used. Sizing a ten-hour run from a safety multiplier
+    instead costs real headroom -- at 8x the voxel count the zebrafish doublecube projects to
+    1,869 GB against a 1.9 TB node, where its measured need is far lower.
+    """
     n_nodes = int(np.prod(shape))
     counts = write_buckets(
         read_block, shape, scratch, block=block, n_buckets=n_buckets,
@@ -230,5 +240,23 @@ def segment_streaming(
         if not keep_buckets:
             os.unlink(path)
 
-    _, labels = np.unique(finalize(parent), return_inverse=True)
-    return (labels + 1).astype(np.uint32).reshape(shape)
+    roots = finalize(parent).reshape(shape)
+    # Root ids are returned as labels rather than compacted to 1..k. `np.unique(...,
+    # return_inverse=True)` would sort a copy of the whole array and build an inverse -- about
+    # 114 GB of transient on top of everything else at 7.08 G voxels, which is what would have
+    # killed the largest run at its final step after ten hours. The metrics factorise ids rather
+    # than assuming a width (see cc_threshold), so compaction buys nothing they need.
+    #
+    # Narrowed only when it is provably safe: a 7.08-gigavoxel volume has root ids beyond uint32.
+    if int(roots.max()) <= np.iinfo(np.uint32).max:
+        roots = roots.astype(np.uint32)
+    stats = {
+        "edges": int(sum(counts)),
+        "pair_insertions": int(counters[0]),
+        "pool_used": int(counters[1]),
+        "pair_capacity": int(capacity),
+        "pool_capacity": int(pool_val.shape[0]),
+        "n_nodes": n_nodes,
+        "segments": int(np.unique(roots).size),
+    }
+    return roots, stats

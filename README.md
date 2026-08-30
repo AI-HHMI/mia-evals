@@ -2,36 +2,11 @@
 
 Scoring and leaderboards for volumetric instance and semantic segmentation.
 
-`mia-evals` is agnostic to output format. It can work with affinity maps, boundaries, embeddings, 
-per-class scores, or finished instance masks. More precisely, it scores **prediction artifacts** 
-rather than models.
+`mia-evals` is agnostic to output format. It can work with affinity maps, boundaries, embeddings, per-class scores, or finished instance masks. More precisely, it scores **prediction artifacts** rather than models. A trained model generates a "prediction artifact". `mia-evals` simply reads and scores it.
 
-[`mia-train`](https://github.com/AI-HHMI/mia-train) is the sister repository that handles everything
-related to model training. Both repositories use [`miao`](https://pypi.org/project/miao-io/) as 
-their dataset interface.
+[`mia-train`](https://github.com/AI-HHMI/mia-train) is the sister repository that handles everything related to model training and generating prediction artifacts. Both repositories use [`miao`](https://pypi.org/project/miao-io/) as their dataset interface.
 
-## Boundary between `mia-train` and `mia-evals`
-
-```
-  mia-train (or anything else)              mia-evals
-  ────────────────────────────              ─────────
-  train.py
-      │
-      ▼
-  predict.py ──► prediction artifact ─────► postprocess ─► metrics ─► record ─► leaderboard
-           (zarr + self-describing attrs)
-```
-
-A trained model generates a "prediction artifact" (affinity or boundary maps, per-voxel embeddings, 
-instance masks, or per-class scores). `mia-evals` simply reads and scores it. A third-party generated 
-segmentation works perfectly fine here. It enters at the artifact boundary with no model, no checkpoint, 
-and no config.
-
-## How format diversity is handled
-
-Many artifact kinds and many postprocessors funnel into exactly two scoreable forms. Metrics
-attach to those, never to the kind, so, for example, nERL does not know or care whether the labelling 
-came from affinities, a watershed, or a `.zarr` from a collaborator.
+## Supported output formats
 
 | artifact kind | shape | postprocessor | canonical form |
 | --- | --- | --- | --- |
@@ -43,18 +18,53 @@ came from affinities, a watershed, or a `.zarr` from a collaborator.
 | `embedding` | `(D, *spatial)` | *none yet* | instance labelling |
 | `sdt` | `(1, *spatial)` | *none yet* | instance labelling |
 
-The last three are part of the artifact contract, so they can be written, opened and validated, but
-no postprocessor accepts them yet, so nothing can turn them into a labelling to score. Adding one is
-a class in `src/postprocess/` and a line in `src/components.py`; the runner and the metrics do not
-change.
+<!-- ### `mws` on large volumes is expensive, and RAM is the binding constraint
+
+Mutex watershed is defined on one global ordering of the affinity graph's edges, so a whole volume's
+edges must be visited in priority order. They need not be resident -- `mws_stream.py` buckets them by
+priority on disk and reads the buckets back in order, which is exact -- but they must be *written*,
+and the union-find plus mutex structure that consumes them must be held in memory.
+
+Two costs, scaling with different things:
+
+* **RAM** holds the union-find and the mutex structure (pair table, partner pool, `parent`, `head`,
+  `chain_len`) and scales with the **voxel** count. This is what limits volume size.
+* **Scratch disk** holds the bucketed edges at 13 bytes each and scales with the **edge** count,
+  about 5.9 edges per voxel.
+
+| volume | voxels | edges | disk | RAM at 8x | RAM sized to measured | wall clock |
+| --- | --- | --- | --- | --- | --- | --- |
+| liconn_expid82 | 1.02 G | 6.0 G | 78 GB | **269 GB (measured)** | ~170 GB | 93 min (measured) |
+| zebrafish quadcube1 | 4.25 G | 25.1 G | 326 GB | ~1.12 TB | ~0.70 TB | ~6 h |
+| zebrafish doublecube1 | 7.08 G | 41.8 G | 543 GB | ~1.87 TB | ~1.17 TB | ~10 h |
+
+Only the expid82 row is measured; the rest scale from its 264 bytes/voxel.
+
+**The RAM figure is a choice, not a constant.** It is dominated by the `pair_capacity` and
+`pool_capacity` passed to `segment_streaming`, and the kernel raises rather than corrupting if either
+is short -- so under-guessing is cheap and over-guessing wastes a node. The default is 8x the voxel
+count, correct for small volumes (pair insertions run 4.05/voxel at 64^3) but wasteful for large ones
+(2.45/voxel at 256^3). At 8x the doublecube projects to 1.87 TB against a 1.9 TB node, roughly 4%
+headroom; sized to the measured rate it is nearer 1.17 TB. `segment_streaming` returns the
+high-water marks for exactly this reason: size the next run from what a comparable volume used.
+
+Nothing is reclaimed from the mutex structure yet. Doing so would cut its share by about 1.7x.
+
+Disk is the easier constraint -- buckets are deleted as they are consumed, though pass one writes all
+of them before pass two reads any, so the peak is the full figure above.
+
+**`cc_threshold` has none of these costs**, being a threshold and a connected-components pass, so the
+choice between them is a real trade rather than a free upgrade. Measured on liconn_expid82, both at
+`min_size = 50000`: `mws` reaches pq 0.0816 against `cc_threshold`'s 0.0352, and voi_merge 2.472
+against 4.094, in exchange for the memory, disk and hours above.
 
 A 2D model is handled upstream of the boundary by orthoplane averaging, so it arrives as a 3D artifact 
 like anything else.
-
+ -->
 ## Configs
 
-A task is defined in a `.toml` config file. It references a `miao` YAML for the data rather than restating
-it, so the same volume definitions serve training and scoring:
+Tasks are defined in `.toml` config files. Configs reference a `miao` YAML for the data rather than restating
+it, so the same volume definitions serve both training and scoring:
 
 ```toml
 task_name = "nisb_base_neuron_instance"
@@ -112,7 +122,7 @@ Two things the renderer has to enforce:
   and a table that hides it invites the wrong reading.
 - **Never mix extents in one table.** nERL is not comparable across regions.
 
-## Running it
+## Running
 
 ```bash
 pip install -e '.[instance]'          # + numba, cc3d, networkx, funlib.evaluate
