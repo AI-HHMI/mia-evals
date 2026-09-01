@@ -111,3 +111,82 @@ def test_too_small_a_pair_table_raises_rather_than_corrupting():
     order = np.argsort(-priority, kind="stable").astype(np.int64)
     with pytest.raises(RuntimeError, match="too small"):
         mutex_watershed_kernel(u, v, order, attractive, np.int64(n), np.int64(64), np.int64(64))
+
+
+# --- the pair table no longer needs a power-of-two capacity ------------------------------------
+#
+# It reduces by modulo rather than masking. The constraint was expensive at scale: the zebrafish
+# doublecube needs 49.5 G slots, which a power of two rounds to 68.72 G, taking the whole run from
+# 1,754 GB to 2,062 GB against a 1.945 TB node.
+#
+# These tests exist because the ones above cannot catch a regression here -- every one of them
+# passes a power-of-two capacity, so a broken probe sequence would be invisible to them. And the
+# failure mode is quiet: a probe that fails to find an existing pair drops a mutex constraint and
+# lets through a merge that should have been blocked, which yields a plausible partition rather
+# than an error.
+
+
+@pytest.mark.parametrize("capacity", [999, 1001, 4097, 12345, 65537, 1_000_003])
+def test_partition_is_independent_of_table_capacity(capacity):
+    """Any capacity large enough must give the same partition as a power-of-two one."""
+    rng = np.random.default_rng(7)
+    n, m = 60, 400
+    u = rng.integers(0, n, size=m).astype(np.int64)
+    v = rng.integers(0, n, size=m).astype(np.int64)
+    keep = u != v
+    u, v = u[keep], v[keep]
+    priority = rng.random(u.size).astype(np.float32)
+    attractive = rng.random(u.size) < 0.6
+    order = np.argsort(-priority, kind="stable").astype(np.int64)
+
+    expected = canonical(mutex_watershed(u, v, priority, attractive, n))
+    parent, _, _ = mutex_watershed_kernel(
+        u, v, order, attractive.astype(np.bool_),
+        np.int64(n), np.int64(capacity), np.int64(8 * m))
+    assert np.array_equal(expected, canonical(parent)), (
+        f"capacity {capacity} gives a different partition"
+    )
+
+
+def test_a_nearly_full_odd_table_still_finds_every_pair():
+    """Long probe sequences are where a wrap bug shows up, so run the table close to its limit.
+
+    All-repulsive edges maximise insertions, and the capacity is set just above twice that, so the
+    table sits near the half-full ceiling and probe runs are long.
+    """
+    rng = np.random.default_rng(11)
+    n, m = 120, 900
+    u = rng.integers(0, n, size=m).astype(np.int64)
+    v = rng.integers(0, n, size=m).astype(np.int64)
+    keep = u != v
+    u, v = u[keep], v[keep]
+    priority = rng.random(u.size).astype(np.float32)
+    attractive = np.zeros(u.size, dtype=bool)          # every edge inserts a pair
+    order = np.argsort(-priority, kind="stable").astype(np.int64)
+
+    distinct = len({(min(a, b), max(a, b)) for a, b in zip(u, v, strict=True)})
+    capacity = (2 * distinct + 3) | 1                  # just past half full
+    expected = canonical(mutex_watershed(u, v, priority, attractive, n))
+    parent, pairs, _ = mutex_watershed_kernel(
+        u, v, order, attractive, np.int64(n), np.int64(capacity), np.int64(8 * m))
+    assert pairs == distinct, f"inserted {pairs} pairs, expected {distinct} distinct"
+    assert np.array_equal(expected, canonical(parent))
+
+
+def test_capacity_one_less_than_a_power_of_two_wraps_correctly():
+    """The specific shape a masking implementation would get wrong."""
+    rng = np.random.default_rng(13)
+    n, m = 40, 260
+    u = rng.integers(0, n, size=m).astype(np.int64)
+    v = rng.integers(0, n, size=m).astype(np.int64)
+    keep = u != v
+    u, v = u[keep], v[keep]
+    priority = rng.random(u.size).astype(np.float32)
+    attractive = rng.random(u.size) < 0.5
+    order = np.argsort(-priority, kind="stable").astype(np.int64)
+    expected = canonical(mutex_watershed(u, v, priority, attractive, n))
+    for capacity in (2**12 - 1, 2**13 - 1, 2**14 - 1):
+        parent, _, _ = mutex_watershed_kernel(
+            u, v, order, attractive.astype(np.bool_),
+            np.int64(n), np.int64(capacity), np.int64(8 * m))
+        assert np.array_equal(expected, canonical(parent)), f"capacity {capacity} differs"

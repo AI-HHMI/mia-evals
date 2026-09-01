@@ -204,10 +204,10 @@ def segment_streaming(
     # since a small volume is proportionally more surface and merges less. Sizing from the 256^3
     # figure put the ceiling at 4.00 and a 64^3 run raised "pair table too small" -- so size from
     # the small-volume rate with headroom. The table must also stay under half full, hence 16x.
-    want_pairs = pair_capacity or max(1024, 16 * n_nodes)
-    capacity = 1
-    while capacity < want_pairs:
-        capacity <<= 1
+    # Odd, and not rounded up to a power of two: the table reduces by modulo, so any size works.
+    # Rounding cost 1.4x at the scale that matters -- the zebrafish doublecube needs 49.5 G slots,
+    # which a power of two takes to 68.72 G, i.e. 792 GB of pair table becoming 1,100 GB.
+    capacity = (pair_capacity or max(1025, 16 * n_nodes)) | 1
     state = make_state(
         np.int64(n_nodes), np.int64(capacity), np.int64(pool_capacity or max(1024, 16 * n_nodes))
     )

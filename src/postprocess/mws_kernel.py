@@ -64,23 +64,33 @@ def _ordered(a: np.int64, b: np.int64) -> tuple[np.int64, np.int64]:
 
 
 @njit(inline="always")
-def _hash_pair(a: np.int64, b: np.int64, mask: np.int64) -> np.int64:
-    """Fibonacci-mixed hash of an ordered pair.
+def _hash_pair(a: np.int64, b: np.int64, capacity: np.int64) -> np.int64:
+    """Fibonacci-mixed hash of an ordered pair, reduced into [0, capacity).
 
     The pair is hashed rather than packed into a single key. `a * n_nodes + b` overflows int64 once
     n_nodes exceeds about 3 G -- at 7.08 G voxels the largest key would be ~5e19 against int64's
     9.2e18 -- so a packed key silently aliases distinct pairs at exactly the scale this is for.
     Mixing both components separately has no such ceiling.
+
+    Reduced with `%` rather than `& (capacity - 1)` so the table need not be a power of two. That
+    constraint was expensive at scale rather than cosmetic: the zebrafish doublecube needs 49.5 G
+    slots, which a power of two rounds to 68.72 G, taking the pair table from 792 GB to 1,100 GB and
+    the whole run from 1,754 GB to 2,062 GB against a 1.945 TB node. One division per lookup buys
+    that back -- about 9 G divisions over the run, roughly 90 seconds against twelve hours.
+
+    Callers should pass an odd capacity. Masking kept only the low bits, so it depended entirely
+    on the hash being well mixed; modulo instead depends on the capacity sharing no factor with
+    residual structure in the hash, and odd suffices given two odd multipliers and the xor-fold.
     """
     h = np.uint64(a) * np.uint64(11400714819323198485)
     h ^= np.uint64(b) * np.uint64(14029467366897019727)
     h ^= h >> np.uint64(29)
-    return np.int64(h & np.uint64(mask))
+    return np.int64(h % np.uint64(capacity))
 
 
 @njit(cache=True, nogil=True)
 def _pair_find(
-    key_a: np.ndarray, key_b: np.ndarray, a: np.int64, b: np.int64, mask: np.int64
+    key_a: np.ndarray, key_b: np.ndarray, a: np.int64, b: np.int64, capacity: np.int64
 ) -> np.int64:
     """Slot holding the ordered pair (a, b), or the first empty slot for inserting it.
 
@@ -88,13 +98,17 @@ def _pair_find(
     64-bit hash alone would alias about three pairs in a 10^10-pair run, and each alias would be a
     spurious mutex silently blocking a legitimate merge.
     """
-    slot = _hash_pair(a, b, mask)
+    slot = _hash_pair(a, b, capacity)
     while True:
         if key_a[slot] == EMPTY:
             return slot
         if key_a[slot] == a and key_b[slot] == b:
             return slot
-        slot = (slot + 1) & mask
+        # Linear probe with an explicit wrap. Only the initial hash pays a division; the step is a
+        # compare, as cheap as the mask it replaces.
+        slot += 1
+        if slot == capacity:
+            slot = 0
 
 
 @njit(cache=True, nogil=True)
@@ -141,7 +155,7 @@ def process_edges(
     defined by that order, so a batch containing an edge weaker than one in a later batch changes
     the answer -- which is why the streaming driver buckets by priority rather than by position.
     """
-    mask = np.int64(key_a.shape[0] - 1)
+    capacity = np.int64(key_a.shape[0])
     for i in range(u.shape[0]):
         ru = _find(parent, u[i])
         rv = _find(parent, v[i])
@@ -149,7 +163,7 @@ def process_edges(
             continue
 
         lo, hi = _ordered(ru, rv)
-        slot = _pair_find(key_a, key_b, lo, hi, mask)
+        slot = _pair_find(key_a, key_b, lo, hi, capacity)
         forbidden = key_a[slot] != EMPTY
 
         if attractive[i]:
@@ -169,7 +183,7 @@ def process_edges(
                 nxt = pool_next[node]
                 if other != big:
                     nlo, nhi = _ordered(big, other)
-                    nslot = _pair_find(key_a, key_b, nlo, nhi, mask)
+                    nslot = _pair_find(key_a, key_b, nlo, nhi, capacity)
                     if key_a[nslot] == EMPTY:
                         if counters[0] + 1 > key_a.shape[0] // 2:
                             raise RuntimeError("mws: pair table too small")
