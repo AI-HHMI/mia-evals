@@ -17,4 +17,5 @@ import metrics.voxel_instance  # noqa: F401  (imported for its registration side
 import postprocess.cc_threshold  # noqa: F401  (imported for its registration side effect)
 import postprocess.labellings  # noqa: F401  (imported for its registration side effect)
 import postprocess.mws  # noqa: F401  (imported for its registration side effect)
+import postprocess.size_filter  # noqa: F401  (imported for its registration side effect)
 import tasks.segmentation  # noqa: F401  (imported for its registration side effect)

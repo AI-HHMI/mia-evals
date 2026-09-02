@@ -11,7 +11,7 @@ Scoring and leaderboards for volumetric instance and semantic segmentation.
 | artifact kind | shape | postprocessor | canonical form |
 | --- | --- | --- | --- |
 | `affinity` | `(2·rank, *spatial)` | `cc_threshold`, `mws` | instance labelling |
-| `instances` | `(*spatial)` int | `identity` | instance labelling |
+| `instances` | `(*spatial)` int | `identity`, `size_filter` | instance labelling |
 | `class_scores` | `(K, *spatial)` | `argmax`, `per_class_threshold` | class labelling |
 | `class_labels` | `(*spatial)` int | `identity` | class labelling |
 | `boundary` | `(1, *spatial)` | *none yet* | instance labelling |

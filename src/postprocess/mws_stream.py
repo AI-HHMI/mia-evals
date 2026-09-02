@@ -185,8 +185,8 @@ def segment_streaming(
 ) -> tuple[np.ndarray, dict[str, int]]:
     """Exact mutex watershed over the whole volume, without holding the edge list.
 
-    Labels are union-find root ids, not compacted to 1..k, and background is not special: every
-    voxel belongs to some cluster. Compaction is skipped on purpose; see the comment at the return.
+    Labels are compacted to 1..k. There is no background: mutex watershed assigns every voxel to a
+    cluster, so ids start at 1 and 0 never appears.
 
     Returns the labelling and a stats dict. The high-water marks are part of the return rather
     than printed and forgotten: capacity has to be sized per volume, and the only honest basis for
@@ -208,10 +208,9 @@ def segment_streaming(
     # Rounding cost 1.4x at the scale that matters -- the zebrafish doublecube needs 49.5 G slots,
     # which a power of two takes to 68.72 G, i.e. 792 GB of pair table becoming 1,100 GB.
     capacity = (pair_capacity or max(1025, 16 * n_nodes)) | 1
-    state = make_state(
+    parent, key_a, key_b, head, chain_len, pool_val, pool_next, counters = make_state(
         np.int64(n_nodes), np.int64(capacity), np.int64(pool_capacity or max(1024, 16 * n_nodes))
     )
-    parent, key_a, key_b, head, chain_len, pool_val, pool_next, counters = state
     steps = offset_steps(shape)
 
     for bucket in range(n_buckets):
@@ -241,22 +240,44 @@ def segment_streaming(
             os.unlink(path)
 
     roots = finalize(parent).reshape(shape)
-    # Root ids are returned as labels rather than compacted to 1..k. `np.unique(...,
-    # return_inverse=True)` would sort a copy of the whole array and build an inverse -- about
-    # 114 GB of transient on top of everything else at 7.08 G voxels, which is what would have
-    # killed the largest run at its final step after ten hours. The metrics factorise ids rather
-    # than assuming a width (see cc_threshold), so compaction buys nothing they need.
+    pair_insertions, pool_used = int(counters[0]), int(counters[1])
+
+    # Free the mutex structures before compacting. They are the bulk of the resident set -- about
+    # 1.66 TB of the 1.70 TB peak on a 7.08-gigavoxel volume -- and are dead the moment `finalize`
+    # has run, so releasing them is what makes the next step affordable.
+    del key_a, key_b, pool_val, pool_next, head, chain_len, counters
+
+    # Compact root ids to 1..k.
     #
-    # Narrowed only when it is provably safe: a 7.08-gigavoxel volume has root ids beyond uint32.
-    if int(roots.max()) <= np.iinfo(np.uint32).max:
-        roots = roots.astype(np.uint32)
+    # An earlier version returned raw root ids and justified it by saying the metrics factorise ids
+    # rather than assuming a width. That is true but not sufficient: `_factorize` only takes its
+    # counting path while the id *span* stays under 2**31, and root ids on a 7.08-gigavoxel volume
+    # reach 7.08e9. So sparse ids are scored correctly but by sorting 7.08 G int64 -- 57 GB plus
+    # sort temporaries -- every time any metric touches the labelling. Compacting once here puts
+    # every later consumer on the counting path.
+    #
+    # Done in slabs rather than with `np.unique(..., return_inverse=True)` over the whole array,
+    # which is the 114 GB transient that made compaction look unaffordable in the first place. Two
+    # slab passes need one slab plus the id map: 85 GB against the 1.66 TB just released.
+    #
+    # Numbered from 1, never 0. Mutex watershed assigns every voxel to a cluster, so there is no
+    # background -- and a metric reading `background_id = 0` would silently drop a real cluster.
+    slab = max(1, shape[0] // 64)
+    bounds = range(0, shape[0], slab)
+    distinct = np.unique(np.concatenate([np.unique(roots[lo: lo + slab]) for lo in bounds]))
+    narrow = np.uint32 if distinct.size < np.iinfo(np.uint32).max else np.int64
+    labels = np.empty(shape, dtype=narrow)
+    for lo in bounds:
+        labels[lo: lo + slab] = np.searchsorted(distinct, roots[lo: lo + slab]) + 1
+    del roots, parent
+
     stats = {
         "edges": int(sum(counts)),
-        "pair_insertions": int(counters[0]),
-        "pool_used": int(counters[1]),
+        "pair_insertions": pair_insertions,
+        "pool_used": pool_used,
         "pair_capacity": int(capacity),
-        "pool_capacity": int(pool_val.shape[0]),
+        "pool_capacity": int(pool_capacity or max(1024, 16 * n_nodes)),
         "n_nodes": n_nodes,
-        "segments": int(np.unique(roots).size),
+        "segments": int(distinct.size),
     }
-    return roots, stats
+    return labels, stats

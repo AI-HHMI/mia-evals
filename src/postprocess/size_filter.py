@@ -13,7 +13,12 @@ parameter name they read it from.
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
+
+from .base import BasePostprocess
+from .registry import PostprocessRegistry
 
 
 def drop_small_components(labels: np.ndarray, min_size: int) -> np.ndarray:
@@ -53,3 +58,53 @@ def drop_small_components(labels: np.ndarray, min_size: int) -> np.ndarray:
         chunk = labels[start : start + slab]
         chunk[...] = remap[chunk]
     return labels
+
+
+@PostprocessRegistry.register("size_filter")
+class SizeFilter(BasePostprocess):
+    """Drop components below a voxel count from a labelling that already exists.
+
+    `cc_threshold` and `mws` apply the same filter as part of producing a labelling. This entry
+    exists for the case where the labelling is the *input*: a stored `instances` artifact, whether
+    written by an expensive postprocessor whose output was persisted or handed over by someone else.
+    Mutex watershed on a 7-gigavoxel volume takes eleven hours, so re-running it once per candidate
+    to sweep a filter is not an option -- the labelling is computed once and the filter swept over
+    it, which is only possible if the filter is a postprocessor in its own right.
+
+    Accepts `instances` only, unlike `identity`. A size filter on `class_labels` would be
+    meaningless: a class region is not a component, and "drop small ones" has no reading there.
+    """
+
+    accepts = ("instances",)
+    produces = "instances"
+
+    def __init__(
+        self, min_sizes: tuple[int, ...] | list[int] = (0,), **settings: Any
+    ) -> None:
+        super().__init__(min_sizes=min_sizes, **settings)
+        if not min_sizes:
+            raise ValueError(
+                "size_filter with an empty `min_sizes` has nothing to sweep. Use `[0]` for no "
+                "filter, which is the default."
+            )
+        if any(int(v) < 0 for v in min_sizes):
+            raise ValueError(f"min_sizes must be non-negative voxel counts, got {list(min_sizes)}")
+        self.min_sizes = tuple(sorted({int(v) for v in min_sizes}))
+
+    def search_space(self) -> list[dict[str, Any]]:
+        return [{"min_size": min_size} for min_size in self.min_sizes]
+
+    def __call__(self, array: np.ndarray, **params: Any) -> np.ndarray:
+        if array.dtype.kind == "f":
+            raise ValueError(
+                f"size_filter was handed a floating-point array (dtype {array.dtype}); a labelling "
+                "must be integral, or the ids are not ids. Check the artifact's `kind`."
+            )
+        # `drop_small_components` works in place. Safe here because the runner reads the artifact
+        # afresh for every candidate, so each sweep step owns its array -- but not safe in general,
+        # which is why the helper says so.
+        return drop_small_components(array, int(params.get("min_size", 0)))
+
+    def describe(self, params: dict[str, Any]) -> str:
+        min_size = int(params.get("min_size", 0))
+        return f"size_filter(min_size={min_size})" if min_size else "size_filter(no filter)"
