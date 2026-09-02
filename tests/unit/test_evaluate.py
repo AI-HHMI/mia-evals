@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import textwrap
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -328,3 +329,33 @@ def test_a_single_artifact_is_refused_for_a_multi_volume_task(two_volumes):
             "record": root / "r3", "val_config": None, "run_dir": None,
             "label": "", "scratch": root / "s3",
         })())
+
+
+def test_leaderboard_root_prefers_a_checkout(tmp_path, monkeypatch):
+    """A source checkout beside the module wins, so an editable install works from anywhere."""
+    import evaluate
+
+    monkeypatch.chdir(tmp_path)
+    root = evaluate._leaderboard_root()
+    # This test suite runs against the checkout, where `<repo>/leaderboard/` exists.
+    assert root == Path(evaluate.__file__).resolve().parents[1] / "leaderboard"
+    assert root.is_dir()
+    assert root != tmp_path / "leaderboard"
+
+
+def test_leaderboard_root_falls_back_to_cwd_when_installed(tmp_path, monkeypatch):
+    """Without a checkout beside the module, default to the working directory.
+
+    Regression test for a real fault found by a from-scratch install check: with the path derived
+    only from `__file__`, a non-editable install resolved the default to
+    `<venv>/lib/pythonX.Y/leaderboard`, so `score` would write git-tracked records into
+    site-packages and `leaderboard --check` compared a table that did not exist.
+    """
+    import evaluate
+
+    fake_site_packages = tmp_path / "venv" / "lib" / "python3.14" / "site-packages"
+    fake_site_packages.mkdir(parents=True)
+    monkeypatch.setattr(evaluate, "__file__", str(fake_site_packages / "evaluate.py"))
+    monkeypatch.chdir(tmp_path)
+
+    assert evaluate._leaderboard_root() == tmp_path / "leaderboard"

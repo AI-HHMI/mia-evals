@@ -33,9 +33,31 @@ from report import leaderboard
 from report.record import Submission, git_commit
 from tasks.base import BaseTask, Volume
 
+#: Where this module was installed from. Used only to look up `mia-evals`' own git commit for a
+#: record's provenance, which is a property of the source and not of the working directory. There
+#: is no `.git` under a non-editable install, and `git_commit` reports "unavailable" for that.
 _REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_RECORDS = _REPO_ROOT / "leaderboard" / "records"
-DEFAULT_LEADERBOARD = _REPO_ROOT / "leaderboard" / "README.md"
+
+
+def _leaderboard_root() -> Path:
+    """The `leaderboard/` directory the CLI defaults to, for records and the rendered table.
+
+    This used to be `Path(__file__).parents[1] / "leaderboard"` unconditionally, which is correct
+    for a source checkout or an editable install but wrong for a plain `pip install .`: there
+    `__file__` is `<venv>/lib/pythonX.Y/site-packages/evaluate.py`, so the default became
+    `<venv>/lib/pythonX.Y/leaderboard`. `mia-evals leaderboard` then compared a table that did not
+    exist, and `mia-evals score` would have written git-tracked records into site-packages.
+
+    Records and the table are version-controlled artifacts of a clone, so the working directory is
+    the right fallback. The checkout still wins when this module is running from one, which keeps
+    an editable install usable from any directory.
+    """
+    beside_source = Path(__file__).resolve().parents[1] / "leaderboard"
+    return beside_source if beside_source.is_dir() else Path.cwd() / "leaderboard"
+
+
+DEFAULT_RECORDS = _leaderboard_root() / "records"
+DEFAULT_LEADERBOARD = _leaderboard_root() / "README.md"
 
 
 def build(config: TaskConfig) -> tuple[BaseTask, BasePostprocess, dict[str, BaseMetric]]:

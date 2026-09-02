@@ -104,9 +104,9 @@ def test_ignore_id_removes_voxels_from_every_metric():
 def test_matches_funlib_exactly():
     """Same convention *and* same units as the skeleton path's `rand_voi`.
 
-    Skipped where `funlib.evaluate` is absent -- it is git-install-only, behind the `instance`
-    extra -- but this is the test that makes the two VOI columns commensurable, so it must run
-    wherever that extra is installed.
+    Skipped where `funlib.evaluate` is absent, since it is git-install-only and installed
+    separately from the package's own dependencies. This is nonetheless the test that makes the two
+    VOI columns commensurable, so it must run wherever that package is present.
     """
     funlib = pytest.importorskip("funlib.evaluate")
 

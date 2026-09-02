@@ -17,7 +17,7 @@ became the cheaper oracle: keeping the old driver alive forever costs ~250 lines
 scoring logic that must be maintained but is never used in anger. The file records the artifact's
 SHA-256, so a fixture can never be silently compared against a different array.
 
-Marked `parity`: needs the `instance` extra and a real artifact on /nrs, and takes minutes.
+Marked `parity`: needs `funlib.evaluate` and a real artifact on /nrs, and takes minutes.
 """
 
 from __future__ import annotations

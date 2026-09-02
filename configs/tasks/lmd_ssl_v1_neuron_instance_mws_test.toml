@@ -1,0 +1,52 @@
+# lmd_ssl_v1 -- neuron/cell instance segmentation, HELD-OUT half, scored from a stored MUTEX
+# WATERSHED labelling rather than from affinities.
+#
+#   mia-evals score configs/tasks/lmd_ssl_v1_neuron_instance_mws_test.toml \
+#       --test  <mws_artifacts>/test \
+#       --val   <mws_artifacts>/finetune \
+#       --val-config configs/tasks/lmd_ssl_v1_neuron_instance_mws_fit.toml \
+#       --run-dir /nrs/.../lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919
+#
+# The artifacts here are `instances`, not `affinity`. Mutex watershed on the largest of these
+# volumes takes eleven hours -- 7.078 G voxels, 42.35 G edges, 1.70 TB resident -- so it is run once
+# per volume and its labelling persisted. The postprocessor swept here is therefore `size_filter`,
+# which drops components below a voxel count from a labelling that already exists. Naming `mws`
+# instead would re-run the watershed for every candidate.
+#
+# The same fit discipline as the cc_threshold entries: min_size is chosen on the other half and
+# applied once here. With eight volumes the reported half also selects the model, so a filter chosen
+# here would be selecting on the number being published.
+
+task_name = "lmd_ssl_v1_neuron_instance"
+
+notes = """
+Voxel metrics, not skeleton ones: these volumes ship dense label arrays and no skeletons, so nERL is
+unavailable and panoptic quality ranks. Not comparable with any NISB nERL figure.
+
+Scored region per volume is the largest lattice-aligned sub-box of each volume's bounding box, the
+same region the cc_threshold entries use, so the two are directly comparable.
+
+Labels are 1..k with no background: mutex watershed assigns every voxel to a cluster. Ids were
+compacted at conversion because `_factorize` only takes its counting path while the id span stays
+under 2**31, and two of these volumes carried raw union-find root ids spanning 4.2 G and 7.06 G.
+"""
+
+[data]
+config_path = "/groups/scicompsoft/home/orhane/projects/mia-train/experiments/lmd_ssl_v1/lmd_val_singlescale.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "sibling_artifact"   # <volume>.gt.zarr symlinked beside each labelling
+
+[postprocess]
+name = "size_filter"
+# The sweep. Measured on all eight volumes: mean pq over the finetune half rises 0.0037 -> 0.0278
+# -> 0.1301 -> 0.3441 across these four values, while mean voi_sum is flat to 5,000 (1.5188 ->
+# 1.5202) and worsens at 50,000 (1.6158). So pq and voi disagree about the right value, and total
+# true positives fall 4,158 -> 2,374 across the sweep: the largest filter is deleting real objects.
+# Both are reported so a reader sees the trade rather than the ranking metric alone.
+min_sizes = [0, 500, 5000, 50000]
+
+[metric]
+names = ["voxel_instance"]
+rank_by = "voxel_instance"        # primary key: pq

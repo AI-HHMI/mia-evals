@@ -164,6 +164,18 @@ def open_artifact(path: str | Path) -> Artifact:
     if not path.exists():
         raise FileNotFoundError(f"no artifact at {path}")
     store = zarr.open(str(path), mode="r")
+    if not hasattr(store, "shape"):
+        # A zarr *group*, most likely a multiscale OME-Zarr pyramid. Worth its own message rather
+        # than the `AttributeError: 'Group' object has no attribute 'shape'` this used to raise:
+        # the source volumes read through `miao` *are* multiscale OME-Zarr, so handing one to the
+        # scorer is the natural mistake, and the fix is to name a level.
+        levels = sorted(str(k) for k in store.keys()) if hasattr(store, "keys") else []
+        hint = f" Name one level, for example {path.name}/{levels[0]}." if levels else ""
+        raise ValueError(
+            f"{path} is a zarr group, not an array. A prediction artifact is a single-resolution "
+            f"array, because scoring compares one voxel lattice against the ground truth and a "
+            f"multiscale pyramid does not say which level that is.{hint}"
+        )
     attrs = dict(store.attrs)
 
     kind = attrs.get("kind")
@@ -178,6 +190,19 @@ def open_artifact(path: str | Path) -> Artifact:
 
     shape = tuple(int(s) for s in store.shape)
     spatial = _check_channels(kind, shape)
+
+    # `floating` was declared per kind but never checked, so a float array could be declared as a
+    # labelling and only fail later, inside a postprocessor. Checking it here matters more than the
+    # late error suggests: float32 holds integers exactly only up to 2**24, so a labelling stored
+    # as float32 silently merges distinct ids -- and the array still reads back as a plausible
+    # labelling with a plausible object count.
+    if not KINDS[kind]["floating"] and np.issubdtype(np.dtype(store.dtype), np.floating):
+        raise ValueError(
+            f"{path} is kind={kind!r}, which is a labelling, but its dtype is {store.dtype}. Ids "
+            "must be an integer type: float32 represents integers exactly only below 2**24, so "
+            "larger ids collapse into one another and the result still looks like a valid "
+            "labelling. Write it as an integer dtype instead of casting at read time."
+        )
 
     background_id = attrs.get("background_id")
     ignore_id = attrs.get("ignore_id")

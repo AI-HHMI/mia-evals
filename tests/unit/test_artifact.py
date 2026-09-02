@@ -111,3 +111,64 @@ def test_a_labelling_read_needs_no_channel_axis(tmp_path):
     artifact = open_artifact(path)
     assert artifact.channels is None
     assert np.array_equal(artifact.read(channels=3), labels)
+
+
+def test_multiscale_group_is_rejected_with_a_usable_message(tmp_path):
+    """Pointing at an OME-Zarr pyramid is the natural mistake, so it needs a real message.
+
+    The source volumes read through `miao` are multiscale OME-Zarr groups, so a producer or a
+    collaborator handing one to the scorer is expected rather than perverse. Before this check it
+    raised `AttributeError: 'Group' object has no attribute 'shape'`, which names neither the
+    problem nor the fix.
+    """
+    import zarr
+
+    path = tmp_path / "pyramid.zarr"
+    group = zarr.open_group(str(path), mode="w")
+    for level, extent in ((0, 8), (1, 4)):
+        array = group.create_array(name=f"s{level}", shape=(extent,) * 3, dtype="u4")
+        array[:] = 1
+    group.attrs.update({"kind": "instances", "background_id": 0})
+
+    with pytest.raises(ValueError, match="is a zarr group, not an array"):
+        open_artifact(path)
+    # The message has to say which level to name, or it only halves the problem.
+    with pytest.raises(ValueError, match="s0"):
+        open_artifact(path)
+
+
+def test_a_single_level_of_a_pyramid_is_a_valid_artifact(tmp_path):
+    """The fix the message recommends must actually work."""
+    import zarr
+
+    path = tmp_path / "pyramid.zarr"
+    group = zarr.open_group(str(path), mode="w")
+    array = group.create_array(name="s0", shape=(8, 8, 8), dtype="u4")
+    array[:] = 1
+    array.attrs.update({"kind": "instances", "background_id": 0})
+
+    artifact = open_artifact(path / "s0")
+    assert artifact.kind == "instances"
+    assert artifact.spatial_shape == (8, 8, 8)
+
+
+@pytest.mark.parametrize("kind", ["instances", "class_labels"])
+def test_a_float_labelling_is_rejected(tmp_path, kind):
+    """float32 holds integers exactly only below 2**24, so ids above that silently merge.
+
+    The damage is invisible downstream: the array still reads back as a labelling with a plausible
+    object count, so it must be refused at the read rather than trusted and cast.
+    """
+    labels = np.zeros((8, 8, 8), dtype=np.float32)
+    labels[2:6, 2:6, 2:6] = 1
+    with pytest.raises(ValueError, match="must be an integer type"):
+        write_artifact(tmp_path / f"{kind}.zarr", labels, kind, background_id=0)
+
+
+@pytest.mark.parametrize("kind", ["affinity", "boundary", "sdt", "class_scores", "embedding"])
+def test_float_is_still_fine_for_the_score_kinds(tmp_path, kind):
+    """The dtype check must not catch the kinds that are genuinely floating-point."""
+    channels = 6 if kind == "affinity" else 1 if kind in ("boundary", "sdt") else 3
+    array = np.full((channels, 4, 4, 4), 0.5, dtype=np.float32)
+    artifact = open_artifact(write_artifact(tmp_path / f"{kind}.zarr", array, kind))
+    assert artifact.kind == kind

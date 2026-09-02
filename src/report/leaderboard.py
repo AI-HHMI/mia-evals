@@ -29,6 +29,9 @@ HEADER = """<!-- GENERATED FILE -- do not edit by hand.
      Rows come from leaderboard/records/; edit a record, not this table. -->
 
 # Leaderboard
+
+A score here is only interpretable against a floor. See
+[docs/controls.md](../docs/controls.md) for what these tasks measure with no model at all.
 """
 
 

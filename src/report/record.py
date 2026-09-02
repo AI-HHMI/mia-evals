@@ -18,6 +18,7 @@ not say which invites the reader to assume the wrong one.
 
 from __future__ import annotations
 
+import importlib
 import json
 import platform
 import subprocess
@@ -51,9 +52,16 @@ def git_commit(repo: Path) -> str:
 def _component_versions() -> dict[str, str]:
     """Versions of everything whose change could move a number."""
     versions = {"python": platform.python_version()}
-    for module in ("numpy", "zarr", "miao", "numba", "cc3d", "networkx"):
+    # `cc3d` used to be here, and was dropped along with the dependency: nothing imports it since
+    # connected components became the numba implementation in `utils/`, so its version could not
+    # move a number. `funlib.evaluate` records as "absent" unless the skeleton metric is installed.
+    for module in ("numpy", "zarr", "miao", "numba", "networkx", "funlib.evaluate"):
         try:
-            versions[module] = getattr(__import__(module), "__version__", "present")
+            # `importlib.import_module`, not `__import__`: the latter returns the top-level
+            # package, so a dotted name would report `funlib`'s version and not the
+            # submodule's.
+            found = importlib.import_module(module)
+            versions[module] = getattr(found, "__version__", "present")
         except ImportError:
             versions[module] = "absent"
     return versions
