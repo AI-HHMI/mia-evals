@@ -80,8 +80,10 @@ python <mia-train>/src/predict.py <run_dir> --cube <cube>.zarr --out aff.zarr --
 mia-evals score configs/tasks/nisb_base_neuron_instance.toml \
     --val aff_seed100.zarr --test aff_seed101.zarr --run-dir <run_dir>
 
-# 3. Rebuild the leaderboard table from all records.
-mia-evals leaderboard
+# 3. Rebuild a table from its records. Scoring already does this for the task it scored;
+#    this is for after editing or removing a record by hand.
+mia-evals leaderboard --task <task_name>     # one task
+mia-evals leaderboard                        # every task, plus the index
 ```
 
 To visualize the predictions (which is usually the fastest way to understand a disappointing score):
@@ -273,8 +275,20 @@ the number of datasets alone would suggest.
 
 ## The leaderboard
 
-`leaderboard/README.md` is generated and must never be edited by hand. Each evaluation writes one
-small JSON record under `leaderboard/records/`, and the table is rendered from those records. A
+Every file under `leaderboard/` is generated and should not be edited by hand. The directory holds
+one subdirectory per task:
+
+```
+leaderboard/
+  README.md                        index: which tasks exist, and how many entries. No scores.
+  <task_name>/
+    README.md                      that task's table, rendered from ./records/
+    records/<identifier>.json      one record per evaluation
+```
+
+`mia-evals score` writes the record **and** re-renders that task's table, so the two cannot drift
+apart through a forgotten second command; every other task's file is left untouched. `mia-evals
+leaderboard` rebuilds everything, and `--task <name>` rebuilds a specific task. A
 record carries the scores per volume and in aggregate, the producing run and step, that run's
 resolved config and git commit copied inline, the post-processor and the parameters that won on
 validation, the exact region scored, and the versions of every component that could move a number.
@@ -282,7 +296,7 @@ Copying the provenance inline rather than referencing it means a record stays ch
 run directory has been deleted. Records are git-tracked, so a new entry arrives as a reviewable
 diff.
 
-The renderer enforces two rules that are easy to get wrong by hand. 1) It always shows the
+The renderer enforces two rules that are easy to get wrong by hand. It always shows the
 post-processor as a column, because "A beats B" can be a post-processing difference rather than a
 model difference. It also refuses to put two different scored extents in one table, because several
 of these metrics change with extent.

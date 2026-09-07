@@ -116,12 +116,88 @@ class Submission:
         return f"{stem}_step{step}" if step is not None else stem
 
     def write(self, root: Path) -> Path:
-        """Write to `<root>/<task_name>/<identifier>.json`, creating directories as needed."""
-        directory = root / self.task_name
+        """Write to `<root>/<task_name>/records/<identifier>.json`, creating directories."""
+        directory = records_dir(root, self.task_name)
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"{self.identifier()}.json"
         path.write_text(json.dumps(asdict(self), indent=2, sort_keys=False) + "\n")
         return path
+
+
+# --------------------------------------------------------------------------- the on-disk layout
+#
+# One directory per task, holding that task's records and its own rendered table:
+#
+#     leaderboard/<task_name>/records/<identifier>.json
+#     leaderboard/<task_name>/README.md
+#
+# Task-major rather than kind-major (`records/<task>/` beside one shared `README.md`) because a
+# task is the unit everything else operates on. A record belongs to exactly one task, a table
+# ranks within exactly one task, and two tasks are never comparable -- `lmd_ssl_v1_neuron_instance`
+# averages four volumes at 8 nm while `lmd_ssl_v1_zebrafish_instance` scores one, and putting them
+# under one heading in one file invited exactly the comparison both refuse. Splitting the directory
+# makes adding a task a new directory instead of an edit to a shared file, and makes a task's
+# records and its table move, diff and review together.
+
+
+def task_dir(root: Path, task_name: str) -> Path:
+    """`<root>/<task_name>` -- everything belonging to one task."""
+    return root / task_name
+
+
+def records_dir(root: Path, task_name: str) -> Path:
+    return task_dir(root, task_name) / "records"
+
+
+def readme_path(root: Path, task_name: str) -> Path:
+    return task_dir(root, task_name) / "README.md"
+
+
+def task_names(root: Path) -> list[str]:
+    """Every task with a records directory under `root`, sorted.
+
+    Read from the directory tree rather than from the records themselves so a task that has a
+    directory but no submissions yet still renders an (empty) table instead of vanishing.
+    """
+    if not root.is_dir():
+        return []
+    return sorted(
+        entry.name for entry in root.iterdir()
+        if entry.is_dir() and (entry / "records").is_dir()
+    )
+
+
+def _load(path: Path) -> Submission:
+    payload = json.loads(path.read_text())
+    version = int(payload.get("schema_version", 0))
+    if version > SCHEMA_VERSION:
+        raise ValueError(
+            f"{path} was written by a newer mia-evals (schema {version} > {SCHEMA_VERSION}); "
+            "update this checkout rather than rendering an incomplete table"
+        )
+    return Submission(**payload)
+
+
+def load_task(root: Path, task_name: str) -> list[Submission]:
+    """One task's submissions.
+
+    The task name comes from the directory, and a record claiming a different one is an error
+    rather than a silent regroup: it means a record was written or moved into the wrong task, and
+    rendering it under the directory's name would publish it in a table it was not scored for.
+    """
+    directory = records_dir(root, task_name)
+    if not directory.is_dir():
+        return []
+    submissions = []
+    for path in sorted(directory.glob("*.json")):
+        submission = _load(path)
+        if submission.task_name != task_name:
+            raise ValueError(
+                f"{path} is under {task_name!r} but its record says task_name="
+                f"{submission.task_name!r}. Move it to the directory it belongs to."
+            )
+        submissions.append(submission)
+    return submissions
 
 
 def load_records(root: Path) -> dict[str, list[Submission]]:
@@ -131,15 +207,4 @@ def load_records(root: Path) -> dict[str, list[Submission]]:
     omitting a submission would make the leaderboard silently incomplete, which is worse than
     failing to render it.
     """
-    grouped: dict[str, list[Submission]] = {}
-    for path in sorted(root.rglob("*.json")):
-        payload = json.loads(path.read_text())
-        version = int(payload.get("schema_version", 0))
-        if version > SCHEMA_VERSION:
-            raise ValueError(
-                f"{path} was written by a newer mia-evals (schema {version} > {SCHEMA_VERSION}); "
-                "update this checkout rather than rendering an incomplete table"
-            )
-        submission = Submission(**payload)
-        grouped.setdefault(submission.task_name, []).append(submission)
-    return grouped
+    return {name: load_task(root, name) for name in task_names(root)}

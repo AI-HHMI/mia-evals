@@ -105,7 +105,7 @@ def test_scores_an_instance_submission_and_writes_a_record(instances, monkeypatc
 
     records = tmp_path / "records"
     args = type("Args", (), {
-        "config": config, "test": artifact, "val": None, "record": records,
+        "config": config, "test": artifact, "val": None, "leaderboard": records,
         "val_config": None, "run_dir": None, "label": "", "scratch": tmp_path / "scratch",
     })()
     evaluate.cmd_score(args)
@@ -145,7 +145,7 @@ def test_a_sweep_cannot_be_fitted_on_the_reported_split(instances, tmp_path):
     import evaluate
 
     args = type("Args", (), {
-        "config": config, "test": affinities, "val": None, "record": tmp_path / "r",
+        "config": config, "test": affinities, "val": None, "leaderboard": tmp_path / "r",
         "val_config": None, "run_dir": None, "label": "", "scratch": tmp_path / "s",
     })()
     with pytest.raises(SystemExit, match="selecting on the number being reported"):
@@ -174,7 +174,7 @@ def test_incompatible_kind_and_postprocessor_are_refused(instances, tmp_path):
     import evaluate
 
     args = type("Args", (), {
-        "config": config, "test": scores, "val": None, "record": tmp_path / "r",
+        "config": config, "test": scores, "val": None, "leaderboard": tmp_path / "r",
         "val_config": None, "run_dir": None, "label": "", "scratch": tmp_path / "s",
     })()
     with pytest.raises(ValueError, match="accepts artifacts of kind"):
@@ -218,24 +218,38 @@ def test_leaderboard_renders_and_detects_drift(instances, tmp_path):
     import evaluate
     from report import leaderboard
 
-    records = tmp_path_ / "records2"
+    root = tmp_path_ / "leaderboard2"
     evaluate.cmd_score(type("Args", (), {
-        "config": config, "test": artifact, "val": None, "record": records,
+        "config": config, "test": artifact, "val": None, "leaderboard": root,
         "val_config": None, "run_dir": None, "label": "arm_a", "scratch": tmp_path_ / "s2",
     })())
 
-    output = tmp_path_ / "LEADERBOARD.md"
-    leaderboard.write(records, output)
+    # Scoring writes the record *and* renders that task's table, so the two cannot drift apart by
+    # a forgotten second command. Both land under the task's own directory.
+    assert (root / "unit_task" / "records" / "arm_a.json").is_file()
+    output = root / "unit_task" / "README.md"
+    assert output.is_file()
+
     text = output.read_text()
     assert "GENERATED FILE" in text
     assert "unit_task" in text and "arm_a" in text
     # The postprocessor is a column, so a reader cannot mistake a post-processing difference for a
     # model difference.
     assert "postprocess" in text
-    assert leaderboard.check(records, output)
+    assert leaderboard.check(root) == []
 
     output.write_text(text + "\nhand edit\n")
-    assert not leaderboard.check(records, output)
+    assert leaderboard.check(root) == [output]
+    assert leaderboard.check(root, "unit_task") == [output]
+
+    # Rebuilding one task repairs it, and the index is refreshed alongside.
+    leaderboard.write(root, "unit_task")
+    assert leaderboard.check(root) == []
+    index = (root / "README.md").read_text()
+    assert "unit_task" in index
+    # The index lists tasks; it must not rank anything, or the split back into per-task pages
+    # would have bought nothing.
+    assert "arm_a" not in index
 
 
 # --------------------------------------------------------------- several volumes at once
@@ -284,10 +298,10 @@ def test_each_volume_is_scored_against_its_own_artifact(two_volumes):
 
     records = root / "records"
     evaluate.cmd_score(type("Args", (), {
-        "config": config, "test": artifacts, "val": None, "record": records,
+        "config": config, "test": artifacts, "val": None, "leaderboard": records,
         "val_config": None, "run_dir": None, "label": "multi", "scratch": root / "s",
     })())
-    payload = json.loads((records / "unit_task" / "multi.json").read_text())
+    payload = json.loads((records / "unit_task" / "records" / "multi.json").read_text())
 
     per_volume = payload["per_volume"]
     assert set(per_volume) == {"alpha", "beta"}
@@ -314,7 +328,7 @@ def test_a_missing_per_volume_artifact_is_refused(two_volumes):
     shutil.rmtree(artifacts / "beta.zarr")
     with pytest.raises(SystemExit, match="missing an artifact"):
         evaluate.cmd_score(type("Args", (), {
-            "config": config, "test": artifacts, "val": None, "record": root / "r2",
+            "config": config, "test": artifacts, "val": None, "leaderboard": root / "r2",
             "val_config": None, "run_dir": None, "label": "", "scratch": root / "s2",
         })())
 
@@ -326,7 +340,7 @@ def test_a_single_artifact_is_refused_for_a_multi_volume_task(two_volumes):
     with pytest.raises(SystemExit, match="single artifact but this task has 2 volumes"):
         evaluate.cmd_score(type("Args", (), {
             "config": config, "test": artifacts / "alpha.zarr", "val": None,
-            "record": root / "r3", "val_config": None, "run_dir": None,
+            "leaderboard": root / "r3", "val_config": None, "run_dir": None,
             "label": "", "scratch": root / "s3",
         })())
 

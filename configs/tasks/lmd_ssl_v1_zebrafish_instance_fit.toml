@@ -1,0 +1,101 @@
+# lmd_ssl_v1 -- neuron/cell instance segmentation on the ZEBRAFISH PAIR only, FIT half, scored from
+# a stored mutex watershed labelling.
+#
+#   mia-evals score configs/tasks/lmd_ssl_v1_zebrafish_instance_test.toml \
+#       --test  <mws_artifacts>/<arm>/test \
+#       --val   <mws_artifacts>/<arm>/finetune \
+#       --val-config configs/tasks/lmd_ssl_v1_zebrafish_instance_fit.toml \
+#       --run-dir /nrs/.../lmd1__<arm>_... --label <arm>_step50000
+#
+# ---------------------------------------------------------------------------------------------
+# WHY THIS IS A SEPARATE TASK FROM `lmd_ssl_v1_neuron_instance`
+#
+# It is a different evaluation, not a subset of that one, and its numbers must not be read beside
+# those. `lmd_ssl_v1_neuron_instance` scores four volumes per half at a uniform 8 nm. This scores
+# one, and exists because arm 3 cannot appear in the other task at all.
+#
+# Arm 3 is `muvit3d` with `levels = [1, 2, 4]`: it is fed three pyramid rungs and its coarsest rung
+# sees a window 4x wider than its finest. At a 256^3 patch that coarsest window is
+#
+#     256 voxels  x  4  x  8 nm  =  8.192 um  on every axis
+#
+# and it has to fit inside the volume's annotated box. Six of the eight volumes in that eval set are
+# smaller than that -- Kasthuri AC3/AC4 are 2.90 um thick -- so `make_splits.py` scaled each of their
+# ladders down until the coarse rung fit, which dragged their *finest* rung below 8 nm: 2.62 nm for
+# Kasthuri, 4.10 for the LICONN blocks, 6.44 for hemibrain. Arm 3 was finetuned at those rungs and
+# would be scored at them. Arms 1 and 2 have no ladder at all -- a single 8 nm rung everywhere.
+#
+# So on six of eight volumes the arms do not share a lattice, a scored region, or a ground-truth
+# resampling, and `size_filter(min_size)` counts voxels that are up to 51x smaller. Neither
+# direction fixes it: putting arms 1/2 on arm 3's ladder runs them 1.25x-3.05x finer than they were
+# finetuned, and putting arm 3 on 8/16/32 is impossible, because Kasthuri holds 2.90 um of z and the
+# coarse rung needs 8.192.
+#
+# The two zebrafish cubes are the exception, and not by luck: they are the only volumes in the set
+# large enough (10.23 um and 15.84 um) to host the intended 8/16/32 ladder, so they kept it. On
+# these two, and only these two, all three arms share one lattice, one region and one ground truth,
+# and every arm is in-distribution. That is what this task scores.
+#
+# The cost is that the reported half is a single volume. That is the honest size of the comparison
+# these three arms admit; four volumes would have been four numbers that do not mean the same thing.
+# ---------------------------------------------------------------------------------------------
+#
+# The artifacts are `instances`, not `affinity`. Mutex watershed on the reported volume takes
+# ~12.4 h (7.078 G voxels, 1.74 TB resident), so it is run once per arm and its labelling persisted;
+# the postprocessor swept here is `size_filter`, which drops components below a voxel count from a
+# labelling that already exists. Naming `mws` instead would re-run the watershed per candidate.
+#
+# min_size is chosen here and applied once to the other half, never fitted on the reported volume.
+
+task_name = "lmd_ssl_v1_zebrafish_instance"
+
+notes = """
+Voxel metrics, not skeleton ones: these volumes ship dense label arrays and no skeletons, so nERL is
+unavailable and panoptic quality ranks. Not comparable with any NISB nERL figure, nor with
+lmd_ssl_v1_neuron_instance, which averages four volumes per half.
+
+One volume per half. The fit half is zebrafish_fish2_quadcube1 (4.247 G voxels scored), the reported
+half zebrafish_fish2_doublecube1 (7.078 G). Both sit on a 1920-cubed lattice at 8.0/8.0/8.027 nm,
+identical for all three arms -- verified from each artifact's own native_box, read_shape and
+effective_voxel_nm rather than assumed from the config.
+
+Labels are 1..k with no background: mutex watershed assigns every voxel to a cluster. Ids are
+compacted at conversion because `_factorize` only takes its counting path while the id span stays
+under 2**31, and these two volumes carry raw union-find root ids spanning 4.2 G and 7.06 G.
+"""
+
+[data]
+config_path = "/groups/scicompsoft/home/orhane/projects/mia-train/experiments/lmd_ssl_v1/lmd_finetune_singlescale.yaml"
+# Filtered rather than given its own YAML so the geometry stays the generated, provenance-stamped
+# one. The singlescale file is the right source for all three arms here: the zebrafish entries carry
+# no per-volume `resolutions` override, so this volume is a single 8 nm rung in the multiscale file
+# too, and arm 3's rung 0 lands on exactly this lattice.
+volumes = ["zebrafish_fish2_quadcube1"]
+
+[task]
+name = "instance_seg"
+truth_kind = "sibling_artifact"   # <volume>.gt.zarr beside each labelling
+
+[postprocess]
+name = "size_filter"
+# A superset of the four candidates the eight-volume task swept, so the procedure still matches the
+# setup that was best for arm 2 there (size_filter over an MWS labelling, min_size fitted on the
+# other half). The value each arm selects is its own; only the candidate set and the fit discipline
+# are held fixed.
+#
+# Extended because the original four were truncated on this volume, not merely coarse. A first pass
+# had both completed arms select 50,000 -- the largest candidate -- with pq still climbing into
+# it (0.0031 -> 0.0069 -> 0.0627 -> 0.3093 for arm 1). A parameter chosen at the edge of its own
+# search range is not a fitted parameter, it is a boundary artifact.
+#
+# The scale that matters is the size of a real object, and 50,000 was nowhere near it:
+# doublecube1 is 7.078 G voxels with 12,979 ground-truth instances over 53.3% annotated space,
+# so a typical object is ~291,000 voxels -- six times larger than where the sweep stopped. The
+# diagnostics agreed: at 50,000 arm 1 still carried 7,822 false positives against 1,353 true
+# positives. The added candidates bracket 291,000 from 0.5x to 4x, so whatever each arm picks now
+# has candidates on both sides of it.
+min_sizes = [0, 500, 5000, 50000, 150000, 300000, 600000, 1200000]
+
+[metric]
+names = ["voxel_instance"]
+rank_by = "voxel_instance"        # primary key: pq

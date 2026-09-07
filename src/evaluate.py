@@ -1,8 +1,11 @@
 """Single entrypoint: score a prediction artifact against a task, and render the leaderboard.
 
     mia-evals score  configs/tasks/<task>.toml --test <artifact.zarr> \\
-        [--val <artifact.zarr>] [--record leaderboard/records]
-    mia-evals leaderboard [--check]
+        [--val <artifact.zarr>] [--leaderboard leaderboard/]
+    mia-evals leaderboard [--task <task_name>] [--check]
+
+Scoring writes the record *and* re-renders that task's table, so the two never drift apart by a
+forgotten second command. `mia-evals leaderboard` rebuilds every task; `--task` rebuilds one.
 
 **Fit on validation, apply to test, and no way around it.** A postprocessor with more than one
 candidate in its search space and no `--val` artifact is a hard error, not a default. The
@@ -29,7 +32,7 @@ from artifact import Artifact, open_artifact
 from config import TaskConfig, load_task_config
 from metrics.base import BaseMetric
 from postprocess.base import BasePostprocess
-from report import leaderboard
+from report import leaderboard, record
 from report.record import Submission, git_commit
 from tasks.base import BaseTask, Volume
 
@@ -56,8 +59,7 @@ def _leaderboard_root() -> Path:
     return beside_source if beside_source.is_dir() else Path.cwd() / "leaderboard"
 
 
-DEFAULT_RECORDS = _leaderboard_root() / "records"
-DEFAULT_LEADERBOARD = _leaderboard_root() / "README.md"
+DEFAULT_LEADERBOARD = _leaderboard_root()
 
 
 def build(config: TaskConfig) -> tuple[BaseTask, BasePostprocess, dict[str, BaseMetric]]:
@@ -345,8 +347,14 @@ def cmd_score(args: argparse.Namespace) -> None:
         provenance=_provenance(args, representative),
         label=args.label,
     )
-    path = submission.write(Path(args.record))
+    root = Path(args.leaderboard)
+    path = submission.write(root)
     print(f"record: {path}", flush=True)
+    # Rendered here rather than left to a follow-up `mia-evals leaderboard`: a record that is not
+    # in the table is invisible, and the failure mode of "score, then forget to regenerate" is a
+    # committed table that silently omits a submission. Only this task's page is touched.
+    for rendered in leaderboard.write(root, config.task_name):
+        print(f"updated: {rendered}", flush=True)
 
 
 def _provenance(args: argparse.Namespace, test: Artifact) -> dict[str, Any]:
@@ -372,16 +380,25 @@ def _provenance(args: argparse.Namespace, test: Artifact) -> dict[str, Any]:
 
 
 def cmd_leaderboard(args: argparse.Namespace) -> None:
-    records, output = Path(args.record), Path(args.output)
-    if args.check:
-        if leaderboard.check(records, output):
-            print(f"{output} is up to date")
-            return
+    root, task = Path(args.leaderboard), args.task
+    known = record.task_names(root)
+    if task and task not in known:
         raise SystemExit(
-            f"{output} does not match {records}. Regenerate it with\n"
-            "    mia-evals leaderboard"
+            f"no task {task!r} under {root}. It holds: {known or '(nothing yet)'}"
         )
-    print(f"wrote {leaderboard.write(records, output)}")
+    if args.check:
+        stale = leaderboard.check(root, task)
+        if not stale:
+            print(f"{root} is up to date")
+            return
+        listing = "\n".join(f"    {path}" for path in stale)
+        raise SystemExit(
+            f"{len(stale)} file(s) do not match their records:\n{listing}\n"
+            f"Regenerate with\n    mia-evals leaderboard"
+            + (f" --task {task}" if task else "")
+        )
+    for path in leaderboard.write(root, task):
+        print(f"wrote {path}")
 
 
 def main() -> None:
@@ -400,8 +417,9 @@ def main() -> None:
                        help="task .toml whose volumes form the fit split, when it is a different "
                             "set of volumes than the reported one (as in lmd_ssl_v1, which "
                             "finetunes on half the eval set and reports on the other half)")
-    score.add_argument("--record", type=Path, default=DEFAULT_RECORDS,
-                       help=f"where the submission record is written (default {DEFAULT_RECORDS})")
+    score.add_argument("--leaderboard", type=Path, default=DEFAULT_LEADERBOARD,
+                       help="leaderboard root; the record lands in <root>/<task_name>/records/ and "
+                            f"that task's table is re-rendered (default {DEFAULT_LEADERBOARD})")
     score.add_argument("--run-dir", type=Path, default=None,
                        help="the producing run directory, whose resolved config and commit are "
                             "copied into the record")
@@ -411,11 +429,13 @@ def main() -> None:
                        help="scratch directory for intermediates (e.g. a cropped skeleton)")
     score.set_defaults(func=cmd_score)
 
-    board = sub.add_parser("leaderboard", help="render or verify the leaderboard")
-    board.add_argument("--record", type=Path, default=DEFAULT_RECORDS)
-    board.add_argument("--output", type=Path, default=DEFAULT_LEADERBOARD)
+    board = sub.add_parser("leaderboard", help="render or verify the leaderboard tables")
+    board.add_argument("--leaderboard", type=Path, default=DEFAULT_LEADERBOARD,
+                       help=f"leaderboard root (default {DEFAULT_LEADERBOARD})")
+    board.add_argument("--task", type=str, default=None,
+                       help="rebuild only this task's table; default is every task")
     board.add_argument("--check", action="store_true",
-                       help="verify the committed table matches the records; write nothing")
+                       help="verify the committed tables match the records; write nothing")
     board.set_defaults(func=cmd_leaderboard)
 
     args = parser.parse_args()
