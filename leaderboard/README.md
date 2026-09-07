@@ -3,12 +3,9 @@
 
 # Leaderboards
 
-One directory per task, each holding that task's records and its own table. **Tasks are not
-comparable with one another** -- they differ in volumes, scored extent, resolution and metric -- so
-each has its own page rather than a section of a shared one.
+Each task has its own directory, holding that task's records and table.
 
-A score is only interpretable against a floor. See [docs/controls.md](../docs/controls.md) for what
-these tasks measure with no model at all.
+See [docs/controls.md](../docs/controls.md) for what these tasks measure with no model at all.
 
 
 | task | entries | table |
