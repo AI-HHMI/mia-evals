@@ -1,0 +1,35 @@
+# NISB "base" -- the VALIDATION cube (seed100), for choosing the post-processing.
+#
+# The fit half of `nisb_base_neuron_instance.toml`. Under the benchmark's rules the threshold is
+# chosen on the val cube and the test cube is scored once, so the two are different volumes and
+# `mia-evals score` has to be told which task the validation artifact belongs to:
+#
+#   mia-evals score configs/tasks/nisb_base_neuron_instance.toml \
+#       --val  <artifacts>/val  --val-config configs/tasks/nisb_base_neuron_instance_fit.toml \
+#       --test <artifacts>/test --run-dir /nrs/.../<run>
+#
+# Without `--val-config`, `--val` is taken to cover the *reported* task's volumes, and the seed100
+# prediction would be fitted against seed101's skeleton -- real data in the wrong place, no error.
+# This file exists so that mistake has a name to be refused by. Same postprocessor and sweep as the
+# reported task, on purpose: the fitted parameter is handed straight to it.
+#
+# Not a leaderboard entry in its own right: nothing is scored *on* this task, it only names the fit
+# volumes. Records land under the reported task.
+
+task_name = "nisb_base_neuron_instance_fit"
+
+[data]
+config_path = "../data/nisb_base_val.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "skeleton"
+skeleton_name = "skeleton.pkl"
+
+[postprocess]
+name = "cc_threshold"
+logits = [3, 4, 5, 6, 7]
+
+[metric]
+names = ["skeleton_erl"]
+rank_by = "skeleton_erl"

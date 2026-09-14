@@ -114,6 +114,30 @@ def check_compatible(artifact: Artifact, processor: BasePostprocess, task: BaseT
         )
 
 
+def check_same_volume(volume: Volume, artifact: Artifact, role: str) -> None:
+    """Refuse an artifact predicted over a different store than the volume it is scored as.
+
+    `--val` without `--val-config` fits on the *reported* task's own volumes, so both artifacts
+    must then be predictions of those volumes. In the NISB layout that is the easy mistake:
+    `--val` on a seed100 prediction and `--test` on seed101 fits the seed100 affinities against
+    seed101's skeleton -- real data in the wrong place, plausible numbers, and nothing raises.
+    The producer records where it read from (`source_path`; the pre-refactor scripts wrote
+    `cube`), which is enough to catch it by name. An artifact from elsewhere, carrying neither
+    attribute, is trusted as before: the attribute is provenance, not a requirement.
+    """
+    declared = artifact.attrs.get("source_path") or artifact.attrs.get("cube")
+    if not declared:
+        return
+    if Path(str(declared)).resolve() != Path(volume.path).resolve():
+        raise SystemExit(
+            f"{role} artifact {artifact.path} was predicted over\n    {declared}\n"
+            f"but is being scored as volume {volume.name!r}, whose data is\n    {volume.path}\n"
+            "That would score real data against the wrong ground truth without an error. If this "
+            "is the validation split on a different volume, pass --val-config naming the task "
+            "whose volumes it covers, e.g. configs/tasks/nisb_base_neuron_instance_fit.toml."
+        )
+
+
 def resolve_artifacts(spec: Path, volumes: tuple[Volume, ...]) -> dict[str, Artifact]:
     """Map each volume to its own artifact.
 
@@ -252,8 +276,9 @@ def cmd_score(args: argparse.Namespace) -> None:
     ranking_metric = metric_objects[config.rank_by]
 
     test_artifacts = resolve_artifacts(Path(args.test), config.volumes)
-    for artifact in test_artifacts.values():
-        check_compatible(artifact, processor, task)
+    for volume in config.volumes:
+        check_compatible(test_artifacts[volume.name], processor, task)
+        check_same_volume(volume, test_artifacts[volume.name], "--test")
     representative = next(iter(test_artifacts.values()))
     candidates = processor.search_space()
     scratch = Path(args.scratch or (Path(args.test).parent / ".mia_evals_scratch"))
@@ -293,8 +318,9 @@ def cmd_score(args: argparse.Namespace) -> None:
                 )
             print(f"fit volumes: {[v.name for v in fit_config.volumes]}", flush=True)
         val_artifacts = resolve_artifacts(Path(args.val), fit_config.volumes)
-        for artifact in val_artifacts.values():
-            check_compatible(artifact, processor, task)
+        for volume in fit_config.volumes:
+            check_compatible(val_artifacts[volume.name], processor, task)
+            check_same_volume(volume, val_artifacts[volume.name], "--val")
         print(f"fitting {config.postprocess.name} on {Path(args.val).name}", flush=True)
         params, val_scores = fit(
             val_artifacts, fit_config.volumes, task, processor, metric_objects, config, scratch

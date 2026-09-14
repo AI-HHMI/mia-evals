@@ -73,12 +73,18 @@ Expect `pytest -m unit` to report a small number of skips if you have not instal
 Scoring takes three steps. The first happens in whichever repository produced the model.
 
 ```bash
-# 1. Produce a prediction artifact. This step belongs to the producer, not to mia-evals.
-python <mia-train>/src/predict.py <run_dir> --cube <cube>.zarr --out aff.zarr --patch 256
+# 1. Produce one prediction artifact per cube. This step belongs to the producer, not to mia-evals.
+#    --out is a directory; <volume>.zarr is written into it.
+python <mia-train>/src/predict.py <run_dir> --data-config configs/data/nisb_base_val.yaml \
+    --volume nisb_base_val_seed100  --out <artifacts>/val
+python <mia-train>/src/predict.py <run_dir> --data-config configs/data/nisb_base_test.yaml \
+    --volume nisb_base_test_seed101 --out <artifacts>/test
 
-# 2. Fit the post-processing hyperparameter on validation, report on test, and write a record.
+# 2. Fit the post-processing hyperparameter on val, report on test, and write a record.
+#    --val and --test are the two --out directories; --val-config names the val cube's task.
 mia-evals score configs/tasks/nisb_base_neuron_instance.toml \
-    --val aff_seed100.zarr --test aff_seed101.zarr --run-dir <run_dir>
+    --val  <artifacts>/val  --val-config configs/tasks/nisb_base_neuron_instance_fit.toml \
+    --test <artifacts>/test --run-dir <run_dir>
 
 # 3. Rebuild a table from its records. Scoring already does this for the task it scored;
 #    this is for after editing or removing a record by hand.
@@ -89,9 +95,12 @@ mia-evals leaderboard                        # every task, plus the index
 To visualize the predictions (which is usually the fastest way to understand a disappointing score):
 
 ```bash
-mia-evals-viz-affinities   --affinities aff.zarr --cube <cube>.zarr
-mia-evals-viz-segmentation --prediction <artifact>.zarr --logit 0 --min-size 5000
+mia-evals-viz-affinities   --affinities <artifacts>/test/nisb_base_test_seed101.zarr --cube <cube>.zarr
+mia-evals-viz-segmentation --prediction <artifacts>/test/nisb_base_test_seed101.zarr --logit <fitted> --min-size 5000
 ```
+
+[`docs/quickstart_demo.sh`](docs/quickstart_demo.sh) is this sequence with real paths, on a 512^3
+block of each cube (`--origin`/`--size`), in about four minutes.
 
 `mia-evals`, `mia-evals-viz-affinities` and `mia-evals-viz-segmentation` are installed console
 entry points, so none of them depend on the working directory.

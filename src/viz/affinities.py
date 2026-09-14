@@ -144,8 +144,11 @@ def main() -> None:
 
     store = zarr.open(str(args.affinities), mode="r")
     off = np.asarray(origin) - np.asarray(store.attrs.get("origin", [0, 0, 0]))
+    # The first three channels are the short-range affinities (one voxel along x, y, z), which is
+    # what `ground_truth_affinity` builds and what the RGB packing shows. An artifact written by
+    # `predict.py` carries six -- the long-range channels follow -- and those are not drawn.
     pred = np.asarray(
-        store[:, off[0]:off[0] + n, off[1]:off[1] + n, off[2]:off[2] + n]
+        store[:3, off[0]:off[0] + n, off[1]:off[1] + n, off[2]:off[2] + n]
     ).astype(np.float32)
     step = store.attrs.get("step")
     title = f"{store.attrs.get('run', args.affinities.name)} @ step {step}"

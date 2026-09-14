@@ -152,6 +152,51 @@ def test_a_sweep_cannot_be_fitted_on_the_reported_split(instances, tmp_path):
         evaluate.cmd_score(args)
 
 
+def test_an_artifact_predicted_over_another_volume_is_refused(instances, tmp_path):
+    """The NISB footgun: `--val` on seed100 and `--test` on seed101 with no `--val-config`.
+
+    Without the fit task named, `--val` is resolved against the reported task's volumes, so the
+    seed100 prediction is fitted against seed101's skeleton. The producer records the store it
+    read (`source_path`), and that is what is checked; an artifact without it is trusted as before.
+    """
+    root, data, _ = instances
+    _, prediction = _truth_and_split(seed=1)
+    config = _task_config(root, data, textwrap.dedent("""\
+        [task]
+        name = "instance_seg"
+        truth_kind = "labels"
+
+        [postprocess]
+        name = "identity"
+
+        [metric]
+        names = ["voxel_instance"]
+        rank_by = "voxel_instance"
+        """))
+
+    import evaluate
+
+    def args(test):
+        return type("Args", (), {
+            "config": config, "test": test, "val": None, "leaderboard": tmp_path / "records",
+            "val_config": None, "run_dir": None, "label": "", "scratch": tmp_path / "scratch",
+        })()
+
+    stray = write_artifact(
+        tmp_path / "stray.zarr", prediction, "instances", background_id=0,
+        source_path=str(tmp_path / "some_other_cube.zarr"),
+    )
+    with pytest.raises(SystemExit, match="predicted over"):
+        evaluate.cmd_score(args(stray))
+
+    matching = write_artifact(
+        tmp_path / "matching.zarr", prediction, "instances", background_id=0,
+        source_path=str(root / "cube.zarr"),
+    )
+    evaluate.cmd_score(args(matching))
+    assert len(list((tmp_path / "records").rglob("*.json"))) == 1
+
+
 def test_incompatible_kind_and_postprocessor_are_refused(instances, tmp_path):
     """Thresholding class scores as affinities produces a segmentation, not an error."""
     _, data, _ = instances

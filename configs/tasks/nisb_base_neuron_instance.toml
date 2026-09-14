@@ -5,14 +5,16 @@
 #
 #   python src/predict.py ...                          # in mia-train, once per cube
 #   mia-evals score configs/tasks/nisb_base_neuron_instance.toml \
-#       --val  aff_seed100.zarr \
-#       --test aff_seed101.zarr \
+#       --val  <artifacts>/val  --val-config configs/tasks/nisb_base_neuron_instance_fit.toml \
+#       --test <artifacts>/test \
 #       --run-dir /nrs/.../<run>
 #
-# Note the two data configs: `[data]` names the cube being *reported*, and the val artifact is
-# scored against the same task with `--val`. Both cubes are 3000x3000x1350, so a whole-cube
-# prediction of each is directly comparable -- unlike a block, which truncates skeleton branches
-# and inflates nERL (0.4192 on a 512^3 block against 0.3045 whole-cube, same model).
+# Note the two task files: `[data]` here names the cube being *reported*, and the val artifact is
+# a prediction of a different cube, so `--val-config` names the fit task that describes it
+# (without it, `--val` would be fitted against THIS cube's skeleton). Both cubes are
+# 3000x3000x1350, so a whole-cube prediction of each is directly comparable -- unlike a block,
+# which truncates skeleton branches and inflates nERL (0.4192 on a 512^3 block against 0.3045
+# whole-cube, same model). `docs/quickstart_demo.sh` scores such a block on purpose, for speed.
 
 task_name = "nisb_base_neuron_instance"
 
