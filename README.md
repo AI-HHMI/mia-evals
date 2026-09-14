@@ -219,11 +219,23 @@ threshold at all; it is more accurate on the volumes measured here but far more 
 
 ### Tasks
 
-`instance_seg` and `semantic_seg`. For instance segmentation, `truth_kind` selects where the ground
-truth comes from: `skeleton` reads a traced skeleton from inside the volume's Zarr group, `labels`
-reads a dense label array through `miao`, and `sibling_artifact` reads a labelling the producer
-wrote on the prediction's own grid, which is necessary when prediction and ground truth do not share
-a voxel lattice.
+Currently, `mia-evals` supports `instance_seg` and `semantic_seg`. 
+
+For instance segmentation, `[task].truth_kind` selects where the ground truth comes from:
+- `skeleton`: a traced skeleton, read from `skeleton.pkl` inside the volume's Zarr group
+- `instances`: a dense instance labelling, read from the volume's own label array over the region the artifact covers
+- `instances_resampled`: a dense instance labelling written by the producer on the prediction's own grid
+
+`instances_resampled` exists because a prediction is not always on the volume's own voxel grid. If
+the producer resampled the image before predicting (a 6 nm volume predicted at 8 nm, say), one
+prediction voxel is no longer one label voxel, and no `origin` can line the prediction up with the
+volume's labels. Only the producer knows the exact grid it used, so it writes the ground truth onto
+that grid as a second artifact (with `kind = "instances"` and the same shape and `origin` as the prediction),
+and the scorer compares the two arrays voxel for voxel. When a prediction is on the volume's own
+grid, use `instances` instead: the scorer reads the truth itself and the producer writes nothing
+extra. 
+
+`semantic_seg` has no `truth_kind`. Its truth is always the volume's label array.
 
 ## Task configuration
 
@@ -295,9 +307,9 @@ leaderboard/
     records/<identifier>.json      one record per evaluation
 ```
 
-`mia-evals score` writes the record **and** re-renders that task's table, so the two cannot drift
-apart through a forgotten second command; every other task's file is left untouched. `mia-evals
-leaderboard` rebuilds everything, and `--task <name>` rebuilds a specific task. A
+`mia-evals score` writes the record and re-renders that task's table, so the two cannot drift
+apart through a forgotten second command; every other task's file is left untouched. 
+`mia-evals leaderboard` rebuilds everything, and `--task <name>` rebuilds a specific task. A
 record carries the scores per volume and in aggregate, the producing run and step, that run's
 resolved config and git commit copied inline, the post-processor and the parameters that won on
 validation, the exact region scored, and the versions of every component that could move a number.

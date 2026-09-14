@@ -91,7 +91,7 @@ def test_scores_an_instance_submission_and_writes_a_record(instances, monkeypatc
     config = _task_config(tmp_path, data, textwrap.dedent("""\
         [task]
         name = "instance_seg"
-        truth_kind = "labels"
+        truth_kind = "instances"
 
         [postprocess]
         name = "identity"
@@ -132,7 +132,7 @@ def test_a_sweep_cannot_be_fitted_on_the_reported_split(instances, tmp_path):
     config = _task_config(tmp_path, data, textwrap.dedent("""\
         [task]
         name = "instance_seg"
-        truth_kind = "labels"
+        truth_kind = "instances"
 
         [postprocess]
         name = "cc_threshold"
@@ -164,7 +164,7 @@ def test_an_artifact_predicted_over_another_volume_is_refused(instances, tmp_pat
     config = _task_config(root, data, textwrap.dedent("""\
         [task]
         name = "instance_seg"
-        truth_kind = "labels"
+        truth_kind = "instances"
 
         [postprocess]
         name = "identity"
@@ -206,7 +206,7 @@ def test_incompatible_kind_and_postprocessor_are_refused(instances, tmp_path):
     config = _task_config(tmp_path, data, textwrap.dedent("""\
         [task]
         name = "instance_seg"
-        truth_kind = "labels"
+        truth_kind = "instances"
 
         [postprocess]
         name = "cc_threshold"
@@ -251,7 +251,7 @@ def test_leaderboard_renders_and_detects_drift(instances, tmp_path):
     config = _task_config(tmp_path_, data, textwrap.dedent("""\
         [task]
         name = "instance_seg"
-        truth_kind = "labels"
+        truth_kind = "instances"
 
         [postprocess]
         name = "identity"
@@ -326,7 +326,7 @@ def two_volumes(tmp_path):
     config = _task_config(root, data, textwrap.dedent("""\
         [task]
         name = "instance_seg"
-        truth_kind = "labels"
+        truth_kind = "instances"
 
         [postprocess]
         name = "identity"

@@ -75,7 +75,7 @@ volumes = ["zebrafish_fish2_doublecube1"]
 
 [task]
 name = "instance_seg"
-truth_kind = "sibling_artifact"   # <volume>.gt.zarr beside each labelling
+truth_kind = "instances_resampled"   # <volume>.gt.zarr beside each labelling
 
 [postprocess]
 name = "size_filter"

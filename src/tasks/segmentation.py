@@ -57,7 +57,7 @@ class InstanceSegmentation(BaseTask):
 
     canonical = "instances"
 
-    TRUTH_KINDS = ("skeleton", "labels", "sibling_artifact")
+    TRUTH_KINDS = ("skeleton", "instances", "instances_resampled")
 
     def __init__(self, truth_kind: str = "skeleton", skeleton_name: str = "skeleton.pkl",
                  **settings: Any) -> None:
@@ -83,7 +83,7 @@ class InstanceSegmentation(BaseTask):
         nothing. The producer already clipped to the box; `covers_full_box` records whether the
         lattice reached its far edge.
         """
-        if self.truth_kind == "sibling_artifact":
+        if self.truth_kind == "instances_resampled":
             return artifact.origin, artifact.spatial_shape
         return super().region(volume, artifact)
 
@@ -92,15 +92,15 @@ class InstanceSegmentation(BaseTask):
         return artifact.path.parent / f"{volume.name}.gt.zarr"
 
     def ground_truth(self, volume: Volume, artifact: Artifact) -> Any:
-        if self.truth_kind == "sibling_artifact":
+        if self.truth_kind == "instances_resampled":
             from artifact import open_artifact
 
             path = self.truth_artifact_path(volume, artifact)
             if not path.exists():
                 raise FileNotFoundError(
-                    f"no ground-truth artifact at {path}. `truth_kind = \"sibling_artifact\"` "
+                    f"no ground-truth artifact at {path}. `truth_kind = \"instances_resampled\"` "
                     "scores against the labelling the producer wrote on the prediction's own "
-                    "grid -- mia-train's src/predict_ngff.py emits it beside each prediction, "
+                    "grid -- mia-train's src/predict.py emits it beside each prediction, "
                     "and it cannot be reconstructed here without redoing that resampling."
                 )
             truth = open_artifact(path)
@@ -123,7 +123,7 @@ class InstanceSegmentation(BaseTask):
                 raise FileNotFoundError(
                     f"volume {volume.name!r} has no {self.skeleton_name} at {path}. NISB cubes "
                     "carry one inside the zarr group; volumes with dense voxel truth instead need "
-                    'truth_kind = "labels".'
+                    'truth_kind = "instances".'
                 )
             return path
         origin, shape = self.region(volume, artifact)
