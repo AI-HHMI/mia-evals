@@ -43,9 +43,7 @@ pip install -e '.[dev]'
 
 The `skeleton_erl` metric computes expected run length through
 [`funlib.evaluate`](https://github.com/funkelab/funlib.evaluate), which is not on PyPI and cannot be
-declared as a normal dependency. Its build requires Cython but does not say so, so pip's build
-isolation fails on it, and a direct git URL in the package metadata would make `mia-evals` itself
-impossible to publish. Install it explicitly if you need skeleton scoring:
+declared as a normal dependency. Install it explicitly if you need skeleton scoring:
 
 ```bash
 pip install cython scipy
@@ -73,31 +71,40 @@ Expect `pytest -m unit` to report a small number of skips if you have not instal
 Scoring takes three steps. The first happens in whichever repository produced the model.
 
 ```bash
-# 1. Produce prediction artifacts for val and test sets. This step belongs to the producer, not to mia-evals.
-python <mia-train>/src/predict.py <run_dir> --data-config configs/data/nisb_base_val.yaml \
-    --volume nisb_base_val_seed100  --out <artifacts>/val
-python <mia-train>/src/predict.py <run_dir> --data-config configs/data/nisb_base_test.yaml \
-    --volume nisb_base_test_seed101 --out <artifacts>/test
+# 1. Produce prediction artifacts for both halves of the eval set. This step belongs to the producer, not to mia-evals.
+python <mia-train>/src/predict.py <run_dir> --step 50000 --data-config configs/data/lmd_ssl_v1_test.yaml     --out <artifacts>/test
+python <mia-train>/src/predict.py <run_dir> --step 50000 --data-config configs/data/lmd_ssl_v1_finetune.yaml --out <artifacts>/finetune
 
-# 2. Fit the post-processing hyperparameter on val, report on test, and write a record.
-mia-evals score configs/tasks/nisb_base_neuron_instance.toml \
-    --val  <artifacts>/val  --val-config configs/tasks/nisb_base_neuron_instance_fit.toml \
-    --test <artifacts>/test --run-dir <run_dir>
+# 2. Fit the post-processing hyperparams on the finetune half, report on the test half, and write a record.
+mia-evals score configs/tasks/lmd_ssl_v1_neuron_instance_test.toml \
+    --val  <artifacts>/finetune --val-config configs/tasks/lmd_ssl_v1_neuron_instance_fit.toml \
+    --test <artifacts>/test     --run-dir <run_dir>
 
 # 3. Rebuild a table from its records. Scoring already does this for the task it scored; this is for after editing or removing a record by hand.
-mia-evals leaderboard --task <task_name>     # one task
-mia-evals leaderboard                        # every task, plus the index
+mia-evals leaderboard --task lmd_ssl_v1_neuron_instance     # one task
+mia-evals leaderboard                                       # every task, plus the index
 ```
 
-To visualize the predictions (which is usually the fastest way to understand a disappointing score), *e.g.*:
+This is how the `2c_step50000` rows of
+[`leaderboard/lmd_ssl_v1_neuron_instance`](leaderboard/lmd_ssl_v1_neuron_instance/README.md) were
+made. The top row, `1c_step50000_mws`, took the same step-1 artifacts through the mutex watershed
+instead of thresholded components. At stride 1 it costs ~33 minutes and tens of GB per volume, so it
+was run once per volume as a batch job and its labelling stored as an `instances` artifact with the
+`.gt.zarr` beside it; step 2 then scored that labelling with the `size_filter` sweep of the `_mws_`
+task files:
 
 ```bash
-mia-evals-viz-affinities   --affinities <artifacts>/test/nisb_base_test_seed101.zarr --cube <PATH_TO_DATA_ZARR>
-mia-evals-viz-segmentation --prediction <artifacts>/test/nisb_base_test_seed101.zarr --logit <fitted> --min-size <fitted>
+mia-evals score configs/tasks/lmd_ssl_v1_neuron_instance_mws_test.toml \
+    --val  <labellings>/finetune --val-config configs/tasks/lmd_ssl_v1_neuron_instance_mws_fit.toml \
+    --test <labellings>/test     --run-dir <run_dir> --label 1c_step50000_mws
 ```
 
-[`docs/quickstart_demo.sh`](docs/quickstart_demo.sh) is this sequence with real paths, on a 512^3
-block of each cube (`--origin`/`--size`), in about four minutes.
+To visualize a prediction (which is usually the fastest way to understand a disappointing score), *e.g.*:
+
+```bash
+mia-evals-viz-segmentation --prediction <artifacts>/test/kasthuri15_ac4.zarr --logit 3 --min-size 50000   # the values the scorer fitted (postprocess.params in the record)
+mia-evals-viz-segmentation --prediction <labellings>/test/kasthuri15_ac4.zarr --min-size 50000            # a stored labelling needs no --logit
+```
 
 `mia-evals`, `mia-evals-viz-affinities` and `mia-evals-viz-segmentation` are installed console
 entry points, so none of them depend on the working directory.
@@ -237,27 +244,26 @@ extra.
 ## Task configuration
 
 A task is a `.toml` file in `configs/tasks/`. It references a `miao` YAML for the data rather than
-restating it, so the same volume definitions serve both training and scoring.
+restating it, so prediction and scoring read the same volume definitions.
 
 ```toml
-task_name = "nisb_base_neuron_instance"
+task_name = "lmd_ssl_v1_neuron_instance"
 
 [data]
-config_path = "../data/nisb_base_test.yaml"
+config_path = "../data/lmd_ssl_v1_test.yaml"
 
 [task]
 name = "instance_seg"
-truth_kind = "skeleton"          # NISB ships a traced skeleton inside each cube's zarr group
-skeleton_name = "skeleton.pkl"
+truth_kind = "instances_resampled"   # <volume>.gt.zarr beside each prediction, written by mia-train's predict.py
 
 [postprocess]
 name = "cc_threshold"
-logits = [3, 4, 5, 6, 7]         # fitted on --val, applied to --test
-min_sizes = [0]                  # drop components below N voxels; swept like the threshold
+logits = [0, 3, 6]                   # fitted on --val, applied to --test
+min_sizes = [0, 500, 5000, 50000]    # drop components below N voxels; swept like the threshold
 
 [metric]
-names = ["skeleton_erl"]
-rank_by = "skeleton_erl"
+names = ["voxel_instance"]
+rank_by = "voxel_instance"           # ranks on its `primary` key, pq; direction is the metric's own
 ```
 
 `rank_by` names a metric rather than one of its keys. Which number ranks, and whether
@@ -273,7 +279,7 @@ published, and the runner refuses to proceed if the two splits share a volume.
 
 Split membership lives outside the `miao` YAML, because `miao` validates strictly and rejects keys
 it does not recognise. There are two ways to express it. The usual one is a data config per split,
-such as `nisb_base_val.yaml` beside `nisb_base_test.yaml`, which makes the split obvious from the
+such as `lmd_ssl_v1_finetune.yaml` beside `lmd_ssl_v1_test.yaml`, which makes the split obvious from the
 file name. The alternative is a `volumes = [...]` name filter under `[data]` in the task file,
 selecting a subset of one dataset-wide YAML, which avoids duplicating volume definitions when a
 dataset is split several ways.
@@ -335,7 +341,7 @@ of these metrics change with extent.
 | `src/utils/` | two modules recycled verbatim from BANIS; see `ACKNOWLEDGEMENTS.md` |
 | `configs/data/`, `configs/tasks/` | `miao` data YAMLs and task definitions |
 | `docs/controls.md` | control experiments: baseline task metric scores without a model |
-| `tests/unit/`, `tests/parity/` | fast tests, and tests that reproduce a recorded number |
+| `tests/unit/` | fast, single-process tests |
 
 ## Extending `mia-evals`
 
@@ -351,12 +357,8 @@ and its direction.
 ```bash
 pytest                  # everything
 pytest -m unit          # fast, no large data or external packages
-pytest -m parity        # reproduces recorded numbers; needs funlib.evaluate and data on /nrs
+pytest -m parity        # pins voxel_instance's VOI to funlib.evaluate's numbers; skipped without funlib
 ```
-
-The `parity` tests exist to catch silent changes in scoring behaviour by re-deriving numbers that
-were recorded before a refactor. One of them has already caught a real bug in how the scored region
-was inferred.
 
 ## Licence
 

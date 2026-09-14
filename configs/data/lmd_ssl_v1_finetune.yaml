@@ -1,0 +1,86 @@
+# lmd_ssl_v1 -- the FINETUNE half of the lmd instance-segmentation eval set: the arms were finetuned on these, and the post-processing is fitted on them, as `--val`.
+#
+# Copied on 2026-09-14 from mia-train's experiments/lmd_ssl_v1/lmd_finetune_singlescale.yaml, which
+# make_splits.py generated from
+#   /groups/miaai/miaai/lmd-v0.0.1/configs/evals/v1/instance_seg/lmd_instance_seg_eval_singlescale_patch256.yaml
+# The volumes must stay exactly these: the two halves define what "held out" means for every
+# recorded lmd_ssl_v1 score. The complementary half is lmd_ssl_v1_test.yaml.
+#
+# Read on both sides of the artifact boundary. mia-train's predict.py predicts every volume in it
+# (`--data-config configs/data/lmd_ssl_v1_finetune.yaml --out <artifacts>/...`), and the lmd_ssl_v1 task files
+# score those predictions against it. 4 volumes, one per modality pair, equally weighted. Every entry
+# keeps the bounding box measured from its label's non-zero extent -- LICONN DG and hippocampus have
+# 0% GT in their own central 256^3 block, so dropping the box would predict and score unannotated
+# space.
+#
+#   kasthuri15_ac3
+#   zebrafish_fish2_quadcube1
+#   liconn_mouse_dg
+#   hemibrain_ellipsoid_body
+
+resolutions:
+- - 8.0
+  - 8.0
+  - 8.0
+patch_size:
+- 256
+- 256
+- 256
+output_axes: lcxyz
+samples_per_epoch: 1000
+
+volumes:
+- name: kasthuri15_ac3
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-001_ac3_100slices.zarr
+  image_key: raw
+  label_key: labels/public_gt-cell-kasthuri15
+  zarr_version: zarr3
+  bounding_box:
+  - - 0
+    - 1024
+  - - 0
+    - 1024
+  - - 0
+    - 100
+  weight: 0.25
+- name: zebrafish_fish2_quadcube1
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-003_quadcube1_x23908_y18314_z0.zarr
+  image_key: raw
+  label_key: labels/proofread-cell-seg230927
+  zarr_version: zarr3
+  bounding_box:
+  - - 0
+    - 2000
+  - - 0
+    - 2000
+  - - 0
+    - 1364
+  weight: 0.25
+- name: liconn_mouse_dg
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-DG-20250809_ExPID19-02_2ndGel_C5_Atto488_40XW_002/crop-001.zarr
+  image_key: raw
+  label_key: labels/manual_gt-cell-final
+  zarr_version: zarr3
+  bounding_box:
+  - - 1416
+    - 1892
+  - - 516
+    - 996
+  - - 83
+    - 276
+  normalize_min: 301
+  normalize_max: 1130
+  weight: 0.25
+- name: hemibrain_ellipsoid_body
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-hemibrain/crop-001_EllipsoidBody_x24000_y23000_z17000.zarr
+  image_key: raw
+  label_key: labels/proofread-cell-hemibrain-v1.2
+  zarr_version: zarr3
+  bounding_box:
+  - - 1988
+    - 3012
+  - - 1988
+    - 3012
+  - - 1988
+    - 3012
+  weight: 0.25

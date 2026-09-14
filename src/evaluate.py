@@ -118,9 +118,9 @@ def check_same_volume(volume: Volume, artifact: Artifact, role: str) -> None:
     """Refuse an artifact predicted over a different store than the volume it is scored as.
 
     `--val` without `--val-config` fits on the *reported* task's own volumes, so both artifacts
-    must then be predictions of those volumes. In the NISB layout that is the easy mistake:
-    `--val` on a seed100 prediction and `--test` on seed101 fits the seed100 affinities against
-    seed101's skeleton -- real data in the wrong place, plausible numbers, and nothing raises.
+    must then be predictions of those volumes. With a validation split on other volumes that is
+    the easy mistake: the validation prediction is fitted against the reported volume's ground
+    truth -- real data in the wrong place, plausible numbers, and nothing raises.
     The producer records where it read from (`source_path`; the pre-refactor scripts wrote
     `cube`), which is enough to catch it by name. An artifact from elsewhere, carrying neither
     attribute, is trusted as before: the attribute is provenance, not a requirement.
@@ -134,7 +134,7 @@ def check_same_volume(volume: Volume, artifact: Artifact, role: str) -> None:
             f"but is being scored as volume {volume.name!r}, whose data is\n    {volume.path}\n"
             "That would score real data against the wrong ground truth without an error. If this "
             "is the validation split on a different volume, pass --val-config naming the task "
-            "whose volumes it covers, e.g. configs/tasks/nisb_base_neuron_instance_fit.toml."
+            "whose volumes it covers, e.g. configs/tasks/lmd_ssl_v1_neuron_instance_fit.toml."
         )
 
 

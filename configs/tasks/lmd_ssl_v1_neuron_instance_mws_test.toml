@@ -32,7 +32,7 @@ under 2**31, and two of these volumes carried raw union-find root ids spanning 4
 """
 
 [data]
-config_path = "/groups/scicompsoft/home/orhane/projects/mia-train/experiments/lmd_ssl_v1/lmd_val_singlescale.yaml"
+config_path = "../data/lmd_ssl_v1_test.yaml"
 
 [task]
 name = "instance_seg"

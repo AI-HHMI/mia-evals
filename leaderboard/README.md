@@ -15,4 +15,3 @@ these tasks measure with no model at all.
 | --- | --- | --- |
 | `lmd_ssl_v1_neuron_instance` | 4 | [lmd_ssl_v1_neuron_instance/README.md](lmd_ssl_v1_neuron_instance/README.md) |
 | `lmd_ssl_v1_zebrafish_instance` | 3 | [lmd_ssl_v1_zebrafish_instance/README.md](lmd_ssl_v1_zebrafish_instance/README.md) |
-| `nisb_base_neuron_instance` | 1 | [nisb_base_neuron_instance/README.md](nisb_base_neuron_instance/README.md) |

@@ -1,0 +1,86 @@
+# lmd_ssl_v1 -- the HELD-OUT half of the lmd instance-segmentation eval set: scored once, as `--test`; the arms never trained on these.
+#
+# Copied on 2026-09-14 from mia-train's experiments/lmd_ssl_v1/lmd_val_singlescale.yaml, which
+# make_splits.py generated from
+#   /groups/miaai/miaai/lmd-v0.0.1/configs/evals/v1/instance_seg/lmd_instance_seg_eval_singlescale_patch256.yaml
+# The volumes must stay exactly these: the two halves define what "held out" means for every
+# recorded lmd_ssl_v1 score. The complementary half is lmd_ssl_v1_finetune.yaml.
+#
+# Read on both sides of the artifact boundary. mia-train's predict.py predicts every volume in it
+# (`--data-config configs/data/lmd_ssl_v1_test.yaml --out <artifacts>/...`), and the lmd_ssl_v1 task files
+# score those predictions against it. 4 volumes, one per modality pair, equally weighted. Every entry
+# keeps the bounding box measured from its label's non-zero extent -- LICONN DG and hippocampus have
+# 0% GT in their own central 256^3 block, so dropping the box would predict and score unannotated
+# space.
+#
+#   kasthuri15_ac4
+#   zebrafish_fish2_doublecube1
+#   liconn_mouse_hippocampus
+#   liconn_expid82
+
+resolutions:
+- - 8.0
+  - 8.0
+  - 8.0
+patch_size:
+- 256
+- 256
+- 256
+output_axes: lcxyz
+samples_per_epoch: 1000
+
+volumes:
+- name: kasthuri15_ac4
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-002_ac4_100slices.zarr
+  image_key: raw
+  label_key: labels/public_gt-cell-kasthuri15
+  zarr_version: zarr3
+  bounding_box:
+  - - 0
+    - 1024
+  - - 0
+    - 1024
+  - - 0
+    - 100
+  weight: 0.25
+- name: zebrafish_fish2_doublecube1
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr
+  image_key: raw
+  label_key: labels/proofread-cell-seg230927
+  zarr_version: zarr3
+  bounding_box:
+  - - 0
+    - 2000
+  - - 0
+    - 2000
+  - - 0
+    - 2112
+  weight: 0.25
+- name: liconn_mouse_hippocampus
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-hippocampus-202507013_ExPID10-02_2percentAA_S2_Atto488_40XW_004/crop-001.zarr
+  image_key: raw
+  label_key: labels/manual_gt-cell-final
+  zarr_version: zarr3
+  bounding_box:
+  - - 496
+    - 976
+  - - 496
+    - 976
+  - - 44
+    - 236
+  normalize_min: 219
+  normalize_max: 919
+  weight: 0.25
+- name: liconn_expid82
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-ExPID82-1/crop-002_sub.zarr
+  image_key: raw
+  label_key: labels/proofread-cell-agglom-dense-v20240123
+  zarr_version: zarr3
+  bounding_box:
+  - - 1229
+    - 2253
+  - - 1642
+    - 2666
+  - - 0
+    - 534
+  weight: 0.25

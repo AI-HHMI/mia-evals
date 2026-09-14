@@ -66,7 +66,7 @@ under 2**31, and these two volumes carry raw union-find root ids spanning 4.2 G 
 """
 
 [data]
-config_path = "/groups/scicompsoft/home/orhane/projects/mia-train/experiments/lmd_ssl_v1/lmd_val_singlescale.yaml"
+config_path = "../data/lmd_ssl_v1_test.yaml"
 # Filtered rather than given its own YAML so the geometry stays the generated, provenance-stamped
 # one. The singlescale file is the right source for all three arms here: the zebrafish entries carry
 # no per-volume `resolutions` override, so this volume is a single 8 nm rung in the multiscale file
