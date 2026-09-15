@@ -1,0 +1,830 @@
+{
+  "task_name": "lmd_ssl_v1_neuron_instance",
+  "producer": {
+    "artifacts": {
+      "kasthuri15_ac4": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/kasthuri15_ac4.zarr",
+      "liconn_expid82": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/liconn_expid82.zarr",
+      "liconn_mouse_hippocampus": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/liconn_mouse_hippocampus.zarr",
+      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/zebrafish_fish2_doublecube1.zarr"
+    },
+    "run": "sam1__arm4_8nm_gb16_r0_20260913_221637",
+    "step": 200000,
+    "kind": "instances",
+    "convention": "",
+    "artifact_attrs": {
+      "kind": "instances",
+      "background_id": 0,
+      "instances": 252,
+      "mask_stride": [
+        4,
+        4,
+        4
+      ],
+      "generator": "prompt_grid",
+      "points_per_side": 14,
+      "pred_iou_thresh": 0.7,
+      "stability_thresh": 0.8,
+      "stability_delta": 1.0,
+      "nms_iou": 0.7,
+      "min_mask_voxels": 512,
+      "max_mask_fraction": 0.95,
+      "prefer": "whole",
+      "containment_thresh": 0.8,
+      "merge_fraction": 0.5,
+      "tile_merge": "consensus",
+      "edge_discard": false,
+      "skip_claimed_clicks": false,
+      "propagate_min_coverage": 0.8,
+      "consistency_clicks": 0,
+      "consistency_thresh": 0.5,
+      "consistency_pick": "top",
+      "split_tiled_wholes": false,
+      "tiled_cover_thresh": 0.8,
+      "agree_thresh": 0.5,
+      "min_support": 1,
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "axes": "zyx",
+      "source_path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-002_ac4_100slices.zarr",
+      "source_image_key": "raw",
+      "source_label_key": "labels/public_gt-cell-kasthuri15",
+      "image_level": 0,
+      "label_level": 0,
+      "native_box": [
+        [
+          14,
+          86
+        ],
+        [
+          84,
+          939
+        ],
+        [
+          84,
+          939
+        ]
+      ],
+      "annotated_box": [
+        [
+          0,
+          100
+        ],
+        [
+          0,
+          1024
+        ],
+        [
+          0,
+          1024
+        ]
+      ],
+      "read_shape": [
+        72,
+        342,
+        342
+      ],
+      "scale": [
+        3.5555555555555554,
+        0.7485380116959064,
+        0.7485380116959064
+      ],
+      "effective_voxel_nm": [
+        8.15625,
+        8.015625,
+        8.015625
+      ],
+      "covers_full_box": false,
+      "box_coverage": 0.501955,
+      "patch": [
+        256,
+        256,
+        256
+      ],
+      "stride": [
+        128,
+        128,
+        128
+      ],
+      "run": "sam1__arm4_8nm_gb16_r0_20260913_221637",
+      "run_dir": "/nrs/scicompsoft/orhane/mia-train-runs/sam1__arm4_8nm_gb16_r0_20260913_221637",
+      "step": 200000,
+      "data_config": "/groups/scicompsoft/home/orhane/projects/mia-train/experiments/lmd_ssl_v1/lmd_val_singlescale.yaml",
+      "volume": "kasthuri15_ac4"
+    }
+  },
+  "scores": {
+    "voxel_instance": {
+      "adapted_rand_error": 0.6828742281581496,
+      "false_negative": 3223.25,
+      "false_positive": 2274.25,
+      "instances_predicted": 2671.0,
+      "instances_truth": 3620.0,
+      "iou_threshold": 0.5,
+      "pq": 0.20939179915721923,
+      "rq": 0.29449279283919233,
+      "sq": 0.690943650907546,
+      "true_positive": 396.75,
+      "voi_merge": 3.4492417830785804,
+      "voi_split": 0.9708923516762773,
+      "voi_sum": 4.420134134754858,
+      "volumes_scored": 4.0
+    }
+  },
+  "ranking": {
+    "metric": "voxel_instance",
+    "key": "pq",
+    "value": 0.20939179915721923,
+    "higher_is_better": true
+  },
+  "postprocess": {
+    "name": "size_filter",
+    "params": {
+      "min_size": 5000
+    },
+    "describe": "size_filter(min_size=5000)",
+    "fitted_on": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/finetune",
+    "fitted_on_config": "configs/tasks/lmd_ssl_v1_neuron_instance_mws_fit.toml",
+    "validation_scores": {
+      "voxel_instance": {
+        "adapted_rand_error": 0.6068149717880853,
+        "false_negative": 1901.75,
+        "false_positive": 1854.5,
+        "instances_predicted": 2451.5,
+        "instances_truth": 2498.75,
+        "iou_threshold": 0.5,
+        "pq": 0.3074803864821152,
+        "rq": 0.40422229038353,
+        "sq": 0.7477364776985476,
+        "true_positive": 597.0,
+        "voi_merge": 1.6961438645747058,
+        "voi_split": 1.0001462504767706,
+        "voi_sum": 2.696290115051476,
+        "volumes_scored": 4.0
+      }
+    }
+  },
+  "region": {
+    "volumes": {
+      "kasthuri15_ac4": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          256,
+          640,
+          640
+        ],
+        "whole_region": false,
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/kasthuri15_ac4.zarr"
+      },
+      "zebrafish_fish2_doublecube1": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          1920,
+          1920,
+          1920
+        ],
+        "whole_region": false,
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/zebrafish_fish2_doublecube1.zarr"
+      },
+      "liconn_mouse_hippocampus": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          512,
+          512,
+          512
+        ],
+        "whole_region": false,
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/liconn_mouse_hippocampus.zarr"
+      },
+      "liconn_expid82": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          768,
+          1152,
+          1152
+        ],
+        "whole_region": false,
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/liconn_expid82.zarr"
+      }
+    }
+  },
+  "config": {
+    "task_name": "lmd_ssl_v1_neuron_instance",
+    "task": {
+      "name": "instance_seg",
+      "kwargs": {
+        "truth_kind": "instances_resampled"
+      }
+    },
+    "postprocess": {
+      "name": "size_filter",
+      "kwargs": {
+        "min_sizes": [
+          0,
+          500,
+          5000,
+          50000
+        ]
+      }
+    },
+    "metrics": [
+      "voxel_instance"
+    ],
+    "rank_by": "voxel_instance",
+    "data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/data/lmd_ssl_v1_test.yaml",
+    "volumes": [
+      {
+        "name": "kasthuri15_ac4",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-002_ac4_100slices.zarr",
+        "label_key": "labels/public_gt-cell-kasthuri15",
+        "bounding_box": [
+          [
+            0,
+            1024
+          ],
+          [
+            0,
+            1024
+          ],
+          [
+            0,
+            100
+          ]
+        ]
+      },
+      {
+        "name": "zebrafish_fish2_doublecube1",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr",
+        "label_key": "labels/proofread-cell-seg230927",
+        "bounding_box": [
+          [
+            0,
+            2000
+          ],
+          [
+            0,
+            2000
+          ],
+          [
+            0,
+            2112
+          ]
+        ]
+      },
+      {
+        "name": "liconn_mouse_hippocampus",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-hippocampus-202507013_ExPID10-02_2percentAA_S2_Atto488_40XW_004/crop-001.zarr",
+        "label_key": "labels/manual_gt-cell-final",
+        "bounding_box": [
+          [
+            496,
+            976
+          ],
+          [
+            496,
+            976
+          ],
+          [
+            44,
+            236
+          ]
+        ]
+      },
+      {
+        "name": "liconn_expid82",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-ExPID82-1/crop-002_sub.zarr",
+        "label_key": "labels/proofread-cell-agglom-dense-v20240123",
+        "bounding_box": [
+          [
+            1229,
+            2253
+          ],
+          [
+            1642,
+            2666
+          ],
+          [
+            0,
+            534
+          ]
+        ]
+      }
+    ],
+    "notes": "Voxel metrics, not skeleton ones: these volumes ship dense label arrays and no skeletons, so nERL is\nunavailable and panoptic quality ranks. Not comparable with any NISB nERL figure.\n\nScored region per volume is the largest lattice-aligned sub-box of each volume's bounding box, the\nsame region the cc_threshold entries use, so the two are directly comparable.\n\nLabels are 1..k with no background: mutex watershed assigns every voxel to a cluster. Ids were\ncompacted at conversion because `_factorize` only takes its counting path while the id span stays\nunder 2**31, and two of these volumes carried raw union-find root ids spanning 4.2 G and 7.06 G.\n"
+  },
+  "per_volume": {
+    "kasthuri15_ac4": {
+      "voxel_instance": {
+        "pq": 0.38503350972998773,
+        "sq": 0.7318467813617782,
+        "rq": 0.5261121856866537,
+        "true_positive": 136.0,
+        "false_positive": 108.0,
+        "false_negative": 137.0,
+        "instances_truth": 273.0,
+        "instances_predicted": 244.0,
+        "voi_split": 0.9769183514260087,
+        "voi_merge": 1.8557539870217088,
+        "voi_sum": 2.8326723384477175,
+        "adapted_rand_error": 0.723619486535624,
+        "iou_threshold": 0.5
+      }
+    },
+    "zebrafish_fish2_doublecube1": {
+      "voxel_instance": {
+        "pq": 0.07798449803676154,
+        "sq": 0.679012287069505,
+        "rq": 0.11484990702204906,
+        "true_positive": 1297.0,
+        "false_positive": 8310.0,
+        "false_negative": 11682.0,
+        "instances_truth": 12979.0,
+        "instances_predicted": 9607.0,
+        "voi_split": 1.494527465205806,
+        "voi_merge": 6.3860968878902735,
+        "voi_sum": 7.88062435309608,
+        "adapted_rand_error": 0.9884576511033335,
+        "iou_threshold": 0.5
+      }
+    },
+    "liconn_mouse_hippocampus": {
+      "voxel_instance": {
+        "pq": 0.31731004922555806,
+        "sq": 0.7078454944262449,
+        "rq": 0.4482758620689655,
+        "true_positive": 78.0,
+        "false_positive": 78.0,
+        "false_negative": 114.0,
+        "instances_truth": 192.0,
+        "instances_predicted": 156.0,
+        "voi_split": 0.5319797037072593,
+        "voi_merge": 0.8253452653643532,
+        "voi_sum": 1.3573249690716125,
+        "adapted_rand_error": 0.1432400171716396,
+        "iou_threshold": 0.5
+      }
+    },
+    "liconn_expid82": {
+      "voxel_instance": {
+        "pq": 0.0572391396365696,
+        "sq": 0.6450700407726561,
+        "rq": 0.08873321657910099,
+        "true_positive": 76.0,
+        "false_positive": 601.0,
+        "false_negative": 960.0,
+        "instances_truth": 1036.0,
+        "instances_predicted": 677.0,
+        "voi_split": 0.8801438863660351,
+        "voi_merge": 4.729770992037987,
+        "voi_sum": 5.609914878404022,
+        "adapted_rand_error": 0.8761797578220011,
+        "iou_threshold": 0.5
+      }
+    }
+  },
+  "provenance": {
+    "mia_evals_commit": "413e6841b5cc85c56470ce6ad6776b78fda52a8c",
+    "run_dir": "/nrs/scicompsoft/orhane/mia-train-runs/sam1__arm4_8nm_gb16_r0_20260913_221637",
+    "resolved_config": {
+      "experiment_name": "sam1__arm4_8nm_gb16_r0",
+      "model": {
+        "name": "dinov3_vit3d",
+        "kwargs": {
+          "img_size": 256,
+          "patch_size": 16,
+          "in_chans": 1,
+          "embed_dim": 1024,
+          "depth": 24,
+          "num_heads": 16,
+          "n_storage_tokens": 4,
+          "layerscale_init": 1e-05,
+          "mask_k_bias": true,
+          "pos_embed_rope_dtype": "fp32",
+          "pos_embed_rope_type": "vanilla",
+          "drop_path_rate": 0.0,
+          "use_fa4": false
+        }
+      },
+      "algorithm": {
+        "name": "promptable_seg",
+        "kwargs": {
+          "prompt_dim": 256,
+          "decoder_depth": 2,
+          "decoder_heads": 8,
+          "num_multimask_outputs": 3,
+          "mask_upscale": 4,
+          "mask_feature_dim": 64,
+          "mask_refine_depth": 2,
+          "masks_per_sample": 16,
+          "min_object_voxels": 512,
+          "rounds": 3,
+          "box_prob": 0.5,
+          "attention_backend": "sdpa"
+        }
+      },
+      "data": {
+        "name": "miao_volumes",
+        "kwargs": {
+          "volumes": [
+            {
+              "name": "kasthuri15_ac3",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-001_ac3_100slices.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/public_gt-cell-kasthuri15",
+              "weight": 0.25,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  0,
+                  1024
+                ],
+                [
+                  0,
+                  1024
+                ],
+                [
+                  0,
+                  100
+                ]
+              ]
+            },
+            {
+              "name": "zebrafish_fish2_quadcube1",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-003_quadcube1_x23908_y18314_z0.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-seg230927",
+              "weight": 0.25,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  0,
+                  2000
+                ],
+                [
+                  0,
+                  2000
+                ],
+                [
+                  0,
+                  1364
+                ]
+              ]
+            },
+            {
+              "name": "liconn_mouse_dg",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-DG-20250809_ExPID19-02_2ndGel_C5_Atto488_40XW_002/crop-001.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/manual_gt-cell-final",
+              "weight": 0.25,
+              "normalize": true,
+              "normalize_min": 301.0,
+              "normalize_max": 1130.0,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  1416,
+                  1892
+                ],
+                [
+                  516,
+                  996
+                ],
+                [
+                  83,
+                  276
+                ]
+              ]
+            },
+            {
+              "name": "hemibrain_ellipsoid_body",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-hemibrain/crop-001_EllipsoidBody_x24000_y23000_z17000.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-hemibrain-v1.2",
+              "weight": 0.25,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  1988,
+                  3012
+                ],
+                [
+                  1988,
+                  3012
+                ],
+                [
+                  1988,
+                  3012
+                ]
+              ]
+            }
+          ],
+          "augment_fn": null,
+          "resolutions": [
+            [
+              8.0,
+              8.0,
+              8.0
+            ]
+          ],
+          "resolution_sampling": null,
+          "output_axes": "lcxyz",
+          "patch_size": [
+            256,
+            256,
+            256
+          ],
+          "bbox_mode": "absolute",
+          "samples_per_epoch": 100000,
+          "cache_bytes": 1073741824,
+          "file_io_concurrency": 64,
+          "sampling": "random",
+          "size_weighting_exponent": 0.0,
+          "overlap": 0,
+          "sample_windows": false,
+          "image_dtype": "float32",
+          "chunk_aligned": false,
+          "defer_image_ops": false
+        }
+      },
+      "trainer": {
+        "max_steps": 200000,
+        "batch_size": 2,
+        "lr": 0.0003,
+        "weight_decay": 0.05,
+        "beta1": 0.9,
+        "beta2": 0.95,
+        "warmup_steps": 3000,
+        "min_lr_ratio": 0.001,
+        "grad_clip_norm": 1.0,
+        "lr_schedule": "linear",
+        "layerwise_lr_decay": 1.0,
+        "patch_embed_lr_mult": 1.0,
+        "final_weight_decay": null,
+        "zero_weight_decay_on_norm_and_bias": true,
+        "zero_weight_decay_on_lora": true,
+        "activation_checkpointing": true,
+        "peak_tflops": null,
+        "measure_mfu": true,
+        "profile": false,
+        "profile_start_step": 50,
+        "profile_steps": 6,
+        "profile_all_ranks": false,
+        "profile_memory": false,
+        "freeze_backbone_steps": 0,
+        "unfreeze_warmup_steps": 1000,
+        "precision": "bf16",
+        "compile": true,
+        "log_every": 100,
+        "checkpoint_every": 12500,
+        "val_every": 2500,
+        "num_workers": 8,
+        "persistent_workers": false,
+        "prefetch_factor": 2,
+        "seed": 0
+      },
+      "parallelism": {
+        "dp_replicate": 1,
+        "dp_shard": 8,
+        "tp": 1,
+        "fsdp_unit_budget_gb": "auto"
+      },
+      "val_data": {
+        "name": "miao_volumes",
+        "kwargs": {
+          "volumes": [
+            {
+              "name": "kasthuri15_ac4",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-002_ac4_100slices.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/public_gt-cell-kasthuri15",
+              "weight": 0.25,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  0,
+                  1024
+                ],
+                [
+                  0,
+                  1024
+                ],
+                [
+                  0,
+                  100
+                ]
+              ]
+            },
+            {
+              "name": "zebrafish_fish2_doublecube1",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-seg230927",
+              "weight": 0.25,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  0,
+                  2000
+                ],
+                [
+                  0,
+                  2000
+                ],
+                [
+                  0,
+                  2112
+                ]
+              ]
+            },
+            {
+              "name": "liconn_mouse_hippocampus",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-hippocampus-202507013_ExPID10-02_2percentAA_S2_Atto488_40XW_004/crop-001.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/manual_gt-cell-final",
+              "weight": 0.25,
+              "normalize": true,
+              "normalize_min": 219.0,
+              "normalize_max": 919.0,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  496,
+                  976
+                ],
+                [
+                  496,
+                  976
+                ],
+                [
+                  44,
+                  236
+                ]
+              ]
+            },
+            {
+              "name": "liconn_expid82",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-ExPID82-1/crop-002_sub.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-agglom-dense-v20240123",
+              "weight": 0.25,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  1229,
+                  2253
+                ],
+                [
+                  1642,
+                  2666
+                ],
+                [
+                  0,
+                  534
+                ]
+              ]
+            }
+          ],
+          "augment_fn": null,
+          "resolutions": [
+            [
+              8.0,
+              8.0,
+              8.0
+            ]
+          ],
+          "resolution_sampling": null,
+          "output_axes": "lcxyz",
+          "patch_size": [
+            256,
+            256,
+            256
+          ],
+          "bbox_mode": "absolute",
+          "samples_per_epoch": 32,
+          "cache_bytes": 1073741824,
+          "file_io_concurrency": 64,
+          "sampling": "random",
+          "size_weighting_exponent": 0.0,
+          "overlap": 0,
+          "sample_windows": false,
+          "image_dtype": "float32",
+          "chunk_aligned": false,
+          "defer_image_ops": false
+        }
+      },
+      "init": {
+        "path": "/groups/miaai/miaai/pretrained_models/dinov3/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth",
+        "prefix": "",
+        "inflate_2d_to_3d": true,
+        "skip": [
+          "rope_embed."
+        ],
+        "strict": true,
+        "allow_unused": false,
+        "target": "model",
+        "merge_lora": false
+      },
+      "augment": {
+        "rotate": "inplane",
+        "drop_slice_prob": 0.05,
+        "shift_slice_prob": 0.05,
+        "shift_magnitude": 10,
+        "intensity": true,
+        "mul_intensity": 0.1,
+        "add_intensity": 0.1,
+        "noise_scale": 0.5
+      },
+      "lora": {
+        "rank": 0,
+        "alpha": 0.0,
+        "targets": [
+          "attn_qkv",
+          "attn_proj"
+        ],
+        "train_stem": true,
+        "train_norms": true,
+        "train_tokens": true
+      }
+    },
+    "producer_commit": "ac53c9c6857b38c58e65475b3ad08a550de76394 (dirty)"
+  },
+  "versions": {
+    "python": "3.14.6",
+    "numpy": "2.4.6",
+    "zarr": "3.3.0",
+    "miao": "present",
+    "numba": "0.66.0",
+    "networkx": "3.6.1",
+    "funlib.evaluate": "present"
+  },
+  "schema_version": 1,
+  "label": "sam1_arm4_8nm_gb16_r0_step200000"
+}
