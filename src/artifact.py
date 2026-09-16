@@ -5,7 +5,12 @@ attrs below; everything downstream reads only that. A `mia-train` checkpoint, a 
 segmentation, and a baseline from a paper therefore all enter by the same door, and no code path
 here is privileged for "our own" models.
 
-    <artifact>.zarr        (C, *spatial) or (*spatial), any dtype
+    <artifact>.zarr        (C, *spatial) or (*spatial), any dtype -- a bare array, or a single-level
+                           OME-Zarr group whose one dataset (`s0`) is that array (the layout
+                           `mia-train`'s `predict.py` writes since 2026-09-15: the group's OME
+                           `multiscales` carry the voxel size and physical offset, so a viewer
+                           places the prediction on the raw volume; the group's other attrs are
+                           the artifact's attrs, repeated on the array)
       .attrs
         kind          one of KINDS -- what the numbers *mean*, which decides what may postprocess it
         background_id  a labelling's "no object here" value      (required for a labelling)
@@ -74,6 +79,8 @@ class Artifact:
     ignore_id: int | None
     convention: str
     attrs: dict[str, Any] = field(default_factory=dict)
+    #: The array inside a single-level OME-Zarr group, or None when `path` is the array itself.
+    array_path: Path | None = None
 
     @property
     def canonical(self) -> str:
@@ -90,7 +97,7 @@ class Artifact:
         return None if KINDS[self.kind]["channels"] is None else int(self.shape[0])
 
     def _store(self) -> Any:
-        return zarr.open(str(self.path), mode="r")
+        return zarr.open(str(self.array_path or self.path), mode="r")
 
     def read(self, origin: tuple[int, ...] | None = None,
              size: tuple[int, ...] | None = None,
@@ -164,19 +171,30 @@ def open_artifact(path: str | Path) -> Artifact:
     if not path.exists():
         raise FileNotFoundError(f"no artifact at {path}")
     store = zarr.open(str(path), mode="r")
-    if not hasattr(store, "shape"):
-        # A zarr *group*, most likely a multiscale OME-Zarr pyramid. Worth its own message rather
-        # than the `AttributeError: 'Group' object has no attribute 'shape'` this used to raise:
-        # the source volumes read through `miao` *are* multiscale OME-Zarr, so handing one to the
-        # scorer is the natural mistake, and the fix is to name a level.
-        levels = sorted(str(k) for k in store.keys()) if hasattr(store, "keys") else []
-        hint = f" Name one level, for example {path.name}/{levels[0]}." if levels else ""
-        raise ValueError(
-            f"{path} is a zarr group, not an array. A prediction artifact is a single-resolution "
-            f"array, because scoring compares one voxel lattice against the ground truth and a "
-            f"multiscale pyramid does not say which level that is.{hint}"
-        )
-    attrs = dict(store.attrs)
+    array_path: Path | None = None
+    attrs: dict[str, Any]
+    if hasattr(store, "shape"):
+        attrs = dict(store.attrs)
+    else:
+        level = single_level(store)
+        if level is None:
+            # A zarr *group* with several (or no) levels, most likely a multiscale OME-Zarr
+            # pyramid. Worth its own message rather than the `AttributeError: 'Group' object has
+            # no attribute 'shape'` this used to raise: the source volumes read through `miao`
+            # *are* multiscale OME-Zarr, so handing one to the scorer is the natural mistake, and
+            # the fix is to name a level.
+            levels = sorted(str(k) for k in store.keys()) if hasattr(store, "keys") else []
+            hint = f" Name one level, for example {path.name}/{levels[0]}." if levels else ""
+            raise ValueError(
+                f"{path} is a zarr group, not an array. A prediction artifact is a "
+                f"single-resolution array -- bare, or the one dataset of a single-level OME-Zarr "
+                f"group -- because scoring compares one voxel lattice against the ground truth "
+                f"and a multiscale pyramid does not say which level that is.{hint}"
+            )
+        array_path = path / level
+        group_attrs = {k: v for k, v in dict(store.attrs).items() if k != "ome"}
+        store = store[level]
+        attrs = {**group_attrs, **dict(store.attrs)}
 
     kind = attrs.get("kind")
     if kind is None:
@@ -231,7 +249,111 @@ def open_artifact(path: str | Path) -> Artifact:
         ignore_id=None if ignore_id is None else int(ignore_id),
         convention=str(attrs.get("convention", "")),
         attrs=attrs,
+        array_path=array_path,
     )
+
+
+def write_scored(
+    path: str | Path,
+    labels: np.ndarray,
+    like: Artifact,
+    origin: tuple[int, ...],
+    **attrs: Any,
+) -> Path:
+    """Persist a post-processed labelling of `like` -- the exact voxels a row was scored on.
+
+    The scorer applies the postprocessor in memory and throws the result away, so what is on disk
+    is the producer's output before the size filter, and a viewer shows something other than
+    what the number was computed on. This writes the labelling as a single-level OME-Zarr group
+    with `like`'s geometry (the same voxel size; the translation shifted when the scored region
+    starts inside the artifact), as the narrowest unsigned type that holds its ids.
+    """
+    path = Path(path)
+    if labels.ndim != len(like.spatial_shape):
+        raise ValueError(f"a scored labelling must be spatial, got shape {labels.shape}")
+    if not np.issubdtype(labels.dtype, np.integer):
+        raise TypeError(f"a labelling must be integer, got {labels.dtype}")
+    if labels.size and int(labels.min()) < 0:
+        raise ValueError("a labelling with negative ids cannot be written as unsigned")
+    largest = int(labels.max()) if labels.size else 0
+    labels = labels.astype(np.uint32 if largest < 2**32 else np.uint64, copy=False)
+
+    payload: dict[str, Any] = {
+        "kind": "instances", "background_id": 0, "origin": list(origin),
+        "source_artifact": str(like.path), **attrs,
+    }
+    chunks = tuple(min(256, s) for s in labels.shape)
+    ome = _shifted_ome(like, origin) if like.array_path is not None else None
+    if ome is None:
+        # The source carries no geometry to inherit: a bare array, like the source itself.
+        store = zarr.open(str(path), mode="w", shape=labels.shape, dtype=labels.dtype,
+                          chunks=chunks)
+        store[:] = labels
+        store.attrs.update(**payload)
+    else:
+        group = zarr.open_group(str(path), mode="w", zarr_format=3)
+        level = group.create_array(name="s0", shape=labels.shape, dtype=labels.dtype,
+                                   chunks=chunks)
+        level[:] = labels
+        group.attrs.update(ome=ome, **payload)
+        level.attrs.update(**payload)
+    open_artifact(path)
+    return path
+
+
+def _shifted_ome(like: Artifact, origin: tuple[int, ...]) -> dict[str, Any] | None:
+    """`like`'s OME multiscales with the translation moved to the scored region's first voxel."""
+    import copy
+
+    root = zarr.open(str(like.path), mode="r")
+    ome = copy.deepcopy(dict(root.attrs).get("ome"))
+    if not isinstance(ome, dict) or len(ome.get("multiscales") or []) != 1:
+        return None
+    scales = ome["multiscales"][0]
+    axes = [a for a in scales.get("axes", []) if a.get("type") != "channel"]
+    (dataset,) = scales["datasets"]
+    scale = shift = None
+    for t in dataset.get("coordinateTransformations", []):
+        if t["type"] == "scale":
+            scale = t
+        elif t["type"] == "translation":
+            shift = t
+    if scale is None:
+        return None
+    if shift is None:
+        shift = {"type": "translation", "translation": [0.0] * len(scale["scale"])}
+        dataset["coordinateTransformations"].append(shift)
+    # Drop a channel axis: the scored labelling has none.
+    if len(scale["scale"]) == len(axes) + 1:
+        scales["axes"] = axes
+        scale["scale"] = scale["scale"][1:]
+        shift["translation"] = shift["translation"][1:]
+    offset = [o - a for o, a in zip(origin, like.origin, strict=True)]
+    shift["translation"] = [
+        float(t) + float(o) * float(v)
+        for t, o, v in zip(shift["translation"], offset, scale["scale"], strict=True)
+    ]
+    return ome
+
+
+def single_level(group: Any) -> str | None:
+    """The one dataset path of a single-level OME-Zarr group, else None.
+
+    Only OME `multiscales` metadata with exactly one dataset qualifies: it names the lattice
+    unambiguously. A group without that metadata, or with a pyramid, is not an artifact.
+    """
+    attrs = dict(group.attrs)
+    ome = attrs.get("ome") if isinstance(attrs.get("ome"), dict) else attrs
+    scales = ome.get("multiscales") if isinstance(ome, dict) else None
+    if not isinstance(scales, list) or len(scales) != 1:
+        return None
+    datasets = scales[0].get("datasets") if isinstance(scales[0], dict) else None
+    if not isinstance(datasets, list) or len(datasets) != 1:
+        return None
+    level = datasets[0].get("path")
+    if not isinstance(level, str) or level not in group:
+        return None
+    return level
 
 
 def write_artifact(

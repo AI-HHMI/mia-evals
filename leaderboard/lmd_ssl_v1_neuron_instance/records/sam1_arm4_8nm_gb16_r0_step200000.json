@@ -164,6 +164,12 @@
         "voi_sum": 2.696290115051476,
         "volumes_scored": 4.0
       }
+    },
+    "scored_artifacts": {
+      "kasthuri15_ac4": "/nrs/scicompsoft/orhane/mia-train-scratch/leaderboard_scored/lmd_ssl_v1_neuron_instance/sam1_arm4_8nm_gb16_r0_step200000/kasthuri15_ac4.zarr",
+      "liconn_expid82": "/nrs/scicompsoft/orhane/mia-train-scratch/leaderboard_scored/lmd_ssl_v1_neuron_instance/sam1_arm4_8nm_gb16_r0_step200000/liconn_expid82.zarr",
+      "liconn_mouse_hippocampus": "/nrs/scicompsoft/orhane/mia-train-scratch/leaderboard_scored/lmd_ssl_v1_neuron_instance/sam1_arm4_8nm_gb16_r0_step200000/liconn_mouse_hippocampus.zarr",
+      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-train-scratch/leaderboard_scored/lmd_ssl_v1_neuron_instance/sam1_arm4_8nm_gb16_r0_step200000/zebrafish_fish2_doublecube1.zarr"
     }
   },
   "region": {

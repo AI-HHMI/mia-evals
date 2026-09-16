@@ -28,7 +28,7 @@ from typing import Any
 
 import numpy as np
 
-from artifact import Artifact, open_artifact
+from artifact import Artifact, open_artifact, write_scored
 from config import TaskConfig, load_task_config
 from metrics.base import BaseMetric
 from postprocess.base import BasePostprocess
@@ -207,6 +207,7 @@ def score_once(
     metric_objects: dict[str, BaseMetric],
     params: dict[str, Any],
     scratch: Path,
+    keep: Path | None = None,
 ) -> tuple[dict[str, dict[str, float]], dict[str, Any], dict[str, Any]]:
     """Postprocess and score every volume under one parameter set.
 
@@ -214,6 +215,10 @@ def score_once(
     and the per-volume numbers are what make a bad aggregate diagnosable -- on this eval set one
     modality failing completely and three working looks identical, in the mean, to all four being
     mediocre.
+
+    With `keep`, each volume's post-processed labelling -- the voxels actually scored -- is
+    written to `keep/<volume>.zarr` (`artifact.write_scored`) and named in the regions, so a
+    viewer can show what the number was computed on rather than the producer's raw output.
     """
     for metric in metric_objects.values():
         # A metric that accumulates must start clean for each candidate, or the second candidate
@@ -237,6 +242,13 @@ def score_once(
             "whole_region": context["whole_region"],
             "artifact": str(artifact.path),
         }
+        if keep is not None and task.canonical == "instances":
+            keep.mkdir(parents=True, exist_ok=True)
+            regions[volume.name]["scored_artifact"] = str(write_scored(
+                keep / f"{volume.name}.zarr", prediction, artifact, origin,
+                convention=processor.describe(params),
+                postprocess={"name": type(processor).__name__, "params": params},
+            ))
         per_volume[volume.name] = {
             name: metric(prediction, truth, **context)
             for name, metric in metric_objects.items()
@@ -330,9 +342,15 @@ def cmd_score(args: argparse.Namespace) -> None:
         params, val_scores = candidates[0], {}
 
     print(f"scoring {Path(args.test).name}", flush=True)
+    keep = None if args.no_scored else Path(args.scored_out or scratch / "scored")
     scores, per_volume, region = score_once(
-        test_artifacts, config.volumes, task, processor, metric_objects, params, scratch
+        test_artifacts, config.volumes, task, processor, metric_objects, params, scratch,
+        keep=keep,
     )
+    scored = {name: r["scored_artifact"] for name, r in region["volumes"].items()
+              if "scored_artifact" in r}
+    if scored:
+        print(f"scored labellings kept under {keep}", flush=True)
     value = scores[config.rank_by][ranking_metric.primary]
     for name in sorted(per_volume):
         each = per_volume[name][config.rank_by].get(ranking_metric.primary)
@@ -367,6 +385,7 @@ def cmd_score(args: argparse.Namespace) -> None:
             "fitted_on": None if args.val is None else str(Path(args.val).resolve()),
             "fitted_on_config": None if args.val_config is None else str(args.val_config),
             "validation_scores": val_scores,
+            "scored_artifacts": scored,
         },
         region=region,
         config=config.as_record(),
@@ -436,6 +455,11 @@ def main() -> None:
     score.add_argument("--test", type=Path, required=True,
                        help="directory of <volume>.zarr artifacts to report on (or a single "
                             "artifact, if the task has one volume)")
+    score.add_argument("--scored-out", type=Path, default=None,
+                       help="where to keep the post-processed test labellings that were scored "
+                            "(default: <scratch>/scored); they are what the views show")
+    score.add_argument("--no-scored", action="store_true",
+                       help="do not keep the post-processed labellings")
     score.add_argument("--val", type=Path, default=None,
                        help="artifacts to fit the postprocessor's hyperparameter on, same form as "
                             "--test; required whenever there is more than one candidate")

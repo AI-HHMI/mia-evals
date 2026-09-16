@@ -171,3 +171,6 @@ configs/cluster/active.toml
 # Prediction artifacts and segmentations are large and regenerable: they live on /nrs, never here.
 *.zarr/
 *.npy
+
+# fileglancer data-link keys the leaderboard's views pages are built from: internal-only
+leaderboard/fileglancer_shares.json

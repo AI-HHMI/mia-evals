@@ -5,7 +5,8 @@ leaderboard of the results. It is built for 3D electron and light microscopy vol
 OME-Zarr.
 
 The central idea is that `mia-evals` scores *files*, not models. Whatever produced a prediction
-writes it to disk as a self-describing Zarr array called a **prediction artifact**, and `mia-evals`
+writes it to disk as a self-describing Zarr array (bare, or the single level of an OME-Zarr
+group that also records where it sits in the volume) called a **prediction artifact**, and `mia-evals`
 reads that artifact and scores it. Nothing in this repository imports `torch`, loads a checkpoint,
 or rebuilds a network. A segmentation produced by a collaborator, a published tool, or a manual
 proofreading pass is therefore a first-class submission, on exactly the same footing as one of our

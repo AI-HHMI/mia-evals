@@ -112,7 +112,13 @@
     "describe": "cc_threshold(logit=+0, thr=0.5000)",
     "fitted_on": null,
     "fitted_on_config": null,
-    "validation_scores": {}
+    "validation_scores": {},
+    "scored_artifacts": {
+      "kasthuri15_ac4": "/nrs/scicompsoft/orhane/mia-train-scratch/leaderboard_scored/lmd_ssl_v1_neuron_instance/2c_step50000/kasthuri15_ac4.zarr",
+      "liconn_expid82": "/nrs/scicompsoft/orhane/mia-train-scratch/leaderboard_scored/lmd_ssl_v1_neuron_instance/2c_step50000/liconn_expid82.zarr",
+      "liconn_mouse_hippocampus": "/nrs/scicompsoft/orhane/mia-train-scratch/leaderboard_scored/lmd_ssl_v1_neuron_instance/2c_step50000/liconn_mouse_hippocampus.zarr",
+      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-train-scratch/leaderboard_scored/lmd_ssl_v1_neuron_instance/2c_step50000/zebrafish_fish2_doublecube1.zarr"
+    }
   },
   "region": {
     "volumes": {
