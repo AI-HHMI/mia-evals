@@ -60,7 +60,7 @@ to the true object-size distribution.
 
 Four things keep a control honest.
 
-**Use the task's real config.** Run the arm through the same task `.toml`, the same post-processor
+**Use the task's real config.** Run the arm through the same scoring config, the same post-processor
 and the same metric as the entry it is a floor for. A control that changes two things at once
 measures neither.
 

@@ -7,7 +7,7 @@
 # recorded lmd_ssl_v1 score. The complementary half is lmd_ssl_v1_test.yaml.
 #
 # Read on both sides of the artifact boundary. mia-train's predict.py predicts every volume in it
-# (`--data-config configs/data/lmd_ssl_v1_finetune.yaml --out <artifacts>/...`), and the lmd_ssl_v1 task files
+# (`--data-config configs/data/lmd_ssl_v1_finetune.yaml --out <artifacts>/...`), and the lmd_ssl_v1 scoring configs
 # score those predictions against it. 4 volumes, one per modality pair, equally weighted. Every entry
 # keeps the bounding box measured from its label's non-zero extent -- LICONN DG and hippocampus have
 # 0% GT in their own central 256^3 block, so dropping the box would predict and score unannotated

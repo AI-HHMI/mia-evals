@@ -1,4 +1,4 @@
-"""Every task config shown in the README must actually load.
+"""Every scoring config shown in the README must actually load.
 
 The README's only configuration example had drifted badly: it omitted the required `[task]`
 section, carried a `[predict]` section from before prediction moved to mia-train, and used
@@ -7,10 +7,10 @@ section, carried a `[predict]` section from before prediction moved to mia-train
 is the one part of a repository with no failing build to catch it.
 
 So the example is executed rather than trusted. Any fenced `toml` block in the README that looks
-like a task config -- it has a `task_name` -- is written to a temp file and passed through the real
+like a scoring config -- it has a `task_name` -- is written to a temp file and passed through the real
 loader. A block that cannot load is a bug in the README.
 
-Deliberately checks loading only, not scoring: `load_task_config` parses the `miao` YAML without
+Deliberately checks loading only, not scoring: `load_scoring_config` parses the `miao` YAML without
 opening any store, so this needs no data on disk and runs anywhere. The example points at an
 in-repo data config for that reason.
 """
@@ -41,7 +41,7 @@ def all_blocks() -> list[tuple[int, str]]:
 
 
 def task_config_blocks() -> list[tuple[int, str]]:
-    """Just the blocks that look like a task config, i.e. that declare a `task_name`."""
+    """Just the blocks that look like a scoring config, i.e. that declare a `task_name`."""
     return [(line, body) for line, body in all_blocks() if "task_name" in body]
 
 
@@ -51,13 +51,13 @@ def task_config_blocks() -> list[tuple[int, str]]:
 )
 def test_readme_task_config_loads(line, body, tmp_path):
     import components  # noqa: F401  (populates the registries)
-    from config import load_task_config
+    from config import load_scoring_config
 
-    # `config_path` in the README is relative to configs/tasks/, so the example is written there.
-    target = ROOT / "configs" / "tasks" / "_readme_example.toml"
+    # `config_path` in the README is relative to configs/scoring/, so the example is written there.
+    target = ROOT / "configs" / "scoring" / "_readme_example.toml"
     target.write_text(body)
     try:
-        config = load_task_config(target)
+        config = load_scoring_config(target)
     except Exception as exc:                      # noqa: BLE001 -- reported, not handled
         pytest.fail(
             f"the toml block at README.md:{line} does not load: {type(exc).__name__}: {exc}\n"
@@ -81,7 +81,7 @@ def test_the_readme_still_shows_a_task_config():
 
 @pytest.mark.unit
 def test_readme_examples_are_valid_toml_at_all():
-    """Every toml block, not just task configs -- a syntax error in any of them is a typo."""
+    """Every toml block, not just scoring configs -- a syntax error in any of them is a typo."""
     for line, body in all_blocks():
         try:
             tomllib.loads(body)

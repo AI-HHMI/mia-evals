@@ -1,4 +1,9 @@
-"""Parsing a task `.toml`, and resolving the `miao` data config it points at.
+"""Parsing a scoring config -- `configs/scoring/*.toml` -- and resolving the `miao` data configs it points at.
+
+A scoring config says three things: which task is scored (`task_name`, the reported volumes and
+the ranking metric), where a post-processing sweep is fitted, and which post-processing route turns
+the artifact into a labelling. Several scoring configs may score one task through different routes;
+what makes them one task is checked in `report.record`.
 
 Two files, on purpose. The data lives in a `miao` YAML, generated with a provenance header and a
 drift check, and `miao` sets `extra="forbid"` -- so a data config *cannot* carry `task`, `metric` or
@@ -6,7 +11,7 @@ drift check, and `miao` sets `extra="forbid"` -- so a data config *cannot* carry
 and references the data by path.
 
 That split also settles split membership. `miao` rejects a per-volume `split:` key, so a split is
-stated in the task file: `[data.test]` names the data config (and optionally a `volumes` filter) of
+stated in the scoring config: `[data.test]` names the data config (and optionally a `volumes` filter) of
 the reported volumes, and `[data.fit]` the one the post-processing sweep is fitted on. A task
 without a sweep needs no fit split and may write a plain `[data]` instead. The two splits may not
 share a volume, which is checked here, at load, rather than after an hour of scoring.
@@ -40,7 +45,7 @@ class Section:
 
 
 @dataclass(frozen=True)
-class TaskConfig:
+class ScoringConfig:
     """One fully resolved evaluation, assembled from a `.toml`."""
 
     task_name: str
@@ -113,7 +118,7 @@ def load_data_config(path: str | Path) -> tuple[Volume, ...]:
         raise ValueError(
             f"{path} is not a valid miao config:\n{error}\n\n"
             "miao sets extra=\"forbid\", so `task:`, `metric:`, `label_class:` and per-volume "
-            "`split:` keys are rejected. Those belong in the task .toml that references this file, "
+            "`split:` keys are rejected. Those belong in the scoring config that references this file, "
             "not in the data config -- move them there and regenerate."
         ) from error
 
@@ -154,7 +159,7 @@ def _section(raw: dict[str, Any], name: str, required: bool = True) -> Section:
 
 
 def _resolve_split(entry: dict[str, Any], task_path: Path, label: str) -> tuple[Path, tuple[Volume, ...]]:
-    """One split's `config_path` (relative to the task file) and optional `volumes` filter."""
+    """One split's `config_path` (relative to the scoring config) and optional `volumes` filter."""
     entry = dict(entry)
     if "config_path" not in entry:
         raise ValueError(
@@ -184,8 +189,8 @@ def _resolve_split(entry: dict[str, Any], task_path: Path, label: str) -> tuple[
     return config_path, volumes
 
 
-def load_task_config(path: str | Path) -> TaskConfig:
-    """Parse a task `.toml`, resolving its data config(s) and filtering to this task's volumes.
+def load_scoring_config(path: str | Path) -> ScoringConfig:
+    """Parse a scoring config, resolving its data config(s) and filtering to the volumes it names.
 
     `[data]` takes one of two shapes. `[data.test]` plus an optional `[data.fit]`, each with a
     `config_path` and an optional `volumes` filter, states the reported split and the split a
@@ -251,7 +256,7 @@ def load_task_config(path: str | Path) -> TaskConfig:
                 "so that no task can rank in the wrong direction."
             )
 
-    return TaskConfig(
+    return ScoringConfig(
         task_name=str(raw["task_name"]),
         task=_section(raw, "task"),
         postprocess=_section(raw, "postprocess"),

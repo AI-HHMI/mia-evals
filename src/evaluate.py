@@ -1,6 +1,6 @@
 """Single entrypoint: score a prediction artifact against a task, and render the leaderboard.
 
-    mia-evals score  configs/tasks/<task>.toml --test <artifact.zarr> \\
+    mia-evals score  configs/scoring/<name>.toml --test <artifact.zarr> \\
         [--val <artifact.zarr>] [--leaderboard leaderboard/]
     mia-evals leaderboard [--task <task_name>] [--check]
 
@@ -29,7 +29,7 @@ from typing import Any
 import numpy as np
 
 from artifact import Artifact, open_artifact, write_scored
-from config import TaskConfig, load_task_config
+from config import ScoringConfig, load_scoring_config
 from metrics.base import BaseMetric
 from postprocess.base import BasePostprocess
 from report import leaderboard, record
@@ -62,7 +62,7 @@ def _leaderboard_root() -> Path:
 DEFAULT_LEADERBOARD = _leaderboard_root()
 
 
-def build(config: TaskConfig) -> tuple[BaseTask, BasePostprocess, dict[str, BaseMetric]]:
+def build(config: ScoringConfig) -> tuple[BaseTask, BasePostprocess, dict[str, BaseMetric]]:
     """Instantiate the task, postprocessor and metrics the config names, and check they compose."""
     import components  # noqa: F401  (populates the registries)
     from metrics.registry import MetricRegistry
@@ -261,7 +261,7 @@ def fit(
     task: BaseTask,
     processor: BasePostprocess,
     metric_objects: dict[str, BaseMetric],
-    config: TaskConfig,
+    config: ScoringConfig,
     scratch: Path,
 ) -> tuple[dict[str, Any], dict[str, dict[str, float]]]:
     """The candidate that scores best on this (validation) artifact, and what it scored."""
@@ -282,7 +282,7 @@ def fit(
 
 
 def cmd_score(args: argparse.Namespace) -> None:
-    config = load_task_config(args.config)
+    config = load_scoring_config(args.config)
     if args.val is not None and config.fit_volumes is None:
         # A config problem, reported before any artifact is opened.
         raise SystemExit(
@@ -462,8 +462,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
 
-    score = sub.add_parser("score", help="score an artifact against a task config")
-    score.add_argument("config", type=Path, help="a task .toml from configs/tasks/")
+    score = sub.add_parser("score", help="score an artifact against a scoring config")
+    score.add_argument("config", type=Path, help="a scoring config from configs/scoring/: which task, which splits, which post-processing route")
     score.add_argument("--test", type=Path, required=True,
                        help="directory of <volume>.zarr artifacts to report on (or a single "
                             "artifact, if the task has one volume)")

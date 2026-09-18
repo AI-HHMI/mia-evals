@@ -1,7 +1,7 @@
 """A task is its reported volumes (with their ground truth) and its ranking metric.
 
 Nothing else. The post-processor, the truth route and the fit split may vary between rows and are
-shown; the identity may not, and is checked in three places: across the task files in this repo,
+shown; the identity may not, and is checked in three places: across the scoring configs in this repo,
 against the existing records before a new one is written, and across a directory whenever it is
 loaded for rendering or `--check`.
 """
@@ -35,14 +35,14 @@ def _config_identity(config):
 
 
 def test_task_files_sharing_a_name_agree_on_what_the_task_is():
-    """Two files may share a task_name only as two routes to the same table."""
-    from config import load_task_config
+    """Two scoring configs may share a task_name only as two routes to the same table."""
+    from config import load_scoring_config
 
     by_name: dict[str, list[tuple[str, dict]]] = {}
-    for path in sorted(glob.glob(str(ROOT / "configs" / "tasks" / "*.toml"))):
-        config = load_task_config(path)
+    for path in sorted(glob.glob(str(ROOT / "configs" / "scoring" / "*.toml"))):
+        config = load_scoring_config(path)
         by_name.setdefault(config.task_name, []).append((path, _config_identity(config)))
-    assert by_name, "no task files found"
+    assert by_name, "no scoring configs found"
     for name, entries in by_name.items():
         reference_path, reference = entries[0]
         for path, identity in entries[1:]:

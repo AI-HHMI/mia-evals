@@ -1,4 +1,4 @@
-"""End to end: a task config, an artifact, a record, a leaderboard.
+"""End to end: a scoring config, an artifact, a record, a leaderboard.
 
 Built from synthetic volumes so it needs no cluster storage, no checkpoint, and neither numba nor
 funlib. What it exercises is the wiring the design rests on: that a config resolves through the
@@ -243,11 +243,11 @@ def test_task_and_metric_canonical_forms_must_agree(instances, tmp_path):
         names = ["voxel_instance"]
         """))
 
-    from config import load_task_config
+    from config import load_scoring_config
     from evaluate import build
 
     with pytest.raises(ValueError, match="consume something else"):
-        build(load_task_config(config))
+        build(load_scoring_config(config))
 
 
 def test_leaderboard_renders_and_detects_drift(instances, tmp_path):
@@ -442,7 +442,7 @@ def test_leaderboard_root_falls_back_to_cwd_when_installed(tmp_path, monkeypatch
 
 def _split_task_config(root, test_data: str, fit_data: str | None, body: str,
                        test_volumes=None, fit_volumes=None) -> str:
-    """A task file declaring `[data.test]` and, unless `fit_data` is None, `[data.fit]`."""
+    """A scoring config declaring `[data.test]` and, unless `fit_data` is None, `[data.fit]`."""
     def table(name, data_path, volumes):
         lines = [f"[data.{name}]", f'config_path = "{data_path}"']
         if volumes is not None:
@@ -472,14 +472,14 @@ SIZE_FILTER_BODY = textwrap.dedent("""\
 
 
 def test_the_fit_split_is_declared_in_the_task_and_may_not_overlap_the_reported_one(tmp_path):
-    from config import load_task_config
+    from config import load_scoring_config
 
     truth, _ = _truth_and_split()
     a = _volume(tmp_path, "alpha", truth)
     b = _volume(tmp_path, "beta", truth)
     both = _data_config(tmp_path, [("alpha", a, truth.shape), ("beta", b, truth.shape)])
 
-    config = load_task_config(_split_task_config(
+    config = load_scoring_config(_split_task_config(
         tmp_path, both, both, SIZE_FILTER_BODY, test_volumes=["alpha"], fit_volumes=["beta"],
     ))
     assert [v.name for v in config.volumes] == ["alpha"]
@@ -489,12 +489,12 @@ def test_the_fit_split_is_declared_in_the_task_and_may_not_overlap_the_reported_
     assert [v["name"] for v in record["fit_volumes"]] == ["beta"]
 
     with pytest.raises(ValueError, match="share volume"):
-        load_task_config(_split_task_config(
+        load_scoring_config(_split_task_config(
             tmp_path, both, both, SIZE_FILTER_BODY, test_volumes=["alpha"],
         ))                                       # fit = both volumes, so alpha is on both sides
 
     # A plain [data] is still the reported split alone, with no fit split.
-    plain = load_task_config(_task_config(tmp_path, both, SIZE_FILTER_BODY))
+    plain = load_scoring_config(_task_config(tmp_path, both, SIZE_FILTER_BODY))
     assert plain.fit_volumes is None and plain.fit_data_config_path is None
 
     # [data.fit] without [data.test] is a shape error, not a silently missing test split.
@@ -503,7 +503,7 @@ def test_the_fit_split_is_declared_in_the_task_and_may_not_overlap_the_reported_
         'task_name = "unit_task"\n\n[data.fit]\nconfig_path = "' + both + '"\n\n' + SIZE_FILTER_BODY
     )
     with pytest.raises(ValueError, match=r"\[data.fit\] needs a \[data.test\]"):
-        load_task_config(lonely)
+        load_scoring_config(lonely)
 
 
 def test_a_sweep_is_fitted_on_the_declared_fit_split_and_applied_to_the_test_split(tmp_path):

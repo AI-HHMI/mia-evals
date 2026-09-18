@@ -5,7 +5,7 @@
 # it never trained on ([data.test]) and fits the post-processing sweep on the four it did
 # ([data.fit]):
 #
-#   mia-evals score configs/tasks/lmd_ssl_v1_neuron_instance.toml \
+#   mia-evals score configs/scoring/lmd_ssl_v1_neuron_instance.toml \
 #       --test <artifacts>/test --val <artifacts>/finetune \
 #       --run-dir /nrs/.../lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919
 #

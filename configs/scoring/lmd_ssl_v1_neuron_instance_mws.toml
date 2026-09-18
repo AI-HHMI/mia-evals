@@ -1,7 +1,7 @@
 # lmd_ssl_v1 -- neuron/cell instance segmentation over the lmd eval set, scored from a stored MUTEX
 # WATERSHED labelling rather than from affinities.
 #
-#   mia-evals score configs/tasks/lmd_ssl_v1_neuron_instance_mws.toml \
+#   mia-evals score configs/scoring/lmd_ssl_v1_neuron_instance_mws.toml \
 #       --test <mws_artifacts>/test --val <mws_artifacts>/finetune \
 #       --run-dir /nrs/.../lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919
 #

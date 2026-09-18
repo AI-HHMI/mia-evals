@@ -1,6 +1,6 @@
 """Imports every concrete implementation so the registries are populated.
 
-A registry decorator only runs when its module is imported, so a task config naming
+A registry decorator only runs when its module is imported, so a scoring config naming
 "cc_threshold" resolves only once this module has been. `evaluate.py` imports it before building
 anything. Adding a component means adding one line here -- the engine and the registries never
 change.

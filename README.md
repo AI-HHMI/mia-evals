@@ -77,7 +77,7 @@ python <mia-train>/src/predict.py <run_dir> --step 50000 --data-config configs/d
 python <mia-train>/src/predict.py <run_dir> --step 50000 --data-config configs/data/lmd_ssl_v1_finetune.yaml --out <artifacts>/finetune
 
 # 2. Fit the post-processing hyperparams on the finetune half, report on the test half, and write a record.
-mia-evals score configs/tasks/lmd_ssl_v1_neuron_instance.toml \
+mia-evals score configs/scoring/lmd_ssl_v1_neuron_instance.toml \
     --val <artifacts>/finetune --test <artifacts>/test --run-dir <run_dir>
 
 # 3. Rebuild a table from its records. Scoring already does this for the task it scored; this is for after editing or removing a record by hand.
@@ -224,10 +224,13 @@ that grid as a second artifact, and the scorer compares the two arrays voxel for
 
 `semantic_seg` has no `truth_kind`. Its truth is always the volume's label array.
 
-## Task configuration
+## Scoring configuration
 
-A task is a `.toml` file in `configs/tasks/`. It references a `miao` YAML for the data rather than
-restating it, so prediction and scoring read the same volume definitions.
+A scoring config is a `.toml` file in `configs/scoring/`. It says which task is scored (`task_name`,
+the reported volumes and the ranking metric), where the post-processing sweep is fitted, and which
+post-processing route turns the artifact into a labelling; several scoring configs may score one
+task through different routes, as the `_mws` one does. Data is referenced as `miao` YAMLs rather
+than restated, so prediction and scoring read the same volume definitions.
 
 ```toml
 task_name = "lmd_ssl_v1_neuron_instance"
@@ -263,7 +266,7 @@ that contradicts the metric it ranks on.
 only the test numbers. This is what keeps a swept hyperparameter from quietly selecting on the
 number being published.
 
-Which volumes form each split is declared in the task file: `[data.test]` names the reported
+Which volumes form each split is declared in the scoring config: `[data.test]` names the reported
 volumes and `[data.fit]` the ones the sweep is fitted on. Each names a data config and may add a
 `volumes = [...]` filter to select a subset of it, so a split can be its own YAML
 (`lmd_ssl_v1_finetune.yaml` beside `lmd_ssl_v1_test.yaml`, which makes the split obvious from the
@@ -314,7 +317,7 @@ name.
 | path | contents |
 | --- | --- |
 | `src/artifact.py` | reads a prediction artifact and its self-describing attributes |
-| `src/config.py` | parses and validates a task `.toml` |
+| `src/config.py` | parses and validates a scoring config |
 | `src/evaluate.py` | the `mia-evals` command: the scoring engine and the CLI |
 | `src/components.py` | imports every implementation so the registries populate |
 | `src/tasks/` | ground truth and scored region, per task type |
@@ -323,7 +326,7 @@ name.
 | `src/report/` | the record format and the leaderboard renderer |
 | `src/viz/` | the two figure commands |
 | `src/utils/` | two modules recycled verbatim from BANIS; see `ACKNOWLEDGEMENTS.md` |
-| `configs/data/`, `configs/tasks/` | `miao` data YAMLs and task definitions |
+| `configs/data/`, `configs/scoring/` | `miao` data YAMLs, and scoring configs: task + splits + post-processing route |
 | `docs/controls.md` | control experiments: baseline task metric scores without a model |
 | `tests/unit/` | fast, single-process tests |
 

@@ -89,7 +89,7 @@ class Submission:
     postprocess: dict[str, Any]
     #: (origin, shape) actually scored, per volume.
     region: dict[str, Any]
-    #: The task config, expanded.
+    #: The scoring config, expanded.
     config: dict[str, Any]
     #: Volume name -> metric name -> result dict, before aggregation. Kept because an aggregate
     #: alone cannot distinguish "one modality failed outright" from "all four were mediocre", and
@@ -141,7 +141,7 @@ class Submission:
 # columns -- a reader may attribute a difference to them, but must be able to see them.
 #
 # `task_name` alone used to decide which directory a record landed in, and nothing compared a
-# task file with the records already there: a second file reusing the name with another test set
+# scoring config with the records already there: a second file reusing the name with another test set
 # would have joined the table, separated only by the region grouping if the extents happened to
 # differ. The identity is therefore checked twice -- against the existing records before a new one
 # is written, and across a directory whenever it is loaded -- so a table cannot come to hold rows
