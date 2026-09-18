@@ -53,17 +53,9 @@ TASK_HEADER = """<!-- GENERATED FILE -- do not edit by hand.
 
 # {task}
 
-A score here is only interpretable against a floor. See
-[docs/controls.md](../../docs/controls.md) for what these tasks measure with no model at all.
+The artifact/checkpoint/view links below point to locations on the Janelia cluster and will only work on the Janelia network."""
 
-`links` open the scored artifacts and the checkpoint in fileglancer (Janelia login). A link is
-only offered where the record names a path on this cluster; `missing` means the files have since
-been deleted -- scratch is reclaimed once a number is recorded -- and the table was re-rendered.
-Per-volume neuroglancer views of each row (raw image, scored labelling and ground truth placed
-together) are a separate HTML page per task, written outside the repository into a fileglancer
-data-link directory named in the untracked `leaderboard/fileglancer_shares.json`, because its
-links carry keys that serve the files without a login on the Janelia network.
-"""
+VIEWS_LINE = "\n**Views:** [neuroglancer views for every row below]({url})"
 
 VIEWS_HTML = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>{task}: views</title>
@@ -150,13 +142,32 @@ def _cell(value: Any) -> str:
     return "—" if value is None else str(value)
 
 
-def render_task(task_name: str, submissions: list[Submission]) -> str:
-    """One task's page: a table per region it was scored over."""
+def views_link(root: Path, task_name: str) -> str | None:
+    """The data-link URL of this task's HTML views page, or None if it has not been written.
+
+    The URL carries the share's key, and the table it goes into is committed. That is accepted:
+    the links only resolve for people with Janelia access, and a table that names its views is
+    worth more than one that hides them. The key *file* stays untracked all the same.
+    """
+    target = views_directory(root / SHARE_KEYS)
+    if target is None:
+        return None
+    page = Path(str(target).replace("{task}", task_name)) / f"{task_name}.html"
+    if not page.is_file():
+        return None
+    return share_url(page, load_share_keys(root / SHARE_KEYS))
+
+
+def render_task(task_name: str, submissions: list[Submission],
+                views: str | None = None) -> str:
+    """One task's page: a table per region it was scored over, linking its views page if any."""
     header = TASK_HEADER.format(task=task_name)
     if not submissions:
-        return header + "\nNo records yet.\n"
+        return header + "\n\nNo records yet.\n"
 
     out = [header]
+    if views:
+        out.append(VIEWS_LINE.format(url=views))
     shares = default_shares()
     truths = {_truth_kind(s) for s in submissions}
     show_truth = len(truths) > 1
@@ -289,16 +300,14 @@ def render_index(root: Path) -> str:
 def write_task(root: Path, task_name: str) -> Path:
     """Render one task's table in place, leaving every other task's file untouched.
 
-    The views page goes into the data-link directory, never into the repository, and is not part
-    of `check`: its content depends on keys that must not travel with the repo.
+    The views page is written first, into the data-link directory and never into the repository,
+    so that the table can link to it. Its content is not part of `check`; the link to it is.
     """
     output = readme_path(root, task_name)
     output.parent.mkdir(parents=True, exist_ok=True)
     submissions = load_task(root, task_name)
-    output.write_text(render_task(task_name, submissions))
-    url = write_views(root, task_name, submissions)
-    if url:
-        print(f"views: {url}")
+    write_views(root, task_name, submissions)
+    output.write_text(render_task(task_name, submissions, views_link(root, task_name)))
     return output
 
 
@@ -328,7 +337,7 @@ def check(root: Path, task_name: str | None = None) -> list[Path]:
     stale = []
     for name in names:
         output = readme_path(root, name)
-        expected = render_task(name, load_task(root, name))
+        expected = render_task(name, load_task(root, name), views_link(root, name))
         if not output.is_file() or output.read_text() != expected:
             stale.append(output)
     index = root / "README.md"

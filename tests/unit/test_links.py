@@ -282,3 +282,38 @@ def test_views_dir_task_placeholder_puts_each_page_in_its_task_directory(tmp_pat
     page = tmp_path / "mia-evals" / "t1" / "views" / "t1.html"
     assert page.is_file()
     assert url is not None and url.endswith("/mia-evals/t1/views/t1.html")
+
+
+def test_the_task_page_links_its_views_page_and_check_agrees(tmp_path):
+    """The table links the views page through the data link that serves it, once it exists, so
+    `--check` renders the same text `leaderboard` wrote; without a page there is no link."""
+    import json
+
+    from report import leaderboard
+    from report.record import Submission
+
+    covered = _ome_artifact(tmp_path / "vol.zarr")
+    (tmp_path / "fileglancer_shares.json").write_text(json.dumps({
+        "shares": {**KEYS, str(tmp_path): "TMPKEY"},
+        "views_dir": str(tmp_path / "mia-evals" / "{task}" / "views"),
+    }))
+    Submission(
+        task_name="t1", producer={"artifacts": {"vol": str(covered)}},
+        scores={"m": {"k": 1.0}},
+        ranking={"metric": "m", "key": "k", "value": 1.0, "higher_is_better": True},
+        postprocess={"describe": "identity"}, region={},
+        config={"volumes": [{"name": "vol", "path": "/groups/miaai/miaai/lmd-v0.0.1/data/s.zarr"}]},
+        label="row",
+    ).write(tmp_path)
+
+    output, _index = leaderboard.write(tmp_path, "t1")       # the task page and the index
+    text = output.read_text()
+    assert (tmp_path / "mia-evals" / "t1" / "views" / "t1.html").is_file()
+    assert "[neuroglancer views for every row below](https://fileglancer.int.janelia.org/files/TMPKEY/" in text
+    assert "/mia-evals/t1/views/t1.html)" in text
+    assert leaderboard.check(tmp_path, "t1") == []
+
+    (tmp_path / "fileglancer_shares.json").unlink()
+    leaderboard.write(tmp_path, "t1")
+    assert "neuroglancer views for every row" not in output.read_text()
+    assert leaderboard.check(tmp_path, "t1") == []

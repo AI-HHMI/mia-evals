@@ -4,17 +4,9 @@
 
 # lmd_ssl_v1_neuron_instance
 
-A score here is only interpretable against a floor. See
-[docs/controls.md](../../docs/controls.md) for what these tasks measure with no model at all.
+The artifact/checkpoint/view links below point to locations on the Janelia cluster and will only work on the Janelia network.
 
-`links` open the scored artifacts and the checkpoint in fileglancer (Janelia login). A link is
-only offered where the record names a path on this cluster; `missing` means the files have since
-been deleted -- scratch is reclaimed once a number is recorded -- and the table was re-rendered.
-Per-volume neuroglancer views of each row (raw image, scored labelling and ground truth placed
-together) are a separate HTML page per task, written outside the repository into a fileglancer
-data-link directory named in the untracked `leaderboard/fileglancer_shares.json`, because its
-links carry keys that serve the files without a login on the Janelia network.
-
+**Views:** [neuroglancer views for every row below](https://fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_neuron_instance/views/lmd_ssl_v1_neuron_instance.html)
 
 **Region:** kasthuri15_ac4 256x640x640 (sub-region); liconn_expid82 768x1152x1152 (sub-region); liconn_mouse_hippocampus 512x512x512 (sub-region); zebrafish_fish2_doublecube1 1920x1920x1920 (sub-region)
 

@@ -290,7 +290,10 @@ leaderboard/
 ```
 
 `mia-evals score` writes the record and re-renders that task's table, so the two cannot drift
-apart through a forgotten second command; every other task's file is left untouched. 
+apart through a forgotten second command; every other task's file is left untouched. When a
+fileglancer data link is configured (the untracked `leaderboard/fileglancer_shares.json`), rendering
+also writes a per-task HTML page of neuroglancer views, one per row and volume, outside the
+repository, and the task's table links to it; the link works for anyone with Janelia access.
 `mia-evals leaderboard` rebuilds everything, and `--task <name>` rebuilds a specific task. A
 record carries the scores per volume and in aggregate, the producing run and step, that run's
 resolved config and git commit copied inline, the post-processor and the parameters that won on
@@ -304,7 +307,8 @@ post-processor as a column, because "A beats B" can be a post-processing differe
 model difference. It also refuses to put two different scored extents in one table, because several
 of these metrics change with extent.
 
-**What defines a task:** A task is defined by its name, its reported volumes together with their ground truth (store path, label key or skeleton, bounding box), and the metric it ranks on. Nothing else: the
+**What defines a task:** A task is defined by its name, its reported volumes together with their ground truth 
+(store path, label key or skeleton, bounding box), and the metric it ranks on. The
 post-processor, the route the truth is read by (`truth_kind`), the split a sweep was fitted on and
 the producer are properties of a submission, recorded in full and shown as columns where they vary
 within a table. `mia-evals score` refuses a record whose test set or ranking metric differs from
