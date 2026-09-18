@@ -168,7 +168,8 @@ def load_share_keys(path: Path) -> dict[str, str]:
 
 def views_directory(path: Path) -> Path | None:
     """Where the HTML view pages are written so a data link serves them: the key file's
-    `views_dir`, which must lie under one of its shares, or None."""
+    `views_dir`, which must lie under one of its shares, or None. May contain `{task}`, which
+    `write_views` expands to the task name so every task's page lives in its own directory."""
     if not path.is_file():
         return None
     payload = json.loads(path.read_text())

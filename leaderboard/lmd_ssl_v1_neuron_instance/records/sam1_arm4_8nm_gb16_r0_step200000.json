@@ -2,10 +2,10 @@
   "task_name": "lmd_ssl_v1_neuron_instance",
   "producer": {
     "artifacts": {
-      "kasthuri15_ac4": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/kasthuri15_ac4.zarr",
-      "liconn_expid82": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/liconn_expid82.zarr",
-      "liconn_mouse_hippocampus": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/liconn_mouse_hippocampus.zarr",
-      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/zebrafish_fish2_doublecube1.zarr"
+      "kasthuri15_ac4": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/kasthuri15_ac4.zarr",
+      "liconn_expid82": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/liconn_expid82.zarr",
+      "liconn_mouse_hippocampus": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/liconn_mouse_hippocampus.zarr",
+      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/zebrafish_fish2_doublecube1.zarr"
     },
     "run": "sam1__arm4_8nm_gb16_r0_20260913_221637",
     "step": 200000,
@@ -109,7 +109,7 @@
         128
       ],
       "run": "sam1__arm4_8nm_gb16_r0_20260913_221637",
-      "run_dir": "/nrs/scicompsoft/orhane/mia-train-runs/sam1__arm4_8nm_gb16_r0_20260913_221637",
+      "run_dir": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/runs/sam1__arm4_8nm_gb16_r0_20260913_221637",
       "step": 200000,
       "data_config": "/groups/scicompsoft/home/orhane/projects/mia-train/experiments/lmd_ssl_v1/lmd_val_singlescale.yaml",
       "volume": "kasthuri15_ac4"
@@ -145,7 +145,7 @@
       "min_size": 5000
     },
     "describe": "size_filter(min_size=5000)",
-    "fitted_on": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/finetune",
+    "fitted_on": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm4_8nm_gb16_r0/finetune",
     "fitted_on_config": "configs/tasks/lmd_ssl_v1_neuron_instance_mws_fit.toml",
     "validation_scores": {
       "voxel_instance": {
@@ -166,10 +166,10 @@
       }
     },
     "scored_artifacts": {
-      "kasthuri15_ac4": "/nrs/scicompsoft/orhane/mia-train-scratch/leaderboard_scored/lmd_ssl_v1_neuron_instance/sam1_arm4_8nm_gb16_r0_step200000/kasthuri15_ac4.zarr",
-      "liconn_expid82": "/nrs/scicompsoft/orhane/mia-train-scratch/leaderboard_scored/lmd_ssl_v1_neuron_instance/sam1_arm4_8nm_gb16_r0_step200000/liconn_expid82.zarr",
-      "liconn_mouse_hippocampus": "/nrs/scicompsoft/orhane/mia-train-scratch/leaderboard_scored/lmd_ssl_v1_neuron_instance/sam1_arm4_8nm_gb16_r0_step200000/liconn_mouse_hippocampus.zarr",
-      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-train-scratch/leaderboard_scored/lmd_ssl_v1_neuron_instance/sam1_arm4_8nm_gb16_r0_step200000/zebrafish_fish2_doublecube1.zarr"
+      "kasthuri15_ac4": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_neuron_instance/scored/sam1_arm4_8nm_gb16_r0_step200000/kasthuri15_ac4.zarr",
+      "liconn_expid82": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_neuron_instance/scored/sam1_arm4_8nm_gb16_r0_step200000/liconn_expid82.zarr",
+      "liconn_mouse_hippocampus": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_neuron_instance/scored/sam1_arm4_8nm_gb16_r0_step200000/liconn_mouse_hippocampus.zarr",
+      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_neuron_instance/scored/sam1_arm4_8nm_gb16_r0_step200000/zebrafish_fish2_doublecube1.zarr"
     }
   },
   "region": {
@@ -186,7 +186,7 @@
           640
         ],
         "whole_region": false,
-        "artifact": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/kasthuri15_ac4.zarr"
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/kasthuri15_ac4.zarr"
       },
       "zebrafish_fish2_doublecube1": {
         "origin": [
@@ -200,7 +200,7 @@
           1920
         ],
         "whole_region": false,
-        "artifact": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/zebrafish_fish2_doublecube1.zarr"
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/zebrafish_fish2_doublecube1.zarr"
       },
       "liconn_mouse_hippocampus": {
         "origin": [
@@ -214,7 +214,7 @@
           512
         ],
         "whole_region": false,
-        "artifact": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/liconn_mouse_hippocampus.zarr"
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/liconn_mouse_hippocampus.zarr"
       },
       "liconn_expid82": {
         "origin": [
@@ -228,7 +228,7 @@
           1152
         ],
         "whole_region": false,
-        "artifact": "/nrs/scicompsoft/orhane/mia-train-scratch/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/liconn_expid82.zarr"
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm4_8nm_gb16_r0/test/liconn_expid82.zarr"
       }
     }
   },
@@ -408,7 +408,7 @@
   },
   "provenance": {
     "mia_evals_commit": "413e6841b5cc85c56470ce6ad6776b78fda52a8c",
-    "run_dir": "/nrs/scicompsoft/orhane/mia-train-runs/sam1__arm4_8nm_gb16_r0_20260913_221637",
+    "run_dir": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/runs/sam1__arm4_8nm_gb16_r0_20260913_221637",
     "resolved_config": {
       "experiment_name": "sam1__arm4_8nm_gb16_r0",
       "model": {

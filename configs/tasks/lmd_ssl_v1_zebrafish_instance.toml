@@ -1,10 +1,9 @@
-# lmd_ssl_v1 -- neuron/cell instance segmentation on the ZEBRAFISH PAIR only, REPORTED half, scored from
-# a stored mutex watershed labelling.
+# lmd_ssl_v1 -- neuron/cell instance segmentation on the ZEBRAFISH PAIR only, scored from a stored
+# mutex watershed labelling. Reported on the doublecube ([data.test]), fitted on the quadcube
+# ([data.fit]).
 #
-#   mia-evals score configs/tasks/lmd_ssl_v1_zebrafish_instance_test.toml \
-#       --test  <mws_artifacts>/<arm>/test \
-#       --val   <mws_artifacts>/<arm>/finetune \
-#       --val-config configs/tasks/lmd_ssl_v1_zebrafish_instance_fit.toml \
+#   mia-evals score configs/tasks/lmd_ssl_v1_zebrafish_instance.toml \
+#       --test <mws_artifacts>/<arm>/test --val <mws_artifacts>/<arm>/finetune \
 #       --run-dir /nrs/.../lmd1__<arm>_... --label <arm>_step50000
 #
 # ---------------------------------------------------------------------------------------------
@@ -45,8 +44,8 @@
 # the postprocessor swept here is `size_filter`, which drops components below a voxel count from a
 # labelling that already exists. Naming `mws` instead would re-run the watershed per candidate.
 #
-# min_size is NOT chosen here. It is fitted on the other half (see the _fit config) and applied once,
-# so nothing in this file selects on the number being published.
+# min_size is fitted on the quadcube and applied once to the doublecube, so nothing here selects on
+# the number being published.
 
 task_name = "lmd_ssl_v1_zebrafish_instance"
 
@@ -65,13 +64,17 @@ compacted at conversion because `_factorize` only takes its counting path while 
 under 2**31, and these two volumes carry raw union-find root ids spanning 4.2 G and 7.06 G.
 """
 
-[data]
+# Filtered out of the two split configs rather than given their own YAML, so the geometry stays the
+# generated one. The singlescale files are the right source for all three arms here: the zebrafish
+# entries carry no per-volume `resolutions` override, so these volumes are a single 8 nm rung in the
+# multiscale file too, and arm 3's rung 0 lands on exactly this lattice.
+[data.test]
 config_path = "../data/lmd_ssl_v1_test.yaml"
-# Filtered rather than given its own YAML so the geometry stays the generated, provenance-stamped
-# one. The singlescale file is the right source for all three arms here: the zebrafish entries carry
-# no per-volume `resolutions` override, so this volume is a single 8 nm rung in the multiscale file
-# too, and arm 3's rung 0 lands on exactly this lattice.
 volumes = ["zebrafish_fish2_doublecube1"]
+
+[data.fit]
+config_path = "../data/lmd_ssl_v1_finetune.yaml"
+volumes = ["zebrafish_fish2_quadcube1"]
 
 [task]
 name = "instance_seg"
@@ -94,8 +97,7 @@ name = "size_filter"
 # so a typical object is ~291,000 voxels -- six times larger than where the sweep stopped. The
 # diagnostics agreed: at 50,000 arm 1 still carried 7,822 false positives against 1,353 true
 # positives. The added candidates bracket 291,000 from 0.5x to 4x, so whatever each arm picks now
-# has candidates on both sides of it. The sweep is declared here as well because `mia-evals score` validates that the two
-# halves agree on the postprocessor before it will carry a fitted parameter across them.
+# has candidates on both sides of it.
 min_sizes = [0, 500, 5000, 50000, 150000, 300000, 600000, 1200000]
 
 [metric]

@@ -2,7 +2,7 @@
   "task_name": "lmd_ssl_v1_zebrafish_instance",
   "producer": {
     "artifacts": {
-      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-train-scratch/lmd1_zebrafish_artifacts/arm1/test/zebrafish_fish2_doublecube1.zarr"
+      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm1/test/zebrafish_fish2_doublecube1.zarr"
     },
     "run": "lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846",
     "step": 50000,
@@ -17,7 +17,7 @@
       ],
       "convention": "mws(repulsive_stride=1)",
       "background_id": 0,
-      "source": "/nrs/scicompsoft/orhane/mia-train-scratch/lmd1_zebrafish_mws/arm1/test/zebrafish_fish2_doublecube1_mws_stride1.npy",
+      "source": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_mws/arm1/test/zebrafish_fish2_doublecube1_mws_stride1.npy",
       "note": "mutex watershed, ids compacted to 1..k; there is no background",
       "native_box": [
         [
@@ -75,7 +75,7 @@
       "min_size": 50000
     },
     "describe": "size_filter(min_size=50000)",
-    "fitted_on": "/nrs/scicompsoft/orhane/mia-train-scratch/lmd1_zebrafish_artifacts/arm1/finetune",
+    "fitted_on": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm1/finetune",
     "fitted_on_config": "configs/tasks/lmd_ssl_v1_zebrafish_instance_fit.toml",
     "validation_scores": {
       "voxel_instance": {
@@ -96,7 +96,7 @@
       }
     },
     "scored_artifacts": {
-      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-train-scratch/leaderboard_scored/lmd_ssl_v1_zebrafish_instance/1c_step50000/zebrafish_fish2_doublecube1.zarr"
+      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_zebrafish_instance/scored/1c_step50000/zebrafish_fish2_doublecube1.zarr"
     }
   },
   "region": {
@@ -113,7 +113,7 @@
           1920
         ],
         "whole_region": false,
-        "artifact": "/nrs/scicompsoft/orhane/mia-train-scratch/lmd1_zebrafish_artifacts/arm1/test/zebrafish_fish2_doublecube1.zarr"
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm1/test/zebrafish_fish2_doublecube1.zarr"
       }
     }
   },
@@ -189,7 +189,7 @@
   },
   "provenance": {
     "mia_evals_commit": "d172852f15a82f83c3ba8e635f91e3c1a1be043c (dirty)",
-    "run_dir": "/nrs/scicompsoft/orhane/mia-train-runs/lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846",
+    "run_dir": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/runs/lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846",
     "resolved_config": {
       "experiment_name": "lmd1__1c_dinov3_simmim_ft_subpixel",
       "model": {
@@ -558,7 +558,7 @@
         }
       },
       "init": {
-        "path": "/nrs/scicompsoft/orhane/mia-train-runs/lmd1__1b_dinov3_simmim_ft_interpolate_20260827_192022/checkpoints/step_50000",
+        "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/runs/lmd1__1b_dinov3_simmim_ft_interpolate_20260827_192022/checkpoints/step_50000",
         "prefix": "model.",
         "inflate_2d_to_3d": false,
         "skip": [],

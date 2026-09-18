@@ -101,6 +101,14 @@ class Submission:
     schema_version: int = SCHEMA_VERSION
     label: str = ""
 
+    def identity(self) -> dict[str, Any]:
+        """What this record claims to be a row of; see `task_identity`."""
+        return task_identity(
+            self.config.get("volumes") or [],
+            str(self.ranking.get("metric")),
+            str(self.ranking.get("key")),
+        )
+
     def identifier(self) -> str:
         """A filesystem-safe name for this submission, stable across re-runs of the same eval."""
         if self.label:
@@ -122,6 +130,82 @@ class Submission:
         path = directory / f"{self.identifier()}.json"
         path.write_text(json.dumps(asdict(self), indent=2, sort_keys=False) + "\n")
         return path
+
+
+# ------------------------------------------------------------------------------ task identity
+#
+# A task is the thing rows compete on: the reported volumes *with their ground truth* (store path,
+# label key, bounding box) and the metric they are ranked by. Nothing else. The post-processor,
+# the route the truth was read by (`truth_kind`), the split a sweep was fitted on and the producer
+# are all properties of a submission, recorded and, where they vary within a table, shown as
+# columns -- a reader may attribute a difference to them, but must be able to see them.
+#
+# `task_name` alone used to decide which directory a record landed in, and nothing compared a
+# task file with the records already there: a second file reusing the name with another test set
+# would have joined the table, separated only by the region grouping if the extents happened to
+# differ. The identity is therefore checked twice -- against the existing records before a new one
+# is written, and across a directory whenever it is loaded -- so a table cannot come to hold rows
+# that were scored on different things.
+
+
+def task_identity(volumes: list[dict[str, Any]], metric: str, key: str) -> dict[str, Any]:
+    """The comparable core of a task, in a canonical form that survives a JSON round trip."""
+    return {
+        "volumes": sorted(
+            (
+                {
+                    "name": str(v.get("name")),
+                    "path": None if v.get("path") is None else str(v.get("path")),
+                    "label_key": v.get("label_key"),
+                    "bounding_box": (
+                        None if v.get("bounding_box") is None
+                        else [[int(a), int(b)] for a, b in v["bounding_box"]]
+                    ),
+                }
+                for v in volumes
+            ),
+            key=lambda v: v["name"],
+        ),
+        "metric": metric,
+        "key": key,
+    }
+
+
+def identity_differences(reference: dict[str, Any], other: dict[str, Any]) -> list[str]:
+    """Human-readable differences between two identities; empty when they agree."""
+    out: list[str] = []
+    if (reference["metric"], reference["key"]) != (other["metric"], other["key"]):
+        out.append(
+            f"ranking metric {other['metric']}.{other['key']} vs "
+            f"{reference['metric']}.{reference['key']}"
+        )
+    mine = {v["name"]: v for v in other["volumes"]}
+    theirs = {v["name"]: v for v in reference["volumes"]}
+    if set(mine) != set(theirs):
+        out.append(f"volumes {sorted(mine)} vs {sorted(theirs)}")
+    for name in sorted(set(mine) & set(theirs)):
+        for field_name in ("path", "label_key", "bounding_box"):
+            if mine[name][field_name] != theirs[name][field_name]:
+                out.append(
+                    f"{name}: {field_name} {mine[name][field_name]!r} vs "
+                    f"{theirs[name][field_name]!r}"
+                )
+    return out
+
+
+def assert_same_task(task_name: str, reference: Submission, other: Submission,
+                     reference_path: Path | str, other_path: Path | str) -> None:
+    """Refuse two records under one task name that were scored on different things."""
+    differences = identity_differences(reference.identity(), other.identity())
+    if differences:
+        listing = "\n".join(f"    {d}" for d in differences)
+        raise ValueError(
+            f"task {task_name!r}: {other_path} was not scored on the same task as "
+            f"{reference_path}:\n{listing}\nA task is its reported volumes (with their ground "
+            "truth) and its ranking metric; anything scored on a different set or ranked "
+            "differently needs its own task_name. Post-processor, truth route and fit split may "
+            "differ and are shown in the table."
+        )
 
 
 # --------------------------------------------------------------------------- the on-disk layout
@@ -184,11 +268,14 @@ def load_task(root: Path, task_name: str) -> list[Submission]:
     The task name comes from the directory, and a record claiming a different one is an error
     rather than a silent regroup: it means a record was written or moved into the wrong task, and
     rendering it under the directory's name would publish it in a table it was not scored for.
+    Likewise a record whose test volumes or ranking metric differ from the others' (see
+    `task_identity`): it belongs to a different task, whatever its file says.
     """
     directory = records_dir(root, task_name)
     if not directory.is_dir():
         return []
-    submissions = []
+    submissions: list[Submission] = []
+    first: tuple[Path, Submission] | None = None
     for path in sorted(directory.glob("*.json")):
         submission = _load(path)
         if submission.task_name != task_name:
@@ -196,6 +283,12 @@ def load_task(root: Path, task_name: str) -> list[Submission]:
                 f"{path} is under {task_name!r} but its record says task_name="
                 f"{submission.task_name!r}. Move it to the directory it belongs to."
             )
+        # Every record of a task must have been scored on the same thing; the first one on disk
+        # is the reference only because *some* record has to be, and any disagreement is named.
+        if first is None:
+            first = (path, submission)
+        else:
+            assert_same_task(task_name, first[1], submission, first[0], path)
         submissions.append(submission)
     return submissions
 

@@ -255,3 +255,30 @@ def test_html_views_page_has_clickable_links_in_leaderboard_order(tmp_path):
     assert page.count('<a href="https://fileglancer.int.janelia.org/neuroglancer/#!') == 4
     assert "&amp;" not in page.split("<h2>")[0]          # header text is plain
     assert render_views("t", [], {}) is None
+
+
+@pytest.mark.unit
+def test_views_dir_task_placeholder_puts_each_page_in_its_task_directory(tmp_path):
+    """`{task}` in `views_dir` expands per task: the /nrs layout keeps every task's files under
+    mia-evals/<task>/, its HTML views page included."""
+    import json
+
+    from report.leaderboard import write_views
+    from report.record import Submission
+
+    covered = _ome_artifact(tmp_path / "vol.zarr")
+    (tmp_path / "fileglancer_shares.json").write_text(json.dumps({
+        "shares": {**KEYS, str(tmp_path): "TMPKEY"},
+        "views_dir": str(tmp_path / "mia-evals" / "{task}" / "views"),
+    }))
+    row = Submission(
+        task_name="t1", producer={"artifacts": {"vol": str(covered)}}, scores={},
+        ranking={"metric": "m", "key": "k", "value": 1.0, "higher_is_better": True},
+        postprocess={}, region={},
+        config={"volumes": [{"name": "vol", "path": "/groups/miaai/miaai/lmd-v0.0.1/data/s.zarr"}]},
+        label="row",
+    )
+    url = write_views(tmp_path, "t1", [row])
+    page = tmp_path / "mia-evals" / "t1" / "views" / "t1.html"
+    assert page.is_file()
+    assert url is not None and url.endswith("/mia-evals/t1/views/t1.html")

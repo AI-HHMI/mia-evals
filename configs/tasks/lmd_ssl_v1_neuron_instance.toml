@@ -1,27 +1,24 @@
-# lmd_ssl_v1 -- neuron/cell instance segmentation on the FINETUNE half of the eval set.
+# lmd_ssl_v1 -- neuron/cell instance segmentation over the lmd eval set.
 #
-# The reported split of mia-train's `experiments/lmd_ssl_v1`: that experiment finetunes on four of
-# the eight instance-segmentation eval volumes and validates on the other four, one from each
-# modality pair. This task is the four it DID train on: it exists only to fit the postprocessing threshold, and its numbers are not a held-out score.
+# mia-train's `experiments/lmd_ssl_v1` finetunes on four of the eight instance-segmentation eval
+# volumes and holds out the other four, one from each modality pair. This task reports on the four
+# it never trained on ([data.test]) and fits the post-processing sweep on the four it did
+# ([data.fit]):
 #
-# Fit the postprocessing threshold on the other half and report here:
-#
-#   mia-evals score configs/tasks/lmd_ssl_v1_neuron_instance_test.toml \
-#       --test  <artifacts>/test  \
-#       --val   <artifacts>/fit   \
-#       --val-config configs/tasks/lmd_ssl_v1_neuron_instance_fit.toml \
+#   mia-evals score configs/tasks/lmd_ssl_v1_neuron_instance.toml \
+#       --test <artifacts>/test --val <artifacts>/finetune \
 #       --run-dir /nrs/.../lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919
 #
-# The experiment's README is explicit about why: with only 8 volumes the validation half does
-# double duty as model selection and reported score, so a threshold chosen here would be selecting
-# on the number being published. The runner refuses to fit and report on the same volumes.
+# The experiment's README is explicit about why the halves are separate: with only 8 volumes the
+# held-out half does double duty as model selection and reported score, so a threshold chosen on it
+# would be selecting on the number being published. The loader refuses a fit split that shares a
+# volume with the reported one.
 #
-# `config_path` points at `configs/data/lmd_ssl_v1_finetune.yaml`, a copy of the split that mia-train's
-# `experiments/lmd_ssl_v1/make_splits.py` generated. The producer predicts from that same file, so
-# prediction and scoring cannot disagree about the volumes; if the split is ever regenerated, the
-# copy here must change with it.
+# Both data configs are copies of the split that mia-train's `experiments/lmd_ssl_v1/make_splits.py`
+# generated. The producer predicts from these same files, so prediction and scoring cannot disagree
+# about the volumes; if the split is ever regenerated, the copies here must change with it.
 
-task_name = "lmd_ssl_v1_neuron_instance_fit"
+task_name = "lmd_ssl_v1_neuron_instance"
 
 notes = """
 Voxel metrics, not skeleton ones: these volumes ship dense label arrays and no skeletons, so nERL
@@ -32,7 +29,10 @@ mia-train's src/predict_ngff.py), which is smaller than the box itself. Every en
 scored the same way, so entries compare to each other; they do not compare to a whole-box number.
 """
 
-[data]
+[data.test]
+config_path = "../data/lmd_ssl_v1_test.yaml"
+
+[data.fit]
 config_path = "../data/lmd_ssl_v1_finetune.yaml"
 
 [task]

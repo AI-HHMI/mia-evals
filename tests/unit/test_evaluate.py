@@ -106,7 +106,7 @@ def test_scores_an_instance_submission_and_writes_a_record(instances, monkeypatc
     records = tmp_path / "records"
     args = type("Args", (), {
         "config": config, "test": artifact, "val": None, "leaderboard": records,
-        "val_config": None, "run_dir": None,
+        "run_dir": None,
         "scored_out": None, "no_scored": False, "label": "", "scratch": tmp_path / "scratch",
     })()
     evaluate.cmd_score(args)
@@ -147,7 +147,7 @@ def test_a_sweep_cannot_be_fitted_on_the_reported_split(instances, tmp_path):
 
     args = type("Args", (), {
         "config": config, "test": affinities, "val": None, "leaderboard": tmp_path / "r",
-        "val_config": None, "run_dir": None,
+        "run_dir": None,
         "scored_out": None, "no_scored": False, "label": "", "scratch": tmp_path / "s",
     })()
     with pytest.raises(SystemExit, match="selecting on the number being reported"):
@@ -155,11 +155,11 @@ def test_a_sweep_cannot_be_fitted_on_the_reported_split(instances, tmp_path):
 
 
 def test_an_artifact_predicted_over_another_volume_is_refused(instances, tmp_path):
-    """The NISB footgun: `--val` on seed100 and `--test` on seed101 with no `--val-config`.
+    """A prediction of one volume filed under another volume's name.
 
-    Without the fit task named, `--val` is resolved against the reported task's volumes, so the
-    seed100 prediction is fitted against seed101's skeleton. The producer records the store it
-    read (`source_path`), and that is what is checked; an artifact without it is trusted as before.
+    Artifacts are matched to volumes by file name, so a misfiled prediction would be scored
+    against the wrong ground truth without an error. The producer records the store it read
+    (`source_path`), and that is what is checked; an artifact without it is trusted as before.
     """
     root, data, _ = instances
     _, prediction = _truth_and_split(seed=1)
@@ -181,7 +181,7 @@ def test_an_artifact_predicted_over_another_volume_is_refused(instances, tmp_pat
     def args(test):
         return type("Args", (), {
             "config": config, "test": test, "val": None, "leaderboard": tmp_path / "records",
-            "val_config": None, "run_dir": None,
+            "run_dir": None,
         "scored_out": None, "no_scored": False, "label": "", "scratch": tmp_path / "scratch",
         })()
 
@@ -223,7 +223,7 @@ def test_incompatible_kind_and_postprocessor_are_refused(instances, tmp_path):
 
     args = type("Args", (), {
         "config": config, "test": scores, "val": None, "leaderboard": tmp_path / "r",
-        "val_config": None, "run_dir": None,
+        "run_dir": None,
         "scored_out": None, "no_scored": False, "label": "", "scratch": tmp_path / "s",
     })()
     with pytest.raises(ValueError, match="accepts artifacts of kind"):
@@ -270,7 +270,7 @@ def test_leaderboard_renders_and_detects_drift(instances, tmp_path):
     root = tmp_path_ / "leaderboard2"
     evaluate.cmd_score(type("Args", (), {
         "config": config, "test": artifact, "val": None, "leaderboard": root,
-        "val_config": None, "run_dir": None,
+        "run_dir": None,
         "scored_out": None, "no_scored": False, "label": "arm_a", "scratch": tmp_path_ / "s2",
     })())
 
@@ -358,7 +358,7 @@ def test_each_volume_is_scored_against_its_own_artifact(two_volumes):
     records = root / "records"
     evaluate.cmd_score(type("Args", (), {
         "config": config, "test": artifacts, "val": None, "leaderboard": records,
-        "val_config": None, "run_dir": None,
+        "run_dir": None,
         "scored_out": None, "no_scored": False, "label": "multi", "scratch": root / "s",
     })())
     payload = json.loads((records / "unit_task" / "records" / "multi.json").read_text())
@@ -389,7 +389,7 @@ def test_a_missing_per_volume_artifact_is_refused(two_volumes):
     with pytest.raises(SystemExit, match="missing an artifact"):
         evaluate.cmd_score(type("Args", (), {
             "config": config, "test": artifacts, "val": None, "leaderboard": root / "r2",
-            "val_config": None, "run_dir": None,
+            "run_dir": None,
         "scored_out": None, "no_scored": False, "label": "", "scratch": root / "s2",
         })())
 
@@ -401,7 +401,7 @@ def test_a_single_artifact_is_refused_for_a_multi_volume_task(two_volumes):
     with pytest.raises(SystemExit, match="single artifact but this task has 2 volumes"):
         evaluate.cmd_score(type("Args", (), {
             "config": config, "test": artifacts / "alpha.zarr", "val": None,
-            "leaderboard": root / "r3", "val_config": None, "run_dir": None,
+            "leaderboard": root / "r3", "run_dir": None,
         "scored_out": None, "no_scored": False,
             "label": "", "scratch": root / "s3",
         })())
@@ -435,3 +435,112 @@ def test_leaderboard_root_falls_back_to_cwd_when_installed(tmp_path, monkeypatch
     monkeypatch.chdir(tmp_path)
 
     assert evaluate._leaderboard_root() == tmp_path / "leaderboard"
+
+
+# ------------------------------------------------------------ the fit split lives in the task
+
+
+def _split_task_config(root, test_data: str, fit_data: str | None, body: str,
+                       test_volumes=None, fit_volumes=None) -> str:
+    """A task file declaring `[data.test]` and, unless `fit_data` is None, `[data.fit]`."""
+    def table(name, data_path, volumes):
+        lines = [f"[data.{name}]", f'config_path = "{data_path}"']
+        if volumes is not None:
+            lines.append("volumes = [" + ", ".join(f'"{v}"' for v in volumes) + "]")
+        return "\n".join(lines) + "\n"
+
+    text = 'task_name = "unit_task"\n\n' + table("test", test_data, test_volumes)
+    if fit_data is not None:
+        text += "\n" + table("fit", fit_data, fit_volumes)
+    path = root / "split_task.toml"
+    path.write_text(text + "\n" + body)
+    return str(path)
+
+
+SIZE_FILTER_BODY = textwrap.dedent("""\
+    [task]
+    name = "instance_seg"
+    truth_kind = "instances"
+
+    [postprocess]
+    name = "size_filter"
+    min_sizes = [0, 3]
+
+    [metric]
+    names = ["voxel_instance"]
+    """)
+
+
+def test_the_fit_split_is_declared_in_the_task_and_may_not_overlap_the_reported_one(tmp_path):
+    from config import load_task_config
+
+    truth, _ = _truth_and_split()
+    a = _volume(tmp_path, "alpha", truth)
+    b = _volume(tmp_path, "beta", truth)
+    both = _data_config(tmp_path, [("alpha", a, truth.shape), ("beta", b, truth.shape)])
+
+    config = load_task_config(_split_task_config(
+        tmp_path, both, both, SIZE_FILTER_BODY, test_volumes=["alpha"], fit_volumes=["beta"],
+    ))
+    assert [v.name for v in config.volumes] == ["alpha"]
+    assert [v.name for v in config.fit_volumes] == ["beta"]
+    assert config.fit_data_config_path.resolve() == Path(both).resolve()
+    record = config.as_record()
+    assert [v["name"] for v in record["fit_volumes"]] == ["beta"]
+
+    with pytest.raises(ValueError, match="share volume"):
+        load_task_config(_split_task_config(
+            tmp_path, both, both, SIZE_FILTER_BODY, test_volumes=["alpha"],
+        ))                                       # fit = both volumes, so alpha is on both sides
+
+    # A plain [data] is still the reported split alone, with no fit split.
+    plain = load_task_config(_task_config(tmp_path, both, SIZE_FILTER_BODY))
+    assert plain.fit_volumes is None and plain.fit_data_config_path is None
+
+    # [data.fit] without [data.test] is a shape error, not a silently missing test split.
+    lonely = tmp_path / "lonely.toml"
+    lonely.write_text(
+        'task_name = "unit_task"\n\n[data.fit]\nconfig_path = "' + both + '"\n\n' + SIZE_FILTER_BODY
+    )
+    with pytest.raises(ValueError, match=r"\[data.fit\] needs a \[data.test\]"):
+        load_task_config(lonely)
+
+
+def test_a_sweep_is_fitted_on_the_declared_fit_split_and_applied_to_the_test_split(tmp_path):
+    """`--val` covers `[data.fit]`'s volumes, `--test` covers `[data.test]`'s; no other flag."""
+    truth, _ = _truth_and_split()
+    a = _volume(tmp_path, "alpha", truth)
+    b = _volume(tmp_path, "beta", truth)
+    both = _data_config(tmp_path, [("alpha", a, truth.shape), ("beta", b, truth.shape)])
+    config = _split_task_config(
+        tmp_path, both, both, SIZE_FILTER_BODY, test_volumes=["alpha"], fit_volumes=["beta"],
+    )
+
+    # On the fit volume a 2-voxel speck of a third id is a false positive that min_size=3 removes,
+    # so the fit must choose 3; the test volume is predicted perfectly either way.
+    fit_prediction = truth.copy()
+    fit_prediction[3, 0, :2] = 9
+    val_dir = tmp_path / "val"; val_dir.mkdir()
+    test_dir = tmp_path / "test"; test_dir.mkdir()
+    write_artifact(val_dir / "beta.zarr", fit_prediction, "instances", background_id=0)
+    write_artifact(test_dir / "alpha.zarr", truth.copy(), "instances", background_id=0)
+
+    import evaluate
+
+    records = tmp_path / "records"
+    args = type("Args", (), {
+        "config": config, "test": test_dir, "val": val_dir, "leaderboard": records,
+        "run_dir": None, "scored_out": None, "no_scored": False, "label": "split",
+        "scratch": tmp_path / "scratch",
+    })()
+    evaluate.cmd_score(args)
+    payload = json.loads((records / "unit_task" / "records" / "split.json").read_text())
+    assert payload["postprocess"]["params"] == {"min_size": 3}
+    assert Path(payload["postprocess"]["fitted_on_data_config"]).resolve() == Path(both).resolve()
+    assert list(payload["region"]["volumes"]) == ["alpha"]
+
+    # A task with no [data.fit] cannot be handed a --val: there is nothing declared to fit on.
+    plain = _task_config(tmp_path, both, SIZE_FILTER_BODY)
+    args.config = plain
+    with pytest.raises(SystemExit, match="declares no fit split"):
+        evaluate.cmd_score(args)

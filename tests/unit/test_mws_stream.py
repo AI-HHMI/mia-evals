@@ -7,7 +7,7 @@ several block sizes, because a single block exercises none of the boundary handl
 
 Uses synthetic affinities rather than corpus data so it runs anywhere. The corpus-scale version
 (64^3 and 128^3 of real affinities, three block sizes each) lives in
-/nrs/scicompsoft/orhane/mia-train-scratch/lmd1_arm2_eval/test_mws_stream.py.
+/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/arm2_eval/test_mws_stream.py.
 """
 
 from __future__ import annotations

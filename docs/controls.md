@@ -176,7 +176,7 @@ model's, so its mutex table is larger, and the model run alone cost 10.9 h at 1.
 the zebrafish doublecube. The four here are 105-134 Mvox and take 5-16 min per arm per volume.
 
 ```bash
-cd /nrs/scicompsoft/orhane/mia-train-scratch/mws_null
+cd /nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_neuron_instance/controls/mws_null
 for a in model random shuffled rolled intensity membrane; do
     bsub -P miaai -n 12 -q local -o log_$a.txt \
         "$BANISVENV"/bin/python null_arms.py "$a"

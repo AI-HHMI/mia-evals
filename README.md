@@ -77,27 +77,12 @@ python <mia-train>/src/predict.py <run_dir> --step 50000 --data-config configs/d
 python <mia-train>/src/predict.py <run_dir> --step 50000 --data-config configs/data/lmd_ssl_v1_finetune.yaml --out <artifacts>/finetune
 
 # 2. Fit the post-processing hyperparams on the finetune half, report on the test half, and write a record.
-mia-evals score configs/tasks/lmd_ssl_v1_neuron_instance_test.toml \
-    --val  <artifacts>/finetune --val-config configs/tasks/lmd_ssl_v1_neuron_instance_fit.toml \
-    --test <artifacts>/test     --run-dir <run_dir>
+mia-evals score configs/tasks/lmd_ssl_v1_neuron_instance.toml \
+    --val <artifacts>/finetune --test <artifacts>/test --run-dir <run_dir>
 
 # 3. Rebuild a table from its records. Scoring already does this for the task it scored; this is for after editing or removing a record by hand.
 mia-evals leaderboard --task lmd_ssl_v1_neuron_instance     # one task
 mia-evals leaderboard                                       # every task, plus the index
-```
-
-This is how the `2c_step50000` rows of
-[`leaderboard/lmd_ssl_v1_neuron_instance`](leaderboard/lmd_ssl_v1_neuron_instance/README.md) were
-made. The top row, `1c_step50000_mws`, took the same step-1 artifacts through the mutex watershed
-instead of thresholded components. At stride 1 it costs ~33 minutes and tens of GB per volume, so it
-was run once per volume as a batch job and its labelling stored as an `instances` artifact with the
-`.gt.zarr` beside it; step 2 then scored that labelling with the `size_filter` sweep of the `_mws_`
-task files:
-
-```bash
-mia-evals score configs/tasks/lmd_ssl_v1_neuron_instance_mws_test.toml \
-    --val  <labellings>/finetune --val-config configs/tasks/lmd_ssl_v1_neuron_instance_mws_fit.toml \
-    --test <labellings>/test     --run-dir <run_dir> --label 1c_step50000_mws
 ```
 
 To visualize a prediction (which is usually the fastest way to understand a disappointing score), *e.g.*:
@@ -235,10 +220,7 @@ For instance segmentation, `[task].truth_kind` selects where the ground truth co
 the producer resampled the image before predicting (a 6 nm volume predicted at 8 nm, say), one
 prediction voxel is no longer one label voxel, and no `origin` can line the prediction up with the
 volume's labels. Only the producer knows the exact grid it used, so it writes the ground truth onto
-that grid as a second artifact (with `kind = "instances"` and the same shape and `origin` as the prediction),
-and the scorer compares the two arrays voxel for voxel. When a prediction is on the volume's own
-grid, use `instances` instead: the scorer reads the truth itself and the producer writes nothing
-extra. 
+that grid as a second artifact, and the scorer compares the two arrays voxel for voxel.
 
 `semantic_seg` has no `truth_kind`. Its truth is always the volume's label array.
 
@@ -250,8 +232,11 @@ restating it, so prediction and scoring read the same volume definitions.
 ```toml
 task_name = "lmd_ssl_v1_neuron_instance"
 
-[data]
+[data.test]                                      # the reported volumes
 config_path = "../data/lmd_ssl_v1_test.yaml"
+
+[data.fit]                                       # where the sweep below is fitted; may not share a volume with test
+config_path = "../data/lmd_ssl_v1_finetune.yaml"
 
 [task]
 name = "instance_seg"
@@ -273,30 +258,20 @@ that contradicts the metric it ranks on.
 
 ## Validation and test splits
 
-`mia-evals score` takes two artifacts. It sweeps the post-processor's parameters over `--val`,
-selects whichever scores best there, applies that single choice to `--test`, and reports only the
-test numbers. This is what keeps a swept hyperparameter from quietly selecting on the number being
-published, and the runner refuses to proceed if the two splits share a volume.
+`mia-evals score` takes two sets of artifacts. It sweeps the post-processor's parameters over
+`--val`, selects whichever scores best there, applies that single choice to `--test`, and reports
+only the test numbers. This is what keeps a swept hyperparameter from quietly selecting on the
+number being published.
 
-Split membership lives outside the `miao` YAML, because `miao` validates strictly and rejects keys
-it does not recognise. There are two ways to express it. The usual one is a data config per split,
-such as `lmd_ssl_v1_finetune.yaml` beside `lmd_ssl_v1_test.yaml`, which makes the split obvious from the
-file name. The alternative is a `volumes = [...]` name filter under `[data]` in the task file,
-selecting a subset of one dataset-wide YAML, which avoids duplicating volume definitions when a
-dataset is split several ways.
-
-When the two splits need different task files, pass the validation one explicitly:
-
-```bash
-mia-evals score configs/tasks/lmd_ssl_v1_neuron_instance_test.toml \
-    --test  <artifacts>/test  \
-    --val   <artifacts>/finetune \
-    --val-config configs/tasks/lmd_ssl_v1_neuron_instance_fit.toml \
-    --run-dir <run_dir>
-```
-
-Because dataset, split and task are three independent choices, `configs/tasks/` grows faster than
-the number of datasets alone would suggest.
+Which volumes form each split is declared in the task file: `[data.test]` names the reported
+volumes and `[data.fit]` the ones the sweep is fitted on. Each names a data config and may add a
+`volumes = [...]` filter to select a subset of it, so a split can be its own YAML
+(`lmd_ssl_v1_finetune.yaml` beside `lmd_ssl_v1_test.yaml`, which makes the split obvious from the
+file name) or a filter over one dataset-wide YAML. Split membership never lives inside the `miao`
+YAML itself, because `miao` validates strictly and rejects keys it does not recognise. The loader
+refuses a fit split that shares a volume with the reported one, and the scorer refuses `--val` for
+a task that declares no `[data.fit]`. A task whose post-processor has a single candidate (such as
+`identity`) needs no fit split and may write a plain `[data]` with `config_path`.
 
 ## The leaderboard
 
@@ -325,6 +300,14 @@ The renderer enforces two rules that are easy to get wrong by hand. It always sh
 post-processor as a column, because "A beats B" can be a post-processing difference rather than a
 model difference. It also refuses to put two different scored extents in one table, because several
 of these metrics change with extent.
+
+**What defines a task:** A task is defined by its name, its reported volumes together with their ground truth (store path, label key or skeleton, bounding box), and the metric it ranks on. Nothing else: the
+post-processor, the route the truth is read by (`truth_kind`), the split a sweep was fitted on and
+the producer are properties of a submission, recorded in full and shown as columns where they vary
+within a table. `mia-evals score` refuses a record whose test set or ranking metric differs from
+the records already under its `task_name`, and rendering or checking a task whose records disagree
+fails the same way. Anything scored on a different set, or ranked differently, needs its own task
+name.
 
 ## Repository layout
 

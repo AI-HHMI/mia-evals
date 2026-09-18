@@ -5,9 +5,11 @@ drift check, and `miao` sets `extra="forbid"` -- so a data config *cannot* carry
 `split` keys, and the drafts in the corpus that tried raise on load. The task lives here instead,
 and references the data by path.
 
-That split also settles split membership. `miao` rejects a per-volume `split:` key, so which volumes
-belong to which split is a name filter in `[data].volumes`. One data config per dataset; one task
-file per (dataset x split x task).
+That split also settles split membership. `miao` rejects a per-volume `split:` key, so a split is
+stated in the task file: `[data.test]` names the data config (and optionally a `volumes` filter) of
+the reported volumes, and `[data.fit]` the one the post-processing sweep is fitted on. A task
+without a sweep needs no fit split and may write a plain `[data]` instead. The two splits may not
+share a volume, which is checked here, at load, rather than after an hour of scoring.
 
 The YAML is read through `miao` itself rather than parsed here. miao owns that format and
 validates it, so a malformed or task-key-carrying config is reported against the file by its own
@@ -50,6 +52,10 @@ class TaskConfig:
     volumes: tuple[Volume, ...]
     metric_kwargs: dict[str, dict[str, Any]] = field(default_factory=dict)
     notes: str = ""
+    #: The fit split, from `[data.fit]`: where a swept post-processing parameter is chosen. None
+    #: for a task that declares none, which is fine for a single-candidate post-processor.
+    fit_data_config_path: Path | None = None
+    fit_volumes: tuple[Volume, ...] | None = None
 
     def as_record(self) -> dict[str, Any]:
         """The settings, flattened for a submission record. Paths as strings, no objects."""
@@ -60,18 +66,25 @@ class TaskConfig:
             "metrics": list(self.metrics),
             "rank_by": self.rank_by,
             "data_config_path": str(self.data_config_path),
-            "volumes": [
-                {
-                    "name": v.name,
-                    "path": str(v.path),
-                    "label_key": v.label_key,
-                    "bounding_box": None if v.bounding_box is None
-                    else [list(pair) for pair in v.bounding_box],
-                }
-                for v in self.volumes
-            ],
+            "volumes": [_volume_record(v) for v in self.volumes],
+            "fit_data_config_path": (
+                None if self.fit_data_config_path is None else str(self.fit_data_config_path)
+            ),
+            "fit_volumes": (
+                None if self.fit_volumes is None else [_volume_record(v) for v in self.fit_volumes]
+            ),
             "notes": self.notes,
         }
+
+
+def _volume_record(v: Volume) -> dict[str, Any]:
+    return {
+        "name": v.name,
+        "path": str(v.path),
+        "label_key": v.label_key,
+        "bounding_box": None if v.bounding_box is None
+        else [list(pair) for pair in v.bounding_box],
+    }
 
 
 def load_data_config(path: str | Path) -> tuple[Volume, ...]:
@@ -140,8 +153,45 @@ def _section(raw: dict[str, Any], name: str, required: bool = True) -> Section:
     return Section(name=str(body.pop("name")), kwargs=body)
 
 
+def _resolve_split(entry: dict[str, Any], task_path: Path, label: str) -> tuple[Path, tuple[Volume, ...]]:
+    """One split's `config_path` (relative to the task file) and optional `volumes` filter."""
+    entry = dict(entry)
+    if "config_path" not in entry:
+        raise ValueError(
+            f"{label} must set config_path, pointing at the miao YAML that defines the volumes. "
+            "Data is referenced rather than restated so that one generated, provenance-stamped "
+            "config serves every task over the same dataset."
+        )
+    config_path = Path(str(entry.pop("config_path")))
+    if not config_path.is_absolute():
+        config_path = (task_path.parent / config_path).resolve()
+    available = load_data_config(config_path)
+
+    wanted = entry.pop("volumes", None)
+    if wanted is None:
+        volumes = available
+    else:
+        by_name = {v.name: v for v in available}
+        unknown = [n for n in wanted if n not in by_name]
+        if unknown:
+            raise ValueError(
+                f"{label}.volumes names {unknown}, which {config_path.name} does not contain. "
+                f"It holds: {sorted(by_name)}"
+            )
+        volumes = tuple(by_name[n] for n in wanted)
+    if entry:
+        raise ValueError(f"{label} has unknown key(s) {sorted(entry)}")
+    return config_path, volumes
+
+
 def load_task_config(path: str | Path) -> TaskConfig:
-    """Parse a task `.toml`, resolving its data config and filtering to this task's volumes."""
+    """Parse a task `.toml`, resolving its data config(s) and filtering to this task's volumes.
+
+    `[data]` takes one of two shapes. `[data.test]` plus an optional `[data.fit]`, each with a
+    `config_path` and an optional `volumes` filter, states the reported split and the split a
+    post-processing sweep is fitted on. A plain `[data]` with the same keys is the reported split
+    alone, for a task whose post-processor has a single candidate and so needs nothing fitted.
+    """
     path = Path(path)
     with path.open("rb") as handle:
         raw = tomllib.load(handle)
@@ -153,31 +203,33 @@ def load_task_config(path: str | Path) -> TaskConfig:
             raise ValueError(f"config is missing the [{section}] section")
 
     data = dict(raw["data"])
-    if "config_path" not in data:
-        raise ValueError(
-            "[data] must set config_path, pointing at the miao YAML that defines the volumes. "
-            "Data is referenced rather than restated so that one generated, provenance-stamped "
-            "config serves every task over the same dataset."
-        )
-    config_path = Path(str(data.pop("config_path")))
-    if not config_path.is_absolute():
-        config_path = (path.parent / config_path).resolve()
-    available = load_data_config(config_path)
-
-    wanted = data.pop("volumes", None)
-    if wanted is None:
-        volumes = available
-    else:
-        by_name = {v.name: v for v in available}
-        unknown = [n for n in wanted if n not in by_name]
-        if unknown:
+    test_entry = data.pop("test", None)
+    fit_entry = data.pop("fit", None)
+    fit_path: Path | None = None
+    fit_volumes: tuple[Volume, ...] | None = None
+    if test_entry is None:
+        if fit_entry is not None:
             raise ValueError(
-                f"[data].volumes names {unknown}, which {config_path.name} does not contain. "
-                f"It holds: {sorted(by_name)}"
+                "[data.fit] needs a [data.test] beside it: once a fit split is declared, the "
+                "reported split is stated as [data.test] rather than as top-level [data] keys"
             )
-        volumes = tuple(by_name[n] for n in wanted)
-    if data:
-        raise ValueError(f"[data] has unknown key(s) {sorted(data)}")
+        config_path, volumes = _resolve_split(data, path, "[data]")
+    else:
+        if data:
+            raise ValueError(
+                f"[data] mixes a [data.test] table with top-level key(s) {sorted(data)}; "
+                "put them under [data.test]"
+            )
+        config_path, volumes = _resolve_split(test_entry, path, "[data.test]")
+        if fit_entry is not None:
+            fit_path, fit_volumes = _resolve_split(fit_entry, path, "[data.fit]")
+            overlap = {v.name for v in volumes} & {v.name for v in fit_volumes}
+            if overlap:
+                raise ValueError(
+                    f"[data.fit] and [data.test] share volume(s) {sorted(overlap)}. Fitting a "
+                    "threshold on a volume that is then reported is selecting on the number being "
+                    "published, which is the one thing the split exists to prevent."
+                )
 
     metric_section = dict(raw["metric"])
     names = metric_section.pop("names", None)
@@ -209,4 +261,6 @@ def load_task_config(path: str | Path) -> TaskConfig:
         volumes=volumes,
         metric_kwargs={str(k): dict(v) for k, v in metric_section.items() if isinstance(v, dict)},
         notes=str(raw.get("notes", "")),
+        fit_data_config_path=fit_path,
+        fit_volumes=fit_volumes,
     )

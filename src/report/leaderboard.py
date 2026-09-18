@@ -8,6 +8,11 @@ one emitting instance masks directly is a fair end-to-end comparison -- that is 
 should measure. But "A beats B" can be a post-processing difference, and a table that hides which
 postprocessor produced each row invites the reader to attribute it to the model.
 
+**The truth route is a column when it varies.** `truth_kind` says how the same annotation was
+read -- from the store, or from the producer's resampled copy beside the prediction -- and rows
+that differ on it are comparable only where the two lattices coincide. Like the postprocessor it
+may vary within a task, so when it does the table says so, per row.
+
 **Regions are never mixed in one table.** Several metrics are not comparable across extents: the
 same model measured 0.3045 nERL over a whole NISB cube and 0.4192 on a 512^3 block of that same
 cube, because a shorter region truncates more branches. Rows are grouped by the region they were
@@ -127,6 +132,18 @@ def _region_key(submission: Submission) -> str:
     return "; ".join(parts)
 
 
+#: The truth kinds as they were named before the 2026-09-14 rename, so records written under the
+#: old names read as the same route and do not force a column that shows a spelling difference.
+LEGACY_TRUTH_KINDS = {"labels": "instances", "sibling_artifact": "instances_resampled"}
+
+
+def _truth_kind(submission: Submission) -> str:
+    """How the record's task read its ground truth; `—` for a task with no such setting."""
+    kwargs = (submission.config.get("task") or {}).get("kwargs") or {}
+    kind = str(kwargs.get("truth_kind", "—"))
+    return LEGACY_TRUTH_KINDS.get(kind, kind)
+
+
 def _cell(value: Any) -> str:
     if isinstance(value, float):
         return f"{value:.4f}"
@@ -141,6 +158,8 @@ def render_task(task_name: str, submissions: list[Submission]) -> str:
 
     out = [header]
     shares = default_shares()
+    truths = {_truth_kind(s) for s in submissions}
+    show_truth = len(truths) > 1
     by_region: dict[str, list[Submission]] = {}
     for submission in submissions:
         by_region.setdefault(_region_key(submission), []).append(submission)
@@ -177,7 +196,7 @@ def render_task(task_name: str, submissions: list[Submission]) -> str:
         out.append(f"\n**Region:** {region}\n")
         direction = "higher is better" if higher else "lower is better"
         columns = ["#", "model", "links", f"{metric}.{key} ({direction})", "postprocess",
-                   *extra[:6]]
+                   *(["truth"] if show_truth else []), *extra[:6]]
         out.append("| " + " | ".join(columns) + " |")
         out.append("|" + "|".join(["---"] * len(columns)) + "|")
         for position, submission in enumerate(group, start=1):
@@ -192,6 +211,7 @@ def render_task(task_name: str, submissions: list[Submission]) -> str:
                 ),
                 _cell(submission.ranking.get("value")),
                 str(submission.postprocess.get("describe", "—")),
+                *([_truth_kind(submission)] if show_truth else []),
             ]
             for column in extra[:6]:
                 name, _, inner = column.partition(".")
@@ -241,6 +261,9 @@ def write_views(root: Path, task_name: str, submissions: list[Submission]) -> st
     page = render_views(task_name, submissions, keys)
     if page is None or target is None:
         return None
+    # `{task}` in `views_dir` puts each task's page in that task's own directory
+    # (/nrs/.../mia-evals/<task>/views), the per-task layout the artifact tree uses.
+    target = Path(str(target).replace("{task}", task_name))
     target.mkdir(parents=True, exist_ok=True)
     path = target / f"{task_name}.html"
     path.write_text(page)

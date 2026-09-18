@@ -117,13 +117,12 @@ def check_compatible(artifact: Artifact, processor: BasePostprocess, task: BaseT
 def check_same_volume(volume: Volume, artifact: Artifact, role: str) -> None:
     """Refuse an artifact predicted over a different store than the volume it is scored as.
 
-    `--val` without `--val-config` fits on the *reported* task's own volumes, so both artifacts
-    must then be predictions of those volumes. With a validation split on other volumes that is
-    the easy mistake: the validation prediction is fitted against the reported volume's ground
-    truth -- real data in the wrong place, plausible numbers, and nothing raises.
-    The producer records where it read from (`source_path`; the pre-refactor scripts wrote
-    `cube`), which is enough to catch it by name. An artifact from elsewhere, carrying neither
-    attribute, is trusted as before: the attribute is provenance, not a requirement.
+    A directory of artifacts is matched to a task's volumes by file name, so a prediction of one
+    volume filed under another's name would be scored against the wrong ground truth -- real data
+    in the wrong place, plausible numbers, and nothing raises. The producer records where it read
+    from (`source_path`; the pre-refactor scripts wrote `cube`), which is enough to catch it by
+    name. An artifact from elsewhere, carrying neither attribute, is trusted as before: the
+    attribute is provenance, not a requirement.
     """
     declared = artifact.attrs.get("source_path") or artifact.attrs.get("cube")
     if not declared:
@@ -132,9 +131,9 @@ def check_same_volume(volume: Volume, artifact: Artifact, role: str) -> None:
         raise SystemExit(
             f"{role} artifact {artifact.path} was predicted over\n    {declared}\n"
             f"but is being scored as volume {volume.name!r}, whose data is\n    {volume.path}\n"
-            "That would score real data against the wrong ground truth without an error. If this "
-            "is the validation split on a different volume, pass --val-config naming the task "
-            "whose volumes it covers, e.g. configs/tasks/lmd_ssl_v1_neuron_instance_fit.toml."
+            "That would score real data against the wrong ground truth without an error. Check "
+            "which split the artifact belongs to: the task's [data.test] volumes go to --test and "
+            "its [data.fit] volumes to --val."
         )
 
 
@@ -284,6 +283,13 @@ def fit(
 
 def cmd_score(args: argparse.Namespace) -> None:
     config = load_task_config(args.config)
+    if args.val is not None and config.fit_volumes is None:
+        # A config problem, reported before any artifact is opened.
+        raise SystemExit(
+            f"{args.config} declares no fit split, so --val has nothing to fit on. Add a "
+            "[data.fit] table naming the data config (and optionally the volumes) the validation "
+            "artifacts cover; it may not share a volume with [data.test]."
+        )
     task, processor, metric_objects = build(config)
     ranking_metric = metric_objects[config.rank_by]
 
@@ -300,42 +306,25 @@ def cmd_score(args: argparse.Namespace) -> None:
         raise SystemExit(
             f"{config.postprocess.name} has {len(candidates)} candidate settings "
             f"({', '.join(processor.describe(c) for c in candidates[:3])}...), so one must be "
-            "chosen on a validation artifact and then applied here. Pass --val, or configure a "
-            "single candidate.\n\nSweeping on --test and reporting the best would be selecting on "
-            "the number being reported."
+            "chosen on a validation artifact and then applied here. Pass --val with artifacts of "
+            "the task's [data.fit] volumes, or configure a single candidate.\n\nSweeping on --test "
+            "and reporting the best would be selecting on the number being reported."
         )
 
     if args.val is not None:
-        # The fit split may be a different *set of volumes*, not merely different data over the
-        # same ones: lmd_ssl_v1 finetunes on four of eight eval volumes and reports on the other
-        # four, so the threshold is chosen on volumes the model trained on. `--val-config` names
-        # that half. Only its volumes are taken from it -- postprocessor, metrics and ranking stay
-        # the reported task's, or the two halves would not be measuring the same thing.
-        fit_config = (
-            config if args.val_config is None else load_task_config(args.val_config)
-        )
-        if fit_config is not config:
-            if fit_config.postprocess.name != config.postprocess.name:
-                raise SystemExit(
-                    f"--val-config uses postprocess {fit_config.postprocess.name!r} but the "
-                    f"reported task uses {config.postprocess.name!r}. The fitted parameter would "
-                    "not apply to the postprocessor it is handed to."
-                )
-            overlap = {v.name for v in config.volumes} & {v.name for v in fit_config.volumes}
-            if overlap:
-                raise SystemExit(
-                    f"--val-config shares volume(s) {sorted(overlap)} with the reported task. "
-                    "Fitting a threshold on a volume that is then reported is selecting on the "
-                    "number being published, which is the one thing this split exists to prevent."
-                )
-            print(f"fit volumes: {[v.name for v in fit_config.volumes]}", flush=True)
-        val_artifacts = resolve_artifacts(Path(args.val), fit_config.volumes)
-        for volume in fit_config.volumes:
+        # The fit split is the task's own declaration, `[data.fit]`: a different *set of volumes*
+        # from the reported one (lmd_ssl_v1 finetunes on four of eight eval volumes and reports on
+        # the other four), checked disjoint at load. Postprocessor, metrics and ranking are the
+        # reported task's, so the two halves measure the same thing.
+        assert config.fit_volumes is not None            # refused above, before any artifact
+        print(f"fit volumes: {[v.name for v in config.fit_volumes]}", flush=True)
+        val_artifacts = resolve_artifacts(Path(args.val), config.fit_volumes)
+        for volume in config.fit_volumes:
             check_compatible(val_artifacts[volume.name], processor, task)
             check_same_volume(volume, val_artifacts[volume.name], "--val")
         print(f"fitting {config.postprocess.name} on {Path(args.val).name}", flush=True)
         params, val_scores = fit(
-            val_artifacts, fit_config.volumes, task, processor, metric_objects, config, scratch
+            val_artifacts, config.fit_volumes, task, processor, metric_objects, config, scratch
         )
         print(f"chose {processor.describe(params)}", flush=True)
     else:
@@ -383,7 +372,9 @@ def cmd_score(args: argparse.Namespace) -> None:
             "params": params,
             "describe": processor.describe(params),
             "fitted_on": None if args.val is None else str(Path(args.val).resolve()),
-            "fitted_on_config": None if args.val_config is None else str(args.val_config),
+            "fitted_on_data_config": (
+                None if args.val is None else str(config.fit_data_config_path)
+            ),
             "validation_scores": val_scores,
             "scored_artifacts": scored,
         },
@@ -393,6 +384,20 @@ def cmd_score(args: argparse.Namespace) -> None:
         label=args.label,
     )
     root = Path(args.leaderboard)
+    # A task is its test set and its ranking metric. Before this record joins a table, it must be
+    # scored on the same thing as the records already there -- otherwise it is a different task
+    # wearing the same name, and the table would rank things that are not comparable.
+    try:
+        existing = record.load_task(root, config.task_name)     # also checks they agree
+        if existing:
+            reference = existing[0]
+            record.assert_same_task(
+                config.task_name, reference, submission,
+                record.records_dir(root, config.task_name) / f"{reference.identifier()}.json",
+                args.config,
+            )
+    except ValueError as error:
+        raise SystemExit(str(error)) from None
     path = submission.write(root)
     print(f"record: {path}", flush=True)
     # Rendered here rather than left to a follow-up `mia-evals leaderboard`: a record that is not
@@ -431,6 +436,13 @@ def cmd_leaderboard(args: argparse.Namespace) -> None:
         raise SystemExit(
             f"no task {task!r} under {root}. It holds: {known or '(nothing yet)'}"
         )
+    try:
+        _render_or_check(args, root, task)
+    except ValueError as error:                 # records that do not belong together
+        raise SystemExit(str(error)) from None
+
+
+def _render_or_check(args: argparse.Namespace, root: Path, task: str | None) -> None:
     if args.check:
         stale = leaderboard.check(root, task)
         if not stale:
@@ -462,11 +474,8 @@ def main() -> None:
                        help="do not keep the post-processed labellings")
     score.add_argument("--val", type=Path, default=None,
                        help="artifacts to fit the postprocessor's hyperparameter on, same form as "
-                            "--test; required whenever there is more than one candidate")
-    score.add_argument("--val-config", type=Path, default=None,
-                       help="task .toml whose volumes form the fit split, when it is a different "
-                            "set of volumes than the reported one (as in lmd_ssl_v1, which "
-                            "finetunes on half the eval set and reports on the other half)")
+                            "--test, covering the task's [data.fit] volumes; required whenever "
+                            "there is more than one candidate")
     score.add_argument("--leaderboard", type=Path, default=DEFAULT_LEADERBOARD,
                        help="leaderboard root; the record lands in <root>/<task_name>/records/ and "
                             f"that task's table is re-rendered (default {DEFAULT_LEADERBOARD})")
