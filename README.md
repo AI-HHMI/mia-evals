@@ -1,10 +1,9 @@
 # mia-evals
 
-`mia-evals` scores volumetric instance and semantic segmentations, and maintains a per-task
-leaderboard of the results. It is built for 3D electron and light microscopy volumes stored as
-OME-Zarr.
+`mia-evals` scores model predictions on volumetric instance and semantic segmentation tasks, and maintains a per-task
+leaderboard of the results.
 
-The central idea is that `mia-evals` scores *files*, not models. Whatever produced a prediction
+The central idea is that `mia-evals` scores model predictions, not models themselves. Whatever produced a prediction
 writes it to disk as a self-describing Zarr array (bare, or the single level of an OME-Zarr
 group that also records where it sits in the volume) called a **prediction artifact**, and `mia-evals`
 reads that artifact and scores it. Nothing in this repository imports `torch`, loads a checkpoint,
@@ -56,7 +55,8 @@ if you actually run that metric, and the tests that need it skip themselves.
 
 ### Verifying an installation
 
-Run these from the repository root, since the leaderboard commands default to `./leaderboard/`:
+Run these from the repository root (the leaderboard commands default to the checkout's
+`leaderboard/`, or to `./leaderboard/` for a non-editable install):
 
 ```bash
 mia-evals --help                   # the scorer
@@ -97,15 +97,21 @@ entry points, so none of them depend on the working directory.
 
 ## Prediction artifacts
 
-An artifact must be a **Zarr array**, written as a single resolution level, carrying a few attributes
-that say what its numbers mean. Zarr v2 and v3 are both readable, and any store `zarr.open` accepts
-will do.
+An artifact is a **single-resolution Zarr array** carrying a few attributes that say what its
+numbers mean. It may be written in either of two forms, which score identically:
 
-It is deliberately not multiscale OME-Zarr, even though the source volumes read through `miao`
-are. Scoring compares one voxel lattice against the ground truth, and a pyramid does not say which
-level that should be, so a Zarr *group* is rejected. If your prediction is already a pyramid, point
-at a single level's path, such as `prediction.zarr/s0`. No OME-NGFF metadata is required, and none
-is read: the attributes below are the entire contract.
+- a bare Zarr array, which is what the `write_artifact` helper below produces; or
+- a single-level OME-Zarr group whose `multiscales` name exactly one dataset (mia-train's
+  `predict.py` writes `<volume>.zarr/s0`). The group's attributes count as the artifact's, and its
+  OME voxel size and offset let a neuroglancer view place the prediction on the raw volume; a
+  bare array is viewable too, but without that placement.
+
+Zarr v2 and v3 are both readable, and any store `zarr.open` accepts will do. A multiscale *pyramid*
+is rejected, even though the source volumes read through `miao` are pyramids: scoring compares one
+voxel lattice against the ground truth, and a pyramid does not say which level that should be. If
+your prediction is already a pyramid, point at one level's path, such as `prediction.zarr/s0`.
+Beyond the single-level `multiscales` entry, no OME-NGFF metadata is required for scoring: the
+attributes below are the contract.
 
 Required attributes:
 
@@ -120,16 +126,21 @@ real membrane and also wherever the model was merely unsure. That is a different
 "background", and a producer whose `0` is a genuine instance would otherwise have its largest
 object scored as background, yielding a plausible-looking wrong number.
 
-Optional attributes:
+Optional attributes, each with a specific effect when present:
 
 | attribute | default | meaning |
 | --- | --- | --- |
-| `origin` | all zeros | the array corner's position within the source volume, in absolute voxel coordinates |
+| `origin` | all zeros | the array corner's position within the source volume, in absolute voxel coordinates; a block of a volume must state it or it is scored against the wrong region |
 | `ignore_id` | none | a value meaning "unannotated, do not score", commonly `-1` |
 | `convention` | empty | free text describing any transform already applied, such as `sigmoid(0.2 * logit)` |
+| `source_path` | none | the store the prediction was made from; when present, scoring refuses to match the artifact to a task volume with a different path |
+| `covers_full_box` | none | whether the array covers the volume's whole annotated region; decides whether a skeleton is cropped to the artifact and whether a row is labelled a sub-region |
+| `run`, `step` | none | name the record (`<run>_step<step>` unless `--label` is given) and appear in the table |
+| `run_dir` | none | where the producing run's `resolved_config.json` and git commit are copied from when `--run-dir` is not given, and the checkpoint link in the table |
+| `source_image_key` | `raw` | the image array in the source store that a neuroglancer view shows under the prediction |
 
 Anything else you add is preserved and copied into the record, so producers are encouraged to write
-whatever provenance they have, such as the run directory, checkpoint step, patch size and stride.
+whatever provenance they have, such as patch size and stride.
 
 When an artifact is opened, two rules are enforced, so a mislabelled one fails immediately rather
 than after an hour of scoring: 
@@ -263,18 +274,16 @@ that contradicts the metric it ranks on.
 
 `mia-evals score` takes two sets of artifacts. It sweeps the post-processor's parameters over
 `--val`, selects whichever scores best there, applies that single choice to `--test`, and reports
-only the test numbers. This is what keeps a swept hyperparameter from quietly selecting on the
-number being published.
+only the test numbers.
 
 Which volumes form each split is declared in the scoring config: `[data.test]` names the reported
 volumes and `[data.fit]` the ones the sweep is fitted on. Each names a data config and may add a
 `volumes = [...]` filter to select a subset of it, so a split can be its own YAML
 (`lmd_ssl_v1_finetune.yaml` beside `lmd_ssl_v1_test.yaml`, which makes the split obvious from the
-file name) or a filter over one dataset-wide YAML. Split membership never lives inside the `miao`
-YAML itself, because `miao` validates strictly and rejects keys it does not recognise. The loader
-refuses a fit split that shares a volume with the reported one, and the scorer refuses `--val` for
-a task that declares no `[data.fit]`. A task whose post-processor has a single candidate (such as
-`identity`) needs no fit split and may write a plain `[data]` with `config_path`.
+file name) or a filter over one dataset-wide YAML. The loader refuses a fit split that shares a volume 
+with the reported one, and the scorer refuses `--val` for a task that declares no `[data.fit]`. 
+A task whose post-processor has a single candidate (such as `identity`) needs no fit split and may write 
+a plain `[data]` with `config_path`.
 
 ## The leaderboard
 
@@ -284,30 +293,21 @@ one subdirectory per task:
 ```
 leaderboard/
   README.md                        index: which tasks exist, and how many entries. No scores.
+  fileglancer_shares.json          untracked: this machine's fileglancer data-link keys (see below)
   <task_name>/
     README.md                      that task's table, rendered from ./records/
     records/<identifier>.json      one record per evaluation
 ```
 
 `mia-evals score` writes the record and re-renders that task's table, so the two cannot drift
-apart through a forgotten second command; every other task's file is left untouched. Neuroglancer view
-links for a row are computed when it is scored, from the scorer's untracked fileglancer key file
-(`leaderboard/fileglancer_shares.json`), and stored in its record; `mia-evals leaderboard` writes each
-task's HTML views page from the records into a data-link directory (a volume whose record has no
-links is marked missing) and the task's table links to that page. `--refresh-views` recomputes the
-links from this machine's keys, for rows scored without them.
+apart through a forgotten second command; every other task's file is left untouched.
 `mia-evals leaderboard` rebuilds everything, and `--task <name>` rebuilds a specific task. A
 record carries the scores per volume and in aggregate, the producing run and step, that run's
 resolved config and git commit copied inline, the post-processor and the parameters that won on
-validation, the exact region scored, and the versions of every component that could move a number.
-Copying the provenance inline rather than referencing it means a record stays checkable after its
-run directory has been deleted. Records are git-tracked, so a new entry arrives as a reviewable
-diff.
-
-The renderer enforces two rules that are easy to get wrong by hand. It always shows the
-post-processor as a column, because "A beats B" can be a post-processing difference rather than a
-model difference. It also refuses to put two different scored extents in one table, because several
-of these metrics change with extent.
+validation, the exact region scored, the paths of the artifacts and kept labellings, the
+neuroglancer view links, and the versions of every component. Copying the provenance inline rather than
+referencing it means a record stays checkable after its run directory has been deleted. Records are git-tracked, 
+so a new entry arrives as a reviewable diff.
 
 **What defines a task:** A task is defined by its name, its reported volumes together with their ground truth 
 (store path, label key or skeleton, bounding box), and the metric it ranks on. The
@@ -329,7 +329,7 @@ name.
 | `src/tasks/` | ground truth and scored region, per task type |
 | `src/postprocess/` | artifact kind to canonical form, including the mutex watershed |
 | `src/metrics/` | the metrics, each declaring its own primary key and direction |
-| `src/report/` | the record format and the leaderboard renderer |
+| `src/report/` | the record format, the leaderboard renderer, and the fileglancer / neuroglancer links |
 | `src/viz/` | the two figure commands |
 | `src/utils/` | two modules recycled verbatim from BANIS; see `ACKNOWLEDGEMENTS.md` |
 | `configs/data/`, `configs/scoring/` | `miao` data YAMLs, and scoring configs: task + splits + post-processing route |
