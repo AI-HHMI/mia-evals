@@ -97,6 +97,12 @@ class Submission:
     per_volume: dict[str, dict[str, dict[str, float]]] = field(default_factory=dict)
     #: Copied from the producing run so the entry survives its run directory being deleted.
     provenance: dict[str, Any] = field(default_factory=dict)
+    #: Volume name -> {"overlay": url, "side_by_side": url, "shows": "scored" | "before size filter"}:
+    #: the neuroglancer views of this row, computed when it was scored from the scorer's own
+    #: fileglancer key file. Stored in the record so the task's views page can be rendered from
+    #: records alone, by whoever hosts it, without holding the keys that made these links; a
+    #: volume absent here is shown as missing on that page.
+    views: dict[str, dict[str, Any]] = field(default_factory=dict)
     versions: dict[str, str] = field(default_factory=_component_versions)
     schema_version: int = SCHEMA_VERSION
     label: str = ""
@@ -260,6 +266,11 @@ def _load(path: Path) -> Submission:
             "update this checkout rather than rendering an incomplete table"
         )
     return Submission(**payload)
+
+
+def load_record(path: Path) -> Submission:
+    """One record file, validated for schema version."""
+    return _load(path)
 
 
 def load_task(root: Path, task_name: str) -> list[Submission]:

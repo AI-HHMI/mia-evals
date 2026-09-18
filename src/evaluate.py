@@ -384,6 +384,17 @@ def cmd_score(args: argparse.Namespace) -> None:
         label=args.label,
     )
     root = Path(args.leaderboard)
+    # The row's neuroglancer views, from this machine's fileglancer key file, into the record --
+    # so the task's views page can be rendered from records by whoever hosts it. No keys, no
+    # links: the page then marks this row's volumes as missing.
+    from report.links import SHARE_KEYS, load_share_keys, record_views
+
+    keys = load_share_keys(root / SHARE_KEYS)
+    if keys:
+        submission.views = record_views(
+            submission.producer, submission.postprocess, submission.config, keys,
+            submission.identifier(),
+        )
     # A task is its test set and its ranking metric. Before this record joins a table, it must be
     # scored on the same thing as the records already there -- otherwise it is a different task
     # wearing the same name, and the table would rank things that are not comparable.
@@ -443,6 +454,9 @@ def cmd_leaderboard(args: argparse.Namespace) -> None:
 
 
 def _render_or_check(args: argparse.Namespace, root: Path, task: str | None) -> None:
+    if getattr(args, "refresh_views", False):
+        for path in leaderboard.refresh_views(root, task):
+            print(f"views refreshed: {path}")
     if args.check:
         stale = leaderboard.check(root, task)
         if not stale:
@@ -495,6 +509,10 @@ def main() -> None:
                        help="rebuild only this task's table; default is every task")
     board.add_argument("--check", action="store_true",
                        help="verify the committed tables match the records; write nothing")
+    board.add_argument("--refresh-views", action="store_true",
+                       help="before rendering, recompute every record's neuroglancer view links "
+                            "from this machine's fileglancer key file and store them in the "
+                            "records (for rows scored without keys, or before links were stored)")
     board.set_defaults(func=cmd_leaderboard)
 
     args = parser.parse_args()

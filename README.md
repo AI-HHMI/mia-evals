@@ -290,10 +290,12 @@ leaderboard/
 ```
 
 `mia-evals score` writes the record and re-renders that task's table, so the two cannot drift
-apart through a forgotten second command; every other task's file is left untouched. When a
-fileglancer data link is configured (the untracked `leaderboard/fileglancer_shares.json`), rendering
-also writes a per-task HTML page of neuroglancer views, one per row and volume, outside the
-repository, and the task's table links to it; the link works for anyone with Janelia access.
+apart through a forgotten second command; every other task's file is left untouched. Neuroglancer view
+links for a row are computed when it is scored, from the scorer's untracked fileglancer key file
+(`leaderboard/fileglancer_shares.json`), and stored in its record; `mia-evals leaderboard` writes each
+task's HTML views page from the records into a data-link directory (a volume whose record has no
+links is marked missing) and the task's table links to that page. `--refresh-views` recomputes the
+links from this machine's keys, for rows scored without them.
 `mia-evals leaderboard` rebuilds everything, and `--task <name>` rebuilds a specific task. A
 record carries the scores per volume and in aggregate, the producing run and step, that run's
 resolved config and git commit copied inline, the post-processor and the parameters that won on

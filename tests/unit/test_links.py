@@ -246,15 +246,25 @@ def test_html_views_page_has_clickable_links_in_leaderboard_order(tmp_path):
             label=label,
         )
 
+    from report.links import record_views
+
     covered = _ome_artifact(tmp_path / "vol.zarr")
     keys = {**KEYS, str(tmp_path): "TMPKEY"}
-    page = render_views("t", [submission("worse", 0.1, str(covered)),
-                              submission("better", 0.9, str(covered))], keys)
+    rows = [submission("worse", 0.1, str(covered)), submission("better", 0.9, str(covered))]
+    for row in rows:                       # what `mia-evals score` stores, given these keys
+        row.views = record_views(row.producer, row.postprocess, row.config, keys, row.label)
+    page = render_views("t", rows)
     assert page is not None and page.startswith("<!doctype html>")
     assert page.index("<h2>1. better</h2>") < page.index("<h2>2. worse</h2>")
     assert page.count('<a href="https://fileglancer.int.janelia.org/neuroglancer/#!') == 4
+    assert "missing" not in page.split("<h2>")[1]
     assert "&amp;" not in page.split("<h2>")[0]          # header text is plain
-    assert render_views("t", [], {}) is None
+    assert render_views("t", []) is None
+
+    # A record scored without keys carries no links, and the page says so instead of guessing.
+    bare = submission("bare", 0.5, str(covered))
+    page = render_views("t", [bare])
+    assert "<i>missing</i>" in page and "neuroglancer/#!" not in page
 
 
 @pytest.mark.unit
@@ -313,7 +323,41 @@ def test_the_task_page_links_its_views_page_and_check_agrees(tmp_path):
     assert "/mia-evals/t1/views/t1.html)" in text
     assert leaderboard.check(tmp_path, "t1") == []
 
+    # Without the key file (anyone else's machine) the page cannot be rewritten, but the link the
+    # committed table already carries is kept, so rendering and --check agree everywhere.
     (tmp_path / "fileglancer_shares.json").unlink()
     leaderboard.write(tmp_path, "t1")
-    assert "neuroglancer views for every row" not in output.read_text()
+    assert "[neuroglancer views for every row below](https://fileglancer.int.janelia.org/files/TMPKEY/" in output.read_text()
     assert leaderboard.check(tmp_path, "t1") == []
+
+
+@pytest.mark.unit
+def test_refresh_views_fills_records_from_the_local_keys(tmp_path):
+    """Records scored without keys (or before links were stored) gain links where this machine's
+    keys cover their artifacts; nothing is removed where they do not."""
+    import json
+
+    from report import leaderboard
+    from report.record import Submission, load_record
+
+    covered = _ome_artifact(tmp_path / "vol.zarr")
+    row = Submission(
+        task_name="t1", producer={"artifacts": {"vol": str(covered)}}, scores={"m": {"k": 1.0}},
+        ranking={"metric": "m", "key": "k", "value": 1.0, "higher_is_better": True},
+        postprocess={"describe": "identity"}, region={},
+        config={"volumes": [{"name": "vol", "path": "/groups/miaai/miaai/lmd-v0.0.1/data/s.zarr"}]},
+        label="row",
+    )
+    path = row.write(tmp_path)
+    assert load_record(path).views == {}
+    assert leaderboard.refresh_views(tmp_path) == []          # no key file: nothing to do
+
+    (tmp_path / "fileglancer_shares.json").write_text(json.dumps({
+        "shares": {**KEYS, str(tmp_path): "TMPKEY"},
+        "views_dir": str(tmp_path / "views"),
+    }))
+    assert leaderboard.refresh_views(tmp_path) == [path]
+    views = load_record(path).views
+    assert set(views) == {"vol"} and views["vol"]["shows"] == "before size filter"
+    assert views["vol"]["overlay"].startswith("https://fileglancer.int.janelia.org/neuroglancer/#!")
+    assert leaderboard.refresh_views(tmp_path) == []          # already current: not rewritten

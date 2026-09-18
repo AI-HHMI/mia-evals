@@ -320,3 +320,23 @@ def view_entries(producer: dict[str, Any], postprocess: dict[str, Any], config: 
             shown != artifact,
         ))
     return out
+
+
+def record_views(producer: dict[str, Any], postprocess: dict[str, Any], config: dict[str, Any],
+                 keys: dict[str, str], label: str) -> dict[str, dict[str, Any]]:
+    """`view_entries` in the form a record stores: volume -> overlay, side-by-side, what is shown.
+
+    Computed at scoring time from the *scorer's* key file, because that is the machine whose data
+    links cover the artifacts being scored. Empty when no key covers them, which the views page
+    reports as missing rather than inventing a link that would not resolve.
+    """
+    return {
+        volume: {
+            "overlay": overlay,
+            "side_by_side": side,
+            "shows": "scored" if is_scored else "before size filter",
+        }
+        for volume, overlay, side, is_scored in view_entries(
+            producer, postprocess, config, keys, label
+        )
+    }
