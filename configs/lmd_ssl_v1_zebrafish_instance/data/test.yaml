@@ -1,0 +1,31 @@
+# lmd_ssl_v1_zebrafish_instance -- the TEST split: zebrafish_fish2_doublecube1 only.
+#
+# The volume entry is the SAME entry as in ../../lmd_ssl_v1_neuron_instance/data/test.yaml (a unit test
+# asserts it stays byte-equal): this task reports the zebrafish pair on its own because its numbers must not be
+# read beside the eight-volume task's (see mws.toml). The complementary split is fit.yaml.
+
+resolutions:
+- - 8.0
+  - 8.0
+  - 8.0
+patch_size:
+- 256
+- 256
+- 256
+output_axes: lcxyz
+samples_per_epoch: 1000
+
+volumes:
+- name: zebrafish_fish2_doublecube1
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr
+  image_key: raw
+  label_key: labels/proofread-cell-seg230927
+  zarr_version: zarr3
+  bounding_box:
+  - - 0
+    - 2000
+  - - 0
+    - 2000
+  - - 0
+    - 2112
+  weight: 0.25

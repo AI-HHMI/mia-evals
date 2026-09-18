@@ -39,7 +39,7 @@ def test_task_files_sharing_a_name_agree_on_what_the_task_is():
     from config import load_scoring_config
 
     by_name: dict[str, list[tuple[str, dict]]] = {}
-    for path in sorted(glob.glob(str(ROOT / "configs" / "scoring" / "*.toml"))):
+    for path in sorted(glob.glob(str(ROOT / "configs" / "*" / "*.toml"))):
         config = load_scoring_config(path)
         by_name.setdefault(config.task_name, []).append((path, _config_identity(config)))
     assert by_name, "no scoring configs found"

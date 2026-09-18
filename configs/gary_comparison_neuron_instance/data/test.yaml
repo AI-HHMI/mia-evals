@@ -3,7 +3,7 @@
 # Copied on 2026-09-18 from mia-train's experiments/gary_comparison/data/hemibrain_eb_test.yaml (the
 # volume entry is byte-identical; keep it so). The box is the colleague's test box, [4000, 5000)^3 in
 # level-0 voxels (x, y, z order, the store's own). Read on both sides of the artifact boundary:
-# mia-train's predict.py predicts it (`--data-config configs/data/gary_comparison_test.yaml`) and the
+# mia-train's predict.py predicts it (`--data-config configs/gary_comparison_neuron_instance/data/test.yaml`) and the
 # gary_comparison scoring configs score the prediction against it.
 #
 # The scored region is the largest lattice-aligned sub-box of this box: at patch 256 with the

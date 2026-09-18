@@ -1,4 +1,4 @@
-"""Parsing a scoring config -- `configs/scoring/*.toml` -- and resolving the `miao` data configs it points at.
+"""Parsing a scoring config -- `configs/<task_name>/<route>.toml` -- and resolving the `miao` data configs it points at.
 
 A scoring config says three things: which task is scored (`task_name`, the reported volumes and
 the ranking metric), where a post-processing sweep is fitted, and which post-processing route turns

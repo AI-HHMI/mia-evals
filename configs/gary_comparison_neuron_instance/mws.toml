@@ -1,14 +1,14 @@
 # gary_comparison -- neuron instance segmentation on the colleague's test corner of the hemibrain
 # Ellipsoid Body crop, from affinities through MUTEX WATERSHED and a size filter.
 #
-#   mia-evals score configs/scoring/gary_comparison_neuron_instance_mws.toml \
+#   mia-evals score configs/gary_comparison_neuron_instance/mws.toml \
 #       --test <artifacts>/test --val <artifacts>/fit --run-dir <mia-train run dir>
 #
 # The route the lmd_ssl_v1 arms were best under (MWS labelling + size filter), run here in one go
 # rather than from a stored labelling: at 896^3 the watershed is ~4 G edges and ~2 h in memory, and
 # the `mws` post-processor now computes it ONCE per volume and sweeps `min_sizes` on top, so the
 # whole scoring is a single CPU job of a few hours (32 slots; the edge arrays alone are ~90 GB).
-# Same task as `gary_comparison_neuron_instance.toml` (the cc_threshold baseline); the two routes
+# Same task as `cc_threshold.toml` beside it (the baseline); the two routes
 # land in one table, with `route` telling them apart in the record name.
 
 task_name = "gary_comparison_neuron_instance"
@@ -20,16 +20,16 @@ crop, scored on its lattice-aligned 896^3 centre. Voxel metrics, not skeleton on
 no skeletons): panoptic quality ranks; VOI split/merge, SQ, RQ and adapted Rand error are reported.
 
 Post-processing is fitted on a 1000^3 block of the validation slab directly beneath the test
-corner (gary_comparison_fit.yaml), never on the test block. Models trained on lmd_ssl_v1's finetune
+corner (data/fit.yaml), never on the test block. Models trained on lmd_ssl_v1's finetune
 set saw this volume's central 1024^3, which lies in the train and validation slabs, not in the test
 corner, so they may be scored here as well.
 """
 
 [data.test]
-config_path = "../data/gary_comparison_test.yaml"
+config_path = "data/test.yaml"
 
 [data.fit]
-config_path = "../data/gary_comparison_fit.yaml"
+config_path = "data/fit.yaml"
 
 [task]
 name = "instance_seg"

@@ -73,11 +73,11 @@ Scoring takes three steps. The first happens in whichever repository produced th
 
 ```bash
 # 1. Produce prediction artifacts for both halves of the eval set. This step belongs to the producer, not to mia-evals.
-python <mia-train>/src/predict.py <run_dir> --step 50000 --data-config configs/data/lmd_ssl_v1_test.yaml     --out <artifacts>/test
-python <mia-train>/src/predict.py <run_dir> --step 50000 --data-config configs/data/lmd_ssl_v1_finetune.yaml --out <artifacts>/finetune
+python <mia-train>/src/predict.py <run_dir> --step 50000 --data-config configs/lmd_ssl_v1_neuron_instance/data/test.yaml --out <artifacts>/test
+python <mia-train>/src/predict.py <run_dir> --step 50000 --data-config configs/lmd_ssl_v1_neuron_instance/data/fit.yaml  --out <artifacts>/finetune
 
 # 2. Fit the post-processing hyperparams on the finetune half, report on the test half, and write a record.
-mia-evals score configs/scoring/lmd_ssl_v1_neuron_instance.toml \
+mia-evals score configs/lmd_ssl_v1_neuron_instance/cc_threshold.toml \
     --val <artifacts>/finetune --test <artifacts>/test --run-dir <run_dir>
 
 # 3. Rebuild a table from its records. Scoring already does this for the task it scored; this is for after editing or removing a record by hand.
@@ -237,20 +237,22 @@ that grid as a second artifact, and the scorer compares the two arrays voxel for
 
 ## Scoring configuration
 
-A scoring config is a `.toml` file in `configs/scoring/`. It says which task is scored (`task_name`,
+Configs are laid out one directory per task, named exactly as the task: `configs/<task_name>/<route>.toml`
+is a scoring config (its file stem is its `route`) and `configs/<task_name>/data/{test,fit}.yaml` are that
+task's data configs, referenced from the scoring config as `data/test.yaml`. A scoring config says which task is scored (`task_name`,
 the reported volumes and the ranking metric), where the post-processing sweep is fitted, and which
 post-processing route turns the artifact into a labelling; several scoring configs may score one
-task through different routes, as the `_mws` one does. Data is referenced as `miao` YAMLs rather
+task through different routes, as `mws.toml` does. Data is referenced as `miao` YAMLs rather
 than restated, so prediction and scoring read the same volume definitions.
 
 ```toml
 task_name = "lmd_ssl_v1_neuron_instance"
 
 [data.test]                                      # the reported volumes
-config_path = "../data/lmd_ssl_v1_test.yaml"
+config_path = "data/test.yaml"
 
 [data.fit]                                       # where the sweep below is fitted; may not share a volume with test
-config_path = "../data/lmd_ssl_v1_finetune.yaml"
+config_path = "data/fit.yaml"
 
 [task]
 name = "instance_seg"
@@ -268,7 +270,7 @@ rank_by = "voxel_instance"           # ranks on its `primary` key, pq; direction
 
 `route` (top-level, optional) is the short name of the scoring route and the last part of every
 record's identifier (see below). It defaults to the post-processor's name; a config sets it when that
-name would mislead, as the `_mws` config does (`size_filter` runs there, over a stored mutex-watershed
+name would mislead, as `mws.toml` of the lmd tasks does (`size_filter` runs there, over a stored mutex-watershed
 labelling, so `route = "mws"`). Two configs that score one task through different routes must differ
 in `route`, or their records would collide.
 
@@ -285,8 +287,8 @@ only the test numbers.
 Which volumes form each split is declared in the scoring config: `[data.test]` names the reported
 volumes and `[data.fit]` the ones the sweep is fitted on. Each names a data config and may add a
 `volumes = [...]` filter to select a subset of it, so a split can be its own YAML
-(`lmd_ssl_v1_finetune.yaml` beside `lmd_ssl_v1_test.yaml`, which makes the split obvious from the
-file name) or a filter over one dataset-wide YAML. The loader refuses a fit split that shares a volume 
+(`fit.yaml` beside `test.yaml` in the task's `data/`, which makes the split obvious from the file name) 
+or a filter over one dataset-wide YAML. The loader refuses a fit split that shares a volume 
 with the reported one, and the scorer refuses `--val` for a task that declares no `[data.fit]`. 
 A task whose post-processor has a single candidate (such as `identity`) needs no fit split and may write 
 a plain `[data]` with `config_path`.
@@ -349,7 +351,7 @@ name.
 | `src/report/` | the record format, the leaderboard renderer, and the fileglancer / neuroglancer links |
 | `src/viz/` | the two figure commands |
 | `src/utils/` | two modules recycled verbatim from BANIS; see `ACKNOWLEDGEMENTS.md` |
-| `configs/data/`, `configs/scoring/` | `miao` data YAMLs, and scoring configs: task + splits + post-processing route |
+| `configs/<task_name>/` | one directory per task: `<route>.toml` scoring configs (task + splits + post-processing route) and `data/{test,fit}.yaml`, the `miao` data configs of that task |
 | `docs/controls.md` | control experiments: baseline task metric scores without a model |
 | `tests/unit/` | fast, single-process tests |
 

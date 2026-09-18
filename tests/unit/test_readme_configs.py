@@ -53,8 +53,9 @@ def test_readme_task_config_loads(line, body, tmp_path):
     import components  # noqa: F401  (populates the registries)
     from config import load_scoring_config
 
-    # `config_path` in the README is relative to configs/scoring/, so the example is written there.
-    target = ROOT / "configs" / "scoring" / "_readme_example.toml"
+    # `config_path` in the README is `data/test.yaml`, relative to a task directory, so the example is
+    # written into the task directory it describes.
+    target = ROOT / "configs" / "lmd_ssl_v1_neuron_instance" / "_readme_example.toml"
     target.write_text(body)
     try:
         config = load_scoring_config(target)

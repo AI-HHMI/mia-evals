@@ -259,7 +259,7 @@
       "voxel_instance"
     ],
     "rank_by": "voxel_instance",
-    "data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/data/lmd_ssl_v1_test.yaml",
+    "data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/lmd_ssl_v1_neuron_instance/data/test.yaml",
     "volumes": [
       {
         "name": "kasthuri15_ac4",

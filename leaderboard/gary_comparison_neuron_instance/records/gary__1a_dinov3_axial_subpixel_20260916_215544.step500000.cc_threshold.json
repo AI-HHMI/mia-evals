@@ -81,7 +81,7 @@
       "run": "gary__1a_dinov3_axial_subpixel_20260916_215544",
       "run_dir": "/nrs/scicompsoft/orhane/mia-train-experiments/gary_comparison/runs/gary__1a_dinov3_axial_subpixel_20260916_215544",
       "step": 500000,
-      "data_config": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/data/gary_comparison_test.yaml",
+      "data_config": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/gary_comparison_neuron_instance/data/test.yaml",
       "volume": "hemibrain_eb_test"
     }
   },
@@ -117,7 +117,7 @@
     },
     "describe": "cc_threshold(logit=+6, thr=0.7685, min_size=5000)",
     "fitted_on": "/nrs/scicompsoft/orhane/mia-train-experiments/gary_comparison/eval/1a_dinov3_axial_subpixel/step500000/fit",
-    "fitted_on_data_config": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/data/gary_comparison_fit.yaml",
+    "fitted_on_data_config": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/gary_comparison_neuron_instance/data/fit.yaml",
     "validation_scores": {
       "voxel_instance": {
         "adapted_rand_error": 0.82748719358269,
@@ -188,7 +188,7 @@
       "voxel_instance"
     ],
     "rank_by": "voxel_instance",
-    "data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/data/gary_comparison_test.yaml",
+    "data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/gary_comparison_neuron_instance/data/test.yaml",
     "volumes": [
       {
         "name": "hemibrain_eb_test",
@@ -210,7 +210,7 @@
         ]
       }
     ],
-    "fit_data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/data/gary_comparison_fit.yaml",
+    "fit_data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/gary_comparison_neuron_instance/data/fit.yaml",
     "fit_volumes": [
       {
         "name": "hemibrain_eb_fit",

@@ -1,6 +1,6 @@
 """Single entrypoint: score a prediction artifact against a task, and render the leaderboard.
 
-    mia-evals score  configs/scoring/<name>.toml --test <artifact.zarr> \\
+    mia-evals score  configs/<task_name>/<route>.toml --test <artifact.zarr> \\
         [--val <artifact.zarr>] [--leaderboard leaderboard/]
     mia-evals leaderboard [--task <task_name>] [--check]
 
@@ -484,7 +484,7 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
 
     score = sub.add_parser("score", help="score an artifact against a scoring config")
-    score.add_argument("config", type=Path, help="a scoring config from configs/scoring/: which task, which splits, which post-processing route")
+    score.add_argument("config", type=Path, help="a scoring config, configs/<task_name>/<route>.toml: which task, which splits, which post-processing route")
     score.add_argument("--test", type=Path, required=True,
                        help="directory of <volume>.zarr artifacts to report on (or a single "
                             "artifact, if the task has one volume)")

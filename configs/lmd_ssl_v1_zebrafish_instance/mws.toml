@@ -2,7 +2,7 @@
 # mutex watershed labelling. Reported on the doublecube ([data.test]), fitted on the quadcube
 # ([data.fit]).
 #
-#   mia-evals score configs/scoring/lmd_ssl_v1_zebrafish_instance.toml \
+#   mia-evals score configs/lmd_ssl_v1_zebrafish_instance/mws.toml \
 #       --test <mws_artifacts>/<arm>/test --val <mws_artifacts>/<arm>/finetune \
 #       --run-dir /nrs/.../lmd1__<arm>_...
 #
@@ -70,12 +70,10 @@ under 2**31, and these two volumes carry raw union-find root ids spanning 4.2 G 
 # entries carry no per-volume `resolutions` override, so these volumes are a single 8 nm rung in the
 # multiscale file too, and arm 3's rung 0 lands on exactly this lattice.
 [data.test]
-config_path = "../data/lmd_ssl_v1_test.yaml"
-volumes = ["zebrafish_fish2_doublecube1"]
+config_path = "data/test.yaml"      # the doublecube alone; the same entry as the neuron task's
 
 [data.fit]
-config_path = "../data/lmd_ssl_v1_finetune.yaml"
-volumes = ["zebrafish_fish2_quadcube1"]
+config_path = "data/fit.yaml"       # the quadcube alone
 
 [task]
 name = "instance_seg"

@@ -8,7 +8,7 @@
 # config loader also enforces. Scored region 896^3 = [4052, 4948) x [4052, 4948) x [3052, 3948).
 #
 # Read on both sides of the artifact boundary: predict.py predicts it
-# (`--data-config configs/data/gary_comparison_fit.yaml`), `mia-evals score --val` fits on it.
+# (`--data-config configs/gary_comparison_neuron_instance/data/fit.yaml`), `mia-evals score --val` fits on it.
 
 resolutions: [[8.0, 8.0, 8.0]]
 patch_size: [256, 256, 256]

@@ -1,7 +1,7 @@
 # lmd_ssl_v1 -- neuron/cell instance segmentation over the lmd eval set, scored from a stored MUTEX
 # WATERSHED labelling rather than from affinities.
 #
-#   mia-evals score configs/scoring/lmd_ssl_v1_neuron_instance_mws.toml \
+#   mia-evals score configs/lmd_ssl_v1_neuron_instance/mws.toml \
 #       --test <mws_artifacts>/test --val <mws_artifacts>/finetune \
 #       --run-dir /nrs/.../lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919
 #
@@ -11,7 +11,7 @@
 # which drops components below a voxel count from a labelling that already exists. Naming `mws`
 # instead would re-run the watershed for every candidate.
 #
-# Same task name and same halves as `lmd_ssl_v1_neuron_instance.toml`, so the rows land in the same
+# Same task name and same halves as `cc_threshold.toml` beside it, so the rows land in the same
 # table with the post-processor as the visible difference. The same fit discipline too: min_size is
 # chosen on the finetune half ([data.fit]) and applied once to the held-out half ([data.test]).
 
@@ -33,10 +33,10 @@ under 2**31, and two of these volumes carried raw union-find root ids spanning 4
 """
 
 [data.test]
-config_path = "../data/lmd_ssl_v1_test.yaml"
+config_path = "data/test.yaml"
 
 [data.fit]
-config_path = "../data/lmd_ssl_v1_finetune.yaml"
+config_path = "data/fit.yaml"
 
 [task]
 name = "instance_seg"

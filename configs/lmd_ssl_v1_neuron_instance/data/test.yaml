@@ -4,10 +4,10 @@
 # make_splits.py generated from
 #   /groups/miaai/miaai/lmd-v0.0.1/configs/evals/v1/instance_seg/lmd_instance_seg_eval_singlescale_patch256.yaml
 # The volumes must stay exactly these: the two halves define what "held out" means for every
-# recorded lmd_ssl_v1 score. The complementary half is lmd_ssl_v1_finetune.yaml.
+# recorded lmd_ssl_v1 score. The complementary half is fit.yaml (in this directory).
 #
 # Read on both sides of the artifact boundary. mia-train's predict.py predicts every volume in it
-# (`--data-config configs/data/lmd_ssl_v1_test.yaml --out <artifacts>/...`), and the lmd_ssl_v1 scoring configs
+# (`--data-config configs/lmd_ssl_v1_neuron_instance/data/test.yaml --out <artifacts>/...`), and the lmd_ssl_v1 scoring configs
 # score those predictions against it. 4 volumes, one per modality pair, equally weighted. Every entry
 # keeps the bounding box measured from its label's non-zero extent -- LICONN DG and hippocampus have
 # 0% GT in their own central 256^3 block, so dropping the box would predict and score unannotated
