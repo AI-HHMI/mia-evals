@@ -21,6 +21,12 @@ from artifact import write_artifact
 pytestmark = pytest.mark.unit
 
 
+def _only_record(records_dir):
+    """The single record a test wrote; its name follows `<run>.step<N>.<route>`, not a label."""
+    [path] = list(Path(records_dir).glob("*.json"))
+    return path
+
+
 def _volume(root, name: str, labels: np.ndarray) -> str:
     """A minimal OME-ish store: just the label pyramid rung a score reads."""
     path = root / f"{name}.zarr"
@@ -107,7 +113,7 @@ def test_scores_an_instance_submission_and_writes_a_record(instances, monkeypatc
     args = type("Args", (), {
         "config": config, "test": artifact, "val": None, "leaderboard": records,
         "run_dir": None,
-        "scored_out": None, "no_scored": False, "label": "", "scratch": tmp_path / "scratch",
+        "scored_out": None, "no_scored": False, "scratch": tmp_path / "scratch",
     })()
     evaluate.cmd_score(args)
 
@@ -122,6 +128,12 @@ def test_scores_an_instance_submission_and_writes_a_record(instances, monkeypatc
     assert 0.0 < payload["ranking"]["value"] < 1.0
     assert payload["region"]["volumes"]["cube"]["shape"] == [4, 4, 4]
     assert payload["postprocess"]["fitted_on"] is None
+    # The record is named `<run>.step<N>.<route>` -- here the fixture's artifact has no run or
+    # step attrs, so the artifact name stands in -- and scoring the same thing again is refused
+    # rather than silently overwriting the row.
+    assert written[0].stem.endswith(".identity")
+    with pytest.raises(SystemExit, match="already exists"):
+        evaluate.cmd_score(args)
 
 
 def test_a_sweep_cannot_be_fitted_on_the_reported_split(instances, tmp_path):
@@ -148,7 +160,7 @@ def test_a_sweep_cannot_be_fitted_on_the_reported_split(instances, tmp_path):
     args = type("Args", (), {
         "config": config, "test": affinities, "val": None, "leaderboard": tmp_path / "r",
         "run_dir": None,
-        "scored_out": None, "no_scored": False, "label": "", "scratch": tmp_path / "s",
+        "scored_out": None, "no_scored": False, "scratch": tmp_path / "s",
     })()
     with pytest.raises(SystemExit, match="selecting on the number being reported"):
         evaluate.cmd_score(args)
@@ -182,7 +194,7 @@ def test_an_artifact_predicted_over_another_volume_is_refused(instances, tmp_pat
         return type("Args", (), {
             "config": config, "test": test, "val": None, "leaderboard": tmp_path / "records",
             "run_dir": None,
-        "scored_out": None, "no_scored": False, "label": "", "scratch": tmp_path / "scratch",
+        "scored_out": None, "no_scored": False, "scratch": tmp_path / "scratch",
         })()
 
     stray = write_artifact(
@@ -224,7 +236,7 @@ def test_incompatible_kind_and_postprocessor_are_refused(instances, tmp_path):
     args = type("Args", (), {
         "config": config, "test": scores, "val": None, "leaderboard": tmp_path / "r",
         "run_dir": None,
-        "scored_out": None, "no_scored": False, "label": "", "scratch": tmp_path / "s",
+        "scored_out": None, "no_scored": False, "scratch": tmp_path / "s",
     })()
     with pytest.raises(ValueError, match="accepts artifacts of kind"):
         evaluate.cmd_score(args)
@@ -271,16 +283,17 @@ def test_leaderboard_renders_and_detects_drift(instances, tmp_path):
     evaluate.cmd_score(type("Args", (), {
         "config": config, "test": artifact, "val": None, "leaderboard": root,
         "run_dir": None,
-        "scored_out": None, "no_scored": False, "label": "arm_a", "scratch": tmp_path_ / "s2",
+        "scored_out": None, "no_scored": False, "scratch": tmp_path_ / "s2",
     })())
 
     # Scoring writes the record *and* renders that task's table, so the two cannot drift apart by
     # a forgotten second command. Both land under the task's own directory.
-    assert (root / "unit_task" / "records" / "arm_a.json").is_file()
+    record_path = _only_record(root / "unit_task" / "records")
+    assert record_path.is_file()
     # ... and the post-processed labelling that was scored is kept and named, so a viewer can
     # show exactly the voxels behind the number.
     import json as _json
-    record_ = _json.loads((root / "unit_task" / "records" / "arm_a.json").read_text())
+    record_ = _json.loads(record_path.read_text())
     scored = record_["postprocess"]["scored_artifacts"]
     assert scored and all(Path(p).is_dir() for p in scored.values())
     from artifact import open_artifact as _open
@@ -291,7 +304,7 @@ def test_leaderboard_renders_and_detects_drift(instances, tmp_path):
 
     text = output.read_text()
     assert "GENERATED FILE" in text
-    assert "unit_task" in text and "arm_a" in text
+    assert "unit_task" in text and record_path.stem in text
     # The postprocessor is a column, so a reader cannot mistake a post-processing difference for a
     # model difference.
     assert "postprocess" in text
@@ -308,7 +321,7 @@ def test_leaderboard_renders_and_detects_drift(instances, tmp_path):
     assert "unit_task" in index
     # The index lists tasks; it must not rank anything, or the split back into per-task pages
     # would have bought nothing.
-    assert "arm_a" not in index
+    assert record_path.stem not in index
 
 
 # --------------------------------------------------------------- several volumes at once
@@ -359,9 +372,9 @@ def test_each_volume_is_scored_against_its_own_artifact(two_volumes):
     evaluate.cmd_score(type("Args", (), {
         "config": config, "test": artifacts, "val": None, "leaderboard": records,
         "run_dir": None,
-        "scored_out": None, "no_scored": False, "label": "multi", "scratch": root / "s",
+        "scored_out": None, "no_scored": False, "scratch": root / "s",
     })())
-    payload = json.loads((records / "unit_task" / "records" / "multi.json").read_text())
+    payload = json.loads((_only_record(records / "unit_task" / "records")).read_text())
 
     per_volume = payload["per_volume"]
     assert set(per_volume) == {"alpha", "beta"}
@@ -390,7 +403,7 @@ def test_a_missing_per_volume_artifact_is_refused(two_volumes):
         evaluate.cmd_score(type("Args", (), {
             "config": config, "test": artifacts, "val": None, "leaderboard": root / "r2",
             "run_dir": None,
-        "scored_out": None, "no_scored": False, "label": "", "scratch": root / "s2",
+        "scored_out": None, "no_scored": False, "scratch": root / "s2",
         })())
 
 
@@ -403,7 +416,7 @@ def test_a_single_artifact_is_refused_for_a_multi_volume_task(two_volumes):
             "config": config, "test": artifacts / "alpha.zarr", "val": None,
             "leaderboard": root / "r3", "run_dir": None,
         "scored_out": None, "no_scored": False,
-            "label": "", "scratch": root / "s3",
+            "scratch": root / "s3",
         })())
 
 
@@ -530,11 +543,11 @@ def test_a_sweep_is_fitted_on_the_declared_fit_split_and_applied_to_the_test_spl
     records = tmp_path / "records"
     args = type("Args", (), {
         "config": config, "test": test_dir, "val": val_dir, "leaderboard": records,
-        "run_dir": None, "scored_out": None, "no_scored": False, "label": "split",
+        "run_dir": None, "scored_out": None, "no_scored": False, 
         "scratch": tmp_path / "scratch",
     })()
     evaluate.cmd_score(args)
-    payload = json.loads((records / "unit_task" / "records" / "split.json").read_text())
+    payload = json.loads((_only_record(records / "unit_task" / "records")).read_text())
     assert payload["postprocess"]["params"] == {"min_size": 3}
     assert Path(payload["postprocess"]["fitted_on_data_config"]).resolve() == Path(both).resolve()
     assert list(payload["region"]["volumes"]) == ["alpha"]

@@ -4,7 +4,7 @@
 #
 #   mia-evals score configs/scoring/lmd_ssl_v1_zebrafish_instance.toml \
 #       --test <mws_artifacts>/<arm>/test --val <mws_artifacts>/<arm>/finetune \
-#       --run-dir /nrs/.../lmd1__<arm>_... --label <arm>_step50000
+#       --run-dir /nrs/.../lmd1__<arm>_...
 #
 # ---------------------------------------------------------------------------------------------
 # WHY THIS IS A SEPARATE TASK FROM `lmd_ssl_v1_neuron_instance`
@@ -48,6 +48,7 @@
 # the number being published.
 
 task_name = "lmd_ssl_v1_zebrafish_instance"
+route = "mws"                        # stored mutex-watershed labellings; see the neuron _mws config
 
 notes = """
 Voxel metrics, not skeleton ones: these volumes ship dense label arrays and no skeletons, so nERL is

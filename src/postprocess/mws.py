@@ -27,6 +27,9 @@ from typing import Any
 
 import numpy as np
 
+import hashlib
+from collections import OrderedDict
+
 from .base import BasePostprocess
 from .registry import PostprocessRegistry
 from .size_filter import drop_small_components
@@ -194,6 +197,35 @@ class MutexWatershed(BasePostprocess):
         if any(int(v) < 0 for v in min_sizes):
             raise ValueError(f"min_sizes must be non-negative voxel counts, got {list(min_sizes)}")
         self.min_sizes = tuple(sorted({int(v) for v in min_sizes}))
+        # The watershed depends on the affinities and the stride only; the size filter is applied on
+        # top. Sweeping `min_sizes` therefore needs ONE watershed per (volume, stride), not one per
+        # candidate -- at 896^3 a watershed is 4 G edges and about two hours, so four candidates
+        # would have cost eight. Keyed by a content fingerprint rather than object identity because
+        # the scorer re-reads the artifact for every candidate.
+        self._labellings: OrderedDict[tuple, np.ndarray] = OrderedDict()
+
+    CACHE_ENTRIES = 4                      # int64 labellings; 4 x 896^3 is ~23 GB
+
+    @staticmethod
+    def _fingerprint(affinities: np.ndarray) -> str:
+        flat = affinities.reshape(-1)
+        step = max(1, flat.size // 1_000_000)
+        digest = hashlib.blake2b(digest_size=16)
+        digest.update(np.ascontiguousarray(flat[::step]).tobytes())
+        digest.update(np.ascontiguousarray(flat[-1024:]).tobytes())
+        return f"{affinities.shape}:{affinities.dtype}:{digest.hexdigest()}"
+
+    def _labelling(self, affinities: np.ndarray, stride: int) -> np.ndarray:
+        key = (stride, self._fingerprint(affinities))
+        cached = self._labellings.get(key)
+        if cached is None:
+            cached = segment(affinities, stride).astype(np.int64)
+            self._labellings[key] = cached
+            while len(self._labellings) > self.CACHE_ENTRIES:
+                self._labellings.popitem(last=False)
+        else:
+            self._labellings.move_to_end(key)
+        return cached
 
     def search_space(self) -> list[dict[str, Any]]:
         return [
@@ -210,9 +242,8 @@ class MutexWatershed(BasePostprocess):
                 "half there are no repulsive edges, so it would degenerate to connected components "
                 "over the attractive graph; use cc_threshold for that."
             )
-        labels = segment(np.asarray(array, dtype=np.float32),
-                         int(params["repulsive_stride"])).astype(np.int64)
-        return drop_small_components(labels, int(params.get("min_size", 0)))
+        labels = self._labelling(np.asarray(array, dtype=np.float32), int(params["repulsive_stride"]))
+        return drop_small_components(labels.copy(), int(params.get("min_size", 0)))
 
     def describe(self, params: dict[str, Any]) -> str:
         text = f"mws(repulsive_stride={params['repulsive_stride']}"

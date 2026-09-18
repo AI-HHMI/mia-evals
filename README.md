@@ -135,7 +135,7 @@ Optional attributes, each with a specific effect when present:
 | `convention` | empty | free text describing any transform already applied, such as `sigmoid(0.2 * logit)` |
 | `source_path` | none | the store the prediction was made from; when present, scoring refuses to match the artifact to a task volume with a different path |
 | `covers_full_box` | none | whether the array covers the volume's whole annotated region; decides whether a skeleton is cropped to the artifact and whether a row is labelled a sub-region |
-| `run`, `step` | none | name the record (`<run>_step<step>` unless `--label` is given) and appear in the table |
+| `run`, `step` | none | name the record (`<run>.step<step>.<route>`) and appear in the table |
 | `run_dir` | none | where the producing run's `resolved_config.json` and git commit are copied from when `--run-dir` is not given, and the checkpoint link in the table |
 | `source_image_key` | `raw` | the image array in the source store that a neuroglancer view shows under the prediction |
 
@@ -266,6 +266,12 @@ names = ["voxel_instance"]
 rank_by = "voxel_instance"           # ranks on its `primary` key, pq; direction is the metric's own
 ```
 
+`route` (top-level, optional) is the short name of the scoring route and the last part of every
+record's identifier (see below). It defaults to the post-processor's name; a config sets it when that
+name would mislead, as the `_mws` config does (`size_filter` runs there, over a stored mutex-watershed
+labelling, so `route = "mws"`). Two configs that score one task through different routes must differ
+in `route`, or their records would collide.
+
 `rank_by` names a metric rather than one of its keys. Which number ranks, and whether
 higher is better, are properties of the metric class, so a config cannot declare a ranking direction
 that contradicts the metric it ranks on.
@@ -298,6 +304,17 @@ leaderboard/
     README.md                      that task's table, rendered from ./records/
     records/<identifier>.json      one record per evaluation
 ```
+
+**Record names.** A record is named `<run>.step<N>.<route>`, and only that way: `<run>` is the
+name of the run directory that was passed to the producer's `predict.py` (which already carries the
+experiment, the arm and the launch time, e.g. `gary__1a_dinov3_axial_subpixel_20260916_215544`),
+`<N>` the checkpoint step, `<route>` the scoring config's `route`. So
+`lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919.step50000.mws` says exactly which checkpoint was
+scored and how, and its checkpoint directory can be found by name. There is no `--label`: hand-written
+names (`2c_step50000`, `2c_step50000_sizefilter`, ...) made the tables unreadable and were replaced on
+2026-09-18. Scoring a run, step and route that already has a record is refused rather than
+overwritten; delete the old record if the new scoring supersedes it, or give the config a distinct
+`route` if it is a different protocol (`cc_threshold_nosizesweep` is the one legacy example).
 
 `mia-evals score` writes the record and re-renders that task's table, so the two cannot drift
 apart through a forgotten second command; every other task's file is left untouched.

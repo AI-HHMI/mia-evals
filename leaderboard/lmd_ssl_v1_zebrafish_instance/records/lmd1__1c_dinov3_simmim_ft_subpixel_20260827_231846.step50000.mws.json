@@ -2,9 +2,9 @@
   "task_name": "lmd_ssl_v1_zebrafish_instance",
   "producer": {
     "artifacts": {
-      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm3/test/zebrafish_fish2_doublecube1.zarr"
+      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm1/test/zebrafish_fish2_doublecube1.zarr"
     },
-    "run": "lmd1__3c_muvit_mae_ft_subpixel_20260905_074206",
+    "run": "lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846",
     "step": 50000,
     "kind": "instances",
     "convention": "mws(repulsive_stride=1)",
@@ -17,7 +17,7 @@
       ],
       "convention": "mws(repulsive_stride=1)",
       "background_id": 0,
-      "source": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_mws/arm3/test/zebrafish_fish2_doublecube1_mws_stride1.npy",
+      "source": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_mws/arm1/test/zebrafish_fish2_doublecube1_mws_stride1.npy",
       "note": "mutex watershed, ids compacted to 1..k; there is no background",
       "native_box": [
         [
@@ -41,32 +41,32 @@
       "image_level": 0,
       "label_level": 0,
       "covers_full_box": false,
-      "run": "lmd1__3c_muvit_mae_ft_subpixel_20260905_074206",
+      "run": "lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846",
       "step": 50000
     }
   },
   "scores": {
     "voxel_instance": {
-      "adapted_rand_error": 0.9592903574905326,
-      "false_negative": 11879.0,
-      "false_positive": 8556.0,
-      "instances_predicted": 9656.0,
+      "adapted_rand_error": 0.93701650520831,
+      "false_negative": 11626.0,
+      "false_positive": 7822.0,
+      "instances_predicted": 9175.0,
       "instances_truth": 12979.0,
       "iou_threshold": 0.5,
-      "pq": 0.0719194787945461,
-      "rq": 0.09719461011707532,
-      "sq": 0.7399533647793415,
-      "true_positive": 1100.0,
-      "voi_merge": 4.6463023422202525,
-      "voi_split": 2.295017572818618,
-      "voi_sum": 6.9413199150388705,
+      "pq": 0.08761693787743464,
+      "rq": 0.1221449851042701,
+      "sq": 0.7173191580697292,
+      "true_positive": 1353.0,
+      "voi_merge": 3.655437300360841,
+      "voi_split": 2.0653174945116834,
+      "voi_sum": 5.720754794872525,
       "volumes_scored": 1.0
     }
   },
   "ranking": {
     "metric": "voxel_instance",
     "key": "pq",
-    "value": 0.0719194787945461,
+    "value": 0.08761693787743464,
     "higher_is_better": true
   },
   "postprocess": {
@@ -75,28 +75,28 @@
       "min_size": 50000
     },
     "describe": "size_filter(min_size=50000)",
-    "fitted_on": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm3/finetune",
+    "fitted_on": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm1/finetune",
     "fitted_on_config": "configs/tasks/lmd_ssl_v1_zebrafish_instance_fit.toml",
     "validation_scores": {
       "voxel_instance": {
-        "adapted_rand_error": 0.8648415009577369,
-        "false_negative": 3574.0,
-        "false_positive": 2007.0,
-        "instances_predicted": 3899.0,
+        "adapted_rand_error": 0.8882355764678153,
+        "false_negative": 3594.0,
+        "false_positive": 1702.0,
+        "instances_predicted": 3574.0,
         "instances_truth": 5466.0,
         "iou_threshold": 0.5,
-        "pq": 0.3113236535877712,
-        "rq": 0.40405766150560596,
-        "sq": 0.7704931331526103,
-        "true_positive": 1892.0,
-        "voi_merge": 1.3562347346050672,
-        "voi_split": 1.0061346122311807,
-        "voi_sum": 2.362369346836248,
+        "pq": 0.30929712341581805,
+        "rq": 0.41415929203539825,
+        "sq": 0.7468071569655436,
+        "true_positive": 1872.0,
+        "voi_merge": 1.5657794511401146,
+        "voi_split": 0.9520076760303358,
+        "voi_sum": 2.5177871271704504,
         "volumes_scored": 1.0
       }
     },
     "scored_artifacts": {
-      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_zebrafish_instance/scored/3c_step50000/zebrafish_fish2_doublecube1.zarr"
+      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_zebrafish_instance/scored/lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846.step50000.mws/zebrafish_fish2_doublecube1.zarr"
     }
   },
   "region": {
@@ -113,7 +113,7 @@
           1920
         ],
         "whole_region": false,
-        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm3/test/zebrafish_fish2_doublecube1.zarr"
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm1/test/zebrafish_fish2_doublecube1.zarr"
       }
     }
   },
@@ -171,51 +171,43 @@
   "per_volume": {
     "zebrafish_fish2_doublecube1": {
       "voxel_instance": {
-        "pq": 0.0719194787945461,
-        "sq": 0.7399533647793415,
-        "rq": 0.09719461011707532,
-        "true_positive": 1100.0,
-        "false_positive": 8556.0,
-        "false_negative": 11879.0,
+        "pq": 0.08761693787743464,
+        "sq": 0.7173191580697292,
+        "rq": 0.1221449851042701,
+        "true_positive": 1353.0,
+        "false_positive": 7822.0,
+        "false_negative": 11626.0,
         "instances_truth": 12979.0,
-        "instances_predicted": 9656.0,
-        "voi_split": 2.295017572818618,
-        "voi_merge": 4.6463023422202525,
-        "voi_sum": 6.9413199150388705,
-        "adapted_rand_error": 0.9592903574905326,
+        "instances_predicted": 9175.0,
+        "voi_split": 2.0653174945116834,
+        "voi_merge": 3.655437300360841,
+        "voi_sum": 5.720754794872525,
+        "adapted_rand_error": 0.93701650520831,
         "iou_threshold": 0.5
       }
     }
   },
   "provenance": {
     "mia_evals_commit": "d172852f15a82f83c3ba8e635f91e3c1a1be043c (dirty)",
-    "run_dir": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/runs/lmd1__3c_muvit_mae_ft_subpixel_20260905_074206",
+    "run_dir": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/runs/lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846",
     "resolved_config": {
-      "experiment_name": "lmd1__3c_muvit_mae_ft_subpixel",
+      "experiment_name": "lmd1__1c_dinov3_simmim_ft_subpixel",
       "model": {
-        "name": "muvit3d",
+        "name": "dinov3_vit3d",
         "kwargs": {
-          "levels": [
-            1,
-            2,
-            4
-          ],
-          "img_size": [
-            256,
-            256,
-            256
-          ],
-          "patch_size": [
-            16,
-            16,
-            16
-          ],
-          "in_channels": 1,
+          "img_size": 256,
+          "patch_size": 16,
+          "in_chans": 1,
           "embed_dim": 1024,
           "depth": 24,
           "num_heads": 16,
-          "mlp_ratio": 4.0,
-          "attention_backend": "flash4"
+          "n_storage_tokens": 4,
+          "layerscale_init": 1e-05,
+          "mask_k_bias": true,
+          "pos_embed_rope_dtype": "fp32",
+          "pos_embed_rope_type": "vanilla",
+          "drop_path_rate": 0.1,
+          "use_fa4": true
         }
       },
       "algorithm": {
@@ -237,23 +229,7 @@
               "name": "kasthuri15_ac3",
               "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-001_ac3_100slices.zarr",
               "image_key": "raw",
-              "resolutions": [
-                [
-                  2.62144,
-                  2.62144,
-                  2.62144
-                ],
-                [
-                  5.24288,
-                  5.24288,
-                  5.24288
-                ],
-                [
-                  10.48576,
-                  10.48576,
-                  10.48576
-                ]
-              ],
+              "resolutions": null,
               "resolution_sampling": null,
               "zarr_version": "zarr3",
               "exp_factor": 1.0,
@@ -311,23 +287,7 @@
               "name": "liconn_mouse_dg",
               "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-DG-20250809_ExPID19-02_2ndGel_C5_Atto488_40XW_002/crop-001.zarr",
               "image_key": "raw",
-              "resolutions": [
-                [
-                  4.096,
-                  4.096,
-                  4.096
-                ],
-                [
-                  8.192,
-                  8.192,
-                  8.192
-                ],
-                [
-                  16.384,
-                  16.384,
-                  16.384
-                ]
-              ],
+              "resolutions": null,
               "resolution_sampling": null,
               "zarr_version": "zarr3",
               "exp_factor": 1.0,
@@ -356,23 +316,7 @@
               "name": "hemibrain_ellipsoid_body",
               "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-hemibrain/crop-001_EllipsoidBody_x24000_y23000_z17000.zarr",
               "image_key": "raw",
-              "resolutions": [
-                [
-                  6.4,
-                  6.4,
-                  6.4
-                ],
-                [
-                  12.8,
-                  12.8,
-                  12.8
-                ],
-                [
-                  25.6,
-                  25.6,
-                  25.6
-                ]
-              ],
+              "resolutions": null,
               "resolution_sampling": null,
               "zarr_version": "zarr3",
               "exp_factor": 1.0,
@@ -404,16 +348,6 @@
               8.0,
               8.0,
               8.0
-            ],
-            [
-              16.0,
-              16.0,
-              16.0
-            ],
-            [
-              32.0,
-              32.0,
-              32.0
             ]
           ],
           "resolution_sampling": null,
@@ -483,23 +417,7 @@
               "name": "kasthuri15_ac4",
               "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-002_ac4_100slices.zarr",
               "image_key": "raw",
-              "resolutions": [
-                [
-                  2.62144,
-                  2.62144,
-                  2.62144
-                ],
-                [
-                  5.24288,
-                  5.24288,
-                  5.24288
-                ],
-                [
-                  10.48576,
-                  10.48576,
-                  10.48576
-                ]
-              ],
+              "resolutions": null,
               "resolution_sampling": null,
               "zarr_version": "zarr3",
               "exp_factor": 1.0,
@@ -557,23 +475,7 @@
               "name": "liconn_mouse_hippocampus",
               "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-hippocampus-202507013_ExPID10-02_2percentAA_S2_Atto488_40XW_004/crop-001.zarr",
               "image_key": "raw",
-              "resolutions": [
-                [
-                  4.096,
-                  4.096,
-                  4.096
-                ],
-                [
-                  8.192,
-                  8.192,
-                  8.192
-                ],
-                [
-                  16.384,
-                  16.384,
-                  16.384
-                ]
-              ],
+              "resolutions": null,
               "resolution_sampling": null,
               "zarr_version": "zarr3",
               "exp_factor": 1.0,
@@ -602,23 +504,7 @@
               "name": "liconn_expid82",
               "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-ExPID82-1/crop-002_sub.zarr",
               "image_key": "raw",
-              "resolutions": [
-                [
-                  6.4,
-                  6.4,
-                  6.4
-                ],
-                [
-                  12.8,
-                  12.8,
-                  12.8
-                ],
-                [
-                  25.6,
-                  25.6,
-                  25.6
-                ]
-              ],
+              "resolutions": null,
               "resolution_sampling": null,
               "zarr_version": "zarr3",
               "exp_factor": 1.0,
@@ -650,16 +536,6 @@
               8.0,
               8.0,
               8.0
-            ],
-            [
-              16.0,
-              16.0,
-              16.0
-            ],
-            [
-              32.0,
-              32.0,
-              32.0
             ]
           ],
           "resolution_sampling": null,
@@ -682,7 +558,7 @@
         }
       },
       "init": {
-        "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/runs/lmd1__3b_muvit_mae_ft_interpolate_20260904_193519/checkpoints/step_50000",
+        "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/runs/lmd1__1b_dinov3_simmim_ft_interpolate_20260827_192022/checkpoints/step_50000",
         "prefix": "model.",
         "inflate_2d_to_3d": false,
         "skip": [],
@@ -713,12 +589,12 @@
         "train_tokens": true
       }
     },
-    "producer_commit": "a67dddd313897ecfa2144887e6a2c209911d2af5"
+    "producer_commit": "f05830c2bad8279b533360fab0dbbe33dde5d755"
   },
   "views": {
     "zebrafish_fish2_doublecube1": {
-      "overlay": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_zebrafish_instance/scored/3c_step50000/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%223c_step50000%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/arms13_eval/arm3/test/zebrafish_fish2_doublecube1.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Afalse%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm3/test/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%223c_step50000%22%7D%2C%22layout%22%3A%224panel-alt%22%2C%22dimensions%22%3A%7B%22x%22%3A%5B8e-09%2C%22m%22%5D%2C%22y%22%3A%5B8e-09%2C%22m%22%5D%2C%22z%22%3A%5B8.027343750000001e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B1000.0%2C1000.0%2C986.1934306569343%5D%7D",
-      "side_by_side": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_zebrafish_instance/scored/3c_step50000/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%223c_step50000%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/arms13_eval/arm3/test/zebrafish_fish2_doublecube1.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Atrue%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm3/test/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%223c_step50000%22%7D%2C%22layout%22%3A%7B%22type%22%3A%22row%22%2C%22children%22%3A%5B%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22truth%22%5D%2C%22layout%22%3A%22xy%22%7D%2C%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%223c_step50000%22%5D%2C%22layout%22%3A%22xy%22%7D%5D%7D%2C%22dimensions%22%3A%7B%22x%22%3A%5B8e-09%2C%22m%22%5D%2C%22y%22%3A%5B8e-09%2C%22m%22%5D%2C%22z%22%3A%5B8.027343750000001e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B1000.0%2C1000.0%2C986.1934306569343%5D%7D",
+      "overlay": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_zebrafish_instance/scored/lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846.step50000.mws/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846.step50000.mws%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/arms13_eval/arm1/test/zebrafish_fish2_doublecube1.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Afalse%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm1/test/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846.step50000.mws%22%7D%2C%22layout%22%3A%224panel-alt%22%2C%22dimensions%22%3A%7B%22x%22%3A%5B8e-09%2C%22m%22%5D%2C%22y%22%3A%5B8e-09%2C%22m%22%5D%2C%22z%22%3A%5B8.027343750000001e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B1000.0%2C1000.0%2C986.1934306569343%5D%7D",
+      "side_by_side": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_zebrafish_instance/scored/lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846.step50000.mws/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846.step50000.mws%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/arms13_eval/arm1/test/zebrafish_fish2_doublecube1.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Atrue%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm1/test/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846.step50000.mws%22%7D%2C%22layout%22%3A%7B%22type%22%3A%22row%22%2C%22children%22%3A%5B%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22truth%22%5D%2C%22layout%22%3A%22xy%22%7D%2C%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846.step50000.mws%22%5D%2C%22layout%22%3A%22xy%22%7D%5D%7D%2C%22dimensions%22%3A%7B%22x%22%3A%5B8e-09%2C%22m%22%5D%2C%22y%22%3A%5B8e-09%2C%22m%22%5D%2C%22z%22%3A%5B8.027343750000001e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B1000.0%2C1000.0%2C986.1934306569343%5D%7D",
       "shows": "scored"
     }
   },
@@ -732,5 +608,6 @@
     "funlib.evaluate": "present"
   },
   "schema_version": 1,
-  "label": "3c_step50000"
+  "label": "",
+  "route": "mws"
 }

@@ -23,6 +23,7 @@ schema instead of being silently half-understood by a parser in this repo.
 
 from __future__ import annotations
 
+import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -57,6 +58,12 @@ class ScoringConfig:
     volumes: tuple[Volume, ...]
     metric_kwargs: dict[str, dict[str, Any]] = field(default_factory=dict)
     notes: str = ""
+    #: Short name of this scoring route, the third part of every record's identifier
+    #: (`<run>.step<N>.<route>`). Defaults to the post-processor's registry name; a config
+    #: sets it explicitly when that name would mislead -- `size_filter` over a stored mutex
+    #: watershed labelling is `route = "mws"`. Two configs scoring one task through different
+    #: routes must differ here, or their records would overwrite each other.
+    route: str = ""
     #: The fit split, from `[data.fit]`: where a swept post-processing parameter is chosen. None
     #: for a task that declares none, which is fine for a single-candidate post-processor.
     fit_data_config_path: Path | None = None
@@ -79,6 +86,7 @@ class ScoringConfig:
                 None if self.fit_volumes is None else [_volume_record(v) for v in self.fit_volumes]
             ),
             "notes": self.notes,
+            "route": self.route,
         }
 
 
@@ -256,6 +264,12 @@ def load_scoring_config(path: str | Path) -> ScoringConfig:
                 "so that no task can rank in the wrong direction."
             )
 
+    route = str(raw.get("route") or raw["postprocess"]["name"])
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_+-]*", route):
+        raise ValueError(
+            f"route = {route!r} must be a filesystem-safe word (letters, digits, '_', '-', '+'): "
+            "it becomes the last part of every record's file name"
+        )
     return ScoringConfig(
         task_name=str(raw["task_name"]),
         task=_section(raw, "task"),
@@ -266,6 +280,7 @@ def load_scoring_config(path: str | Path) -> ScoringConfig:
         volumes=volumes,
         metric_kwargs={str(k): dict(v) for k, v in metric_section.items() if isinstance(v, dict)},
         notes=str(raw.get("notes", "")),
+        route=route,
         fit_data_config_path=fit_path,
         fit_volumes=fit_volumes,
     )

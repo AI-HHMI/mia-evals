@@ -1,0 +1,29 @@
+# gary_comparison -- the FIT block for post-processing sweeps, as [data.fit]: a 1000^3 block of the VALIDATION slab.
+#
+# NOT a copy of a mia-train file: the training-side validation split is the whole 3000 <= z < 4000
+# slab (25 G voxels), far too large to predict for a threshold sweep. This is the 1000^3 block of
+# that slab directly beneath the test corner, [4000, 5000) x [4000, 5000) x [3000, 4000): the same
+# lateral tissue as the test corner, adjacent to it, wholly inside the validation split (so fitting
+# here is what the protocol allows) and disjoint from the test box (z < 4000), which the scoring
+# config loader also enforces. Scored region 896^3 = [4052, 4948) x [4052, 4948) x [3052, 3948).
+#
+# Read on both sides of the artifact boundary: predict.py predicts it
+# (`--data-config configs/data/gary_comparison_fit.yaml`), `mia-evals score --val` fits on it.
+
+resolutions: [[8.0, 8.0, 8.0]]
+patch_size: [256, 256, 256]
+output_axes: lcxyz
+samples_per_epoch: 1000   # the run config's [data] / [val_data] section overrides this
+# Resampling and normalisation happen on the device, not in the loader workers (see
+# src/data/miao_dataset.py). Here as well as in the run config so the setting cannot be lost.
+defer_image_ops: true   # irrelevant for scoring
+
+volumes:
+  - name: hemibrain_eb_fit
+    path: /groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-hemibrain/crop-001_EllipsoidBody_x24000_y23000_z17000.zarr
+    image_key: raw
+    label_key: labels/proofread-cell-hemibrain-v1.2
+    zarr_version: zarr3
+    bounding_box: [[4000, 5000], [4000, 5000], [3000, 4000]]
+    weight: 1.0
+    normalize: true   # uint8 on disk, so this maps to [0, 1] by dtype max

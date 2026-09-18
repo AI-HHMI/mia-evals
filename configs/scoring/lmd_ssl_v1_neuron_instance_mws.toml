@@ -16,6 +16,9 @@
 # chosen on the finetune half ([data.fit]) and applied once to the held-out half ([data.test]).
 
 task_name = "lmd_ssl_v1_neuron_instance"
+# The route in every record name: these are mutex-watershed labellings, and `size_filter` (the
+# post-processor that runs here) would name the wrong thing.
+route = "mws"
 
 notes = """
 Voxel metrics, not skeleton ones: these volumes ship dense label arrays and no skeletons, so nERL is

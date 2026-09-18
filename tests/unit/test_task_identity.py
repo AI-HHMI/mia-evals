@@ -174,20 +174,27 @@ def test_scoring_refuses_a_record_that_would_redefine_the_task(tmp_path):
 
     import evaluate
 
-    def args(config, label):
+    def args(config, test=artifacts):
         return type("Args", (), {
-            "config": config, "test": artifacts, "val": None, "leaderboard": tmp_path / "board",
-            "run_dir": None, "scored_out": None, "no_scored": False, "label": label,
-            "scratch": tmp_path / "scratch",
+            "config": config, "test": test, "val": None, "leaderboard": tmp_path / "board",
+            "run_dir": None, "scored_out": None, "no_scored": False,             "scratch": tmp_path / "scratch",
         })()
 
-    evaluate.cmd_score(args(one, "first"))
+    evaluate.cmd_score(args(one))
     with pytest.raises(SystemExit, match="volumes \\['alpha', 'beta'\\] vs \\['alpha'\\]"):
-        evaluate.cmd_score(args(two, "second"))
+        evaluate.cmd_score(args(two))
     # The refused record was never written, so the table is still consistent.
-    assert [p.name for p in (tmp_path / "board" / "unit_task" / "records").glob("*.json")] == ["first.json"]
+    assert len(list((tmp_path / "board" / "unit_task" / "records").glob("*.json"))) == 1
     assert leaderboard.check(tmp_path / "board") == []
-    # Re-scoring the same task is, of course, fine.
-    evaluate.cmd_score(args(one, "third"))
-    written = json.loads((tmp_path / "board" / "unit_task" / "records" / "third.json").read_text())
+    # Another submission to the same task is, of course, fine: an artifact from a different run
+    # (named by its `run`/`step` attrs, as predict.py writes them) gets its own record beside the
+    # first. The identical submission would be refused instead of overwritten (test_evaluate).
+    second = tmp_path / "artifacts2"
+    second.mkdir()
+    write_artifact(second / "alpha.zarr", truth.copy(), "instances", background_id=0,
+                   run="second_run", step=7)
+    evaluate.cmd_score(args(one, test=second))
+    written = json.loads(
+        (tmp_path / "board" / "unit_task" / "records" / "second_run.step7.identity.json").read_text()
+    )
     assert written["task_name"] == "unit_task"

@@ -2,9 +2,9 @@
   "task_name": "lmd_ssl_v1_zebrafish_instance",
   "producer": {
     "artifacts": {
-      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm1/test/zebrafish_fish2_doublecube1.zarr"
+      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm2/test/zebrafish_fish2_doublecube1.zarr"
     },
-    "run": "lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846",
+    "run": "lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919",
     "step": 50000,
     "kind": "instances",
     "convention": "mws(repulsive_stride=1)",
@@ -17,7 +17,7 @@
       ],
       "convention": "mws(repulsive_stride=1)",
       "background_id": 0,
-      "source": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_mws/arm1/test/zebrafish_fish2_doublecube1_mws_stride1.npy",
+      "source": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_mws/arm2/test/zebrafish_fish2_doublecube1_mws_stride1.npy",
       "note": "mutex watershed, ids compacted to 1..k; there is no background",
       "native_box": [
         [
@@ -41,32 +41,32 @@
       "image_level": 0,
       "label_level": 0,
       "covers_full_box": false,
-      "run": "lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846",
+      "run": "lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919",
       "step": 50000
     }
   },
   "scores": {
     "voxel_instance": {
-      "adapted_rand_error": 0.93701650520831,
-      "false_negative": 11626.0,
-      "false_positive": 7822.0,
-      "instances_predicted": 9175.0,
+      "adapted_rand_error": 0.9316758908937712,
+      "false_negative": 11547.0,
+      "false_positive": 8768.0,
+      "instances_predicted": 10200.0,
       "instances_truth": 12979.0,
       "iou_threshold": 0.5,
-      "pq": 0.08761693787743464,
-      "rq": 0.1221449851042701,
-      "sq": 0.7173191580697292,
-      "true_positive": 1353.0,
-      "voi_merge": 3.655437300360841,
-      "voi_split": 2.0653174945116834,
-      "voi_sum": 5.720754794872525,
+      "pq": 0.08622331587774835,
+      "rq": 0.12356011907329911,
+      "sq": 0.6978248040259528,
+      "true_positive": 1432.0,
+      "voi_merge": 3.138259768393974,
+      "voi_split": 2.02739168119866,
+      "voi_sum": 5.165651449592634,
       "volumes_scored": 1.0
     }
   },
   "ranking": {
     "metric": "voxel_instance",
     "key": "pq",
-    "value": 0.08761693787743464,
+    "value": 0.08622331587774835,
     "higher_is_better": true
   },
   "postprocess": {
@@ -75,28 +75,28 @@
       "min_size": 50000
     },
     "describe": "size_filter(min_size=50000)",
-    "fitted_on": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm1/finetune",
+    "fitted_on": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm2/finetune",
     "fitted_on_config": "configs/tasks/lmd_ssl_v1_zebrafish_instance_fit.toml",
     "validation_scores": {
       "voxel_instance": {
-        "adapted_rand_error": 0.8882355764678153,
-        "false_negative": 3594.0,
-        "false_positive": 1702.0,
-        "instances_predicted": 3574.0,
+        "adapted_rand_error": 0.8355350727866809,
+        "false_negative": 3508.0,
+        "false_positive": 1610.0,
+        "instances_predicted": 3568.0,
         "instances_truth": 5466.0,
         "iou_threshold": 0.5,
-        "pq": 0.30929712341581805,
-        "rq": 0.41415929203539825,
-        "sq": 0.7468071569655436,
-        "true_positive": 1872.0,
-        "voi_merge": 1.5657794511401146,
-        "voi_split": 0.9520076760303358,
-        "voi_sum": 2.5177871271704504,
+        "pq": 0.3383529393303117,
+        "rq": 0.43347354438786806,
+        "sq": 0.7805619136644626,
+        "true_positive": 1958.0,
+        "voi_merge": 1.2967559844364587,
+        "voi_split": 0.8739547190354653,
+        "voi_sum": 2.170710703471924,
         "volumes_scored": 1.0
       }
     },
     "scored_artifacts": {
-      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_zebrafish_instance/scored/1c_step50000/zebrafish_fish2_doublecube1.zarr"
+      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_zebrafish_instance/scored/lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919.step50000.mws/zebrafish_fish2_doublecube1.zarr"
     }
   },
   "region": {
@@ -113,7 +113,7 @@
           1920
         ],
         "whole_region": false,
-        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm1/test/zebrafish_fish2_doublecube1.zarr"
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm2/test/zebrafish_fish2_doublecube1.zarr"
       }
     }
   },
@@ -171,27 +171,27 @@
   "per_volume": {
     "zebrafish_fish2_doublecube1": {
       "voxel_instance": {
-        "pq": 0.08761693787743464,
-        "sq": 0.7173191580697292,
-        "rq": 0.1221449851042701,
-        "true_positive": 1353.0,
-        "false_positive": 7822.0,
-        "false_negative": 11626.0,
+        "pq": 0.08622331587774835,
+        "sq": 0.6978248040259528,
+        "rq": 0.12356011907329911,
+        "true_positive": 1432.0,
+        "false_positive": 8768.0,
+        "false_negative": 11547.0,
         "instances_truth": 12979.0,
-        "instances_predicted": 9175.0,
-        "voi_split": 2.0653174945116834,
-        "voi_merge": 3.655437300360841,
-        "voi_sum": 5.720754794872525,
-        "adapted_rand_error": 0.93701650520831,
+        "instances_predicted": 10200.0,
+        "voi_split": 2.02739168119866,
+        "voi_merge": 3.138259768393974,
+        "voi_sum": 5.165651449592634,
+        "adapted_rand_error": 0.9316758908937712,
         "iou_threshold": 0.5
       }
     }
   },
   "provenance": {
     "mia_evals_commit": "d172852f15a82f83c3ba8e635f91e3c1a1be043c (dirty)",
-    "run_dir": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/runs/lmd1__1c_dinov3_simmim_ft_subpixel_20260827_231846",
+    "run_dir": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/runs/lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919",
     "resolved_config": {
-      "experiment_name": "lmd1__1c_dinov3_simmim_ft_subpixel",
+      "experiment_name": "lmd1__2c_dinov3_lvd_ft_subpixel",
       "model": {
         "name": "dinov3_vit3d",
         "kwargs": {
@@ -205,9 +205,8 @@
           "layerscale_init": 1e-05,
           "mask_k_bias": true,
           "pos_embed_rope_dtype": "fp32",
-          "pos_embed_rope_type": "vanilla",
-          "drop_path_rate": 0.1,
-          "use_fa4": true
+          "pos_embed_rope_type": "superposition",
+          "drop_path_rate": 0.1
         }
       },
       "algorithm": {
@@ -342,7 +341,6 @@
               ]
             }
           ],
-          "augment_fn": null,
           "resolutions": [
             [
               8.0,
@@ -380,6 +378,7 @@
         "min_lr_ratio": 0.001,
         "grad_clip_norm": 1.0,
         "lr_schedule": "linear",
+        "grad_accum_steps": 1,
         "layerwise_lr_decay": 1.0,
         "patch_embed_lr_mult": 1.0,
         "final_weight_decay": null,
@@ -530,7 +529,6 @@
               ]
             }
           ],
-          "augment_fn": null,
           "resolutions": [
             [
               8.0,
@@ -558,7 +556,7 @@
         }
       },
       "init": {
-        "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/runs/lmd1__1b_dinov3_simmim_ft_interpolate_20260827_192022/checkpoints/step_50000",
+        "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/runs/lmd1__2b_dinov3_lvd_ft_interpolate_20260824_143418/checkpoints/step_50000",
         "prefix": "model.",
         "inflate_2d_to_3d": false,
         "skip": [],
@@ -589,12 +587,12 @@
         "train_tokens": true
       }
     },
-    "producer_commit": "f05830c2bad8279b533360fab0dbbe33dde5d755"
+    "producer_commit": "0cae4c5aec654de72ec902a67437293ae6aa14c9 (dirty)"
   },
   "views": {
     "zebrafish_fish2_doublecube1": {
-      "overlay": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_zebrafish_instance/scored/1c_step50000/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%221c_step50000%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/arms13_eval/arm1/test/zebrafish_fish2_doublecube1.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Afalse%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm1/test/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%221c_step50000%22%7D%2C%22layout%22%3A%224panel-alt%22%2C%22dimensions%22%3A%7B%22x%22%3A%5B8e-09%2C%22m%22%5D%2C%22y%22%3A%5B8e-09%2C%22m%22%5D%2C%22z%22%3A%5B8.027343750000001e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B1000.0%2C1000.0%2C986.1934306569343%5D%7D",
-      "side_by_side": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_zebrafish_instance/scored/1c_step50000/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%221c_step50000%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/arms13_eval/arm1/test/zebrafish_fish2_doublecube1.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Atrue%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm1/test/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%221c_step50000%22%7D%2C%22layout%22%3A%7B%22type%22%3A%22row%22%2C%22children%22%3A%5B%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22truth%22%5D%2C%22layout%22%3A%22xy%22%7D%2C%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%221c_step50000%22%5D%2C%22layout%22%3A%22xy%22%7D%5D%7D%2C%22dimensions%22%3A%7B%22x%22%3A%5B8e-09%2C%22m%22%5D%2C%22y%22%3A%5B8e-09%2C%22m%22%5D%2C%22z%22%3A%5B8.027343750000001e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B1000.0%2C1000.0%2C986.1934306569343%5D%7D",
+      "overlay": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_zebrafish_instance/scored/lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919.step50000.mws/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919.step50000.mws%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/arms13_eval/arm2/test/zebrafish_fish2_doublecube1.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Afalse%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm2/test/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919.step50000.mws%22%7D%2C%22layout%22%3A%224panel-alt%22%2C%22dimensions%22%3A%7B%22x%22%3A%5B8e-09%2C%22m%22%5D%2C%22y%22%3A%5B8e-09%2C%22m%22%5D%2C%22z%22%3A%5B8.027343750000001e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B1000.0%2C1000.0%2C986.1934306569343%5D%7D",
+      "side_by_side": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_zebrafish_instance/scored/lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919.step50000.mws/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919.step50000.mws%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/arms13_eval/arm2/test/zebrafish_fish2_doublecube1.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Atrue%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v1/eval/zebrafish_artifacts/arm2/test/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919.step50000.mws%22%7D%2C%22layout%22%3A%7B%22type%22%3A%22row%22%2C%22children%22%3A%5B%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22truth%22%5D%2C%22layout%22%3A%22xy%22%7D%2C%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919.step50000.mws%22%5D%2C%22layout%22%3A%22xy%22%7D%5D%7D%2C%22dimensions%22%3A%7B%22x%22%3A%5B8e-09%2C%22m%22%5D%2C%22y%22%3A%5B8e-09%2C%22m%22%5D%2C%22z%22%3A%5B8.027343750000001e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B1000.0%2C1000.0%2C986.1934306569343%5D%7D",
       "shows": "scored"
     }
   },
@@ -608,5 +606,6 @@
     "funlib.evaluate": "present"
   },
   "schema_version": 1,
-  "label": "1c_step50000"
+  "label": "",
+  "route": "mws"
 }

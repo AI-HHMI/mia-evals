@@ -381,7 +381,7 @@ def cmd_score(args: argparse.Namespace) -> None:
         region=region,
         config=config.as_record(),
         provenance=_provenance(args, representative),
-        label=args.label,
+        route=config.route,
     )
     root = Path(args.leaderboard)
     # The row's neuroglancer views, from this machine's fileglancer key file, into the record --
@@ -409,6 +409,13 @@ def cmd_score(args: argparse.Namespace) -> None:
             )
     except ValueError as error:
         raise SystemExit(str(error)) from None
+    target = record.records_dir(root, config.task_name) / f"{submission.identifier()}.json"
+    if target.exists():
+        raise SystemExit(
+            f"a record named {submission.identifier()!r} already exists ({target}): this run, step "
+            "and route were scored before. If this scoring supersedes it, delete that file first; if "
+            "it is a different protocol, give the scoring config a distinct top-level `route`."
+        )
     path = submission.write(root)
     print(f"record: {path}", flush=True)
     # Rendered here rather than left to a follow-up `mia-evals leaderboard`: a record that is not
@@ -496,8 +503,6 @@ def main() -> None:
     score.add_argument("--run-dir", type=Path, default=None,
                        help="the producing run directory, whose resolved config and commit are "
                             "copied into the record")
-    score.add_argument("--label", type=str, default="",
-                       help="record filename stem; defaults to the run name and step")
     score.add_argument("--scratch", type=Path, default=None,
                        help="scratch directory for intermediates (e.g. a cropped skeleton)")
     score.set_defaults(func=cmd_score)

@@ -105,7 +105,11 @@ class Submission:
     views: dict[str, dict[str, Any]] = field(default_factory=dict)
     versions: dict[str, str] = field(default_factory=_component_versions)
     schema_version: int = SCHEMA_VERSION
+    #: Legacy free-text name. Empty on every record written since 2026-09-18; the identifier
+    #: is derived instead, so a row's name always says which checkpoint it scored.
     label: str = ""
+    #: The scoring route (`ScoringConfig.route`), third part of the identifier.
+    route: str = ""
 
     def identity(self) -> dict[str, Any]:
         """What this record claims to be a row of; see `task_identity`."""
@@ -116,8 +120,17 @@ class Submission:
         )
 
     def identifier(self) -> str:
-        """A filesystem-safe name for this submission, stable across re-runs of the same eval."""
-        if self.label:
+        """`<run>.step<N>.<route>`: exactly which checkpoint was scored, and through which route.
+
+        `run` is the producing run directory's name (`gary__1a_dinov3_axial_subpixel_20260916_215544`),
+        which already carries the experiment, the arm and the launch time; `step` is the checkpoint;
+        `route` is the scoring config's `route`. Two records may share a run and step only through
+        different routes, and `mia-evals score` refuses to overwrite an existing identifier. The
+        convention replaced hand-written labels on 2026-09-18, after those had made the tables
+        unreadable (`2c_step50000`, `2c_step50000_sizefilter`, `sam1_arm4_8nm_gb16_r0_step200000`
+        said neither which run nor, for two of them, which route).
+        """
+        if self.label:                       # legacy records only; nothing writes labels any more
             return self.label
         artifacts = self.producer.get("artifacts") or {}
         run = str(
@@ -125,9 +138,10 @@ class Submission:
             or next(iter(artifacts.values()), None)
             or "submission"
         )
-        step = self.producer.get("step")
         stem = Path(run).name.replace("/", "_")
-        return f"{stem}_step{step}" if step is not None else stem
+        step = self.producer.get("step")
+        route = self.route or str(self.postprocess.get("name") or "unknown")
+        return f"{stem}.step{step}.{route}" if step is not None else f"{stem}.{route}"
 
     def write(self, root: Path) -> Path:
         """Write to `<root>/<task_name>/records/<identifier>.json`, creating directories."""
