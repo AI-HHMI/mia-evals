@@ -1,0 +1,945 @@
+{
+  "task_name": "lmd_ssl_v1_neuron_instance",
+  "producer": {
+    "artifacts": {
+      "kasthuri15_ac4": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/kasthuri15_ac4.zarr",
+      "liconn_expid82": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/liconn_expid82.zarr",
+      "liconn_mouse_hippocampus": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/liconn_mouse_hippocampus.zarr",
+      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/zebrafish_fish2_doublecube1.zarr"
+    },
+    "run": "sam1__arm6_8nm_gb16_musam_r0_20260915_124216",
+    "step": 200000,
+    "kind": "instances",
+    "convention": "",
+    "artifact_attrs": {
+      "kind": "instances",
+      "background_id": 0,
+      "instances": 265,
+      "mask_stride": [
+        4,
+        4,
+        4
+      ],
+      "generator": "prompt_grid",
+      "points_per_side": 14,
+      "pred_iou_thresh": 0.7,
+      "stability_thresh": 0.8,
+      "stability_delta": 1.0,
+      "nms_iou": 0.7,
+      "min_mask_voxels": 512,
+      "max_mask_fraction": 0.95,
+      "prefer": "whole",
+      "containment_thresh": 0.8,
+      "merge_fraction": 0.5,
+      "tile_merge": "consensus",
+      "edge_discard": false,
+      "skip_claimed_clicks": false,
+      "propagate_min_coverage": 0.8,
+      "consistency_clicks": 0,
+      "consistency_thresh": 0.5,
+      "consistency_pick": "top",
+      "split_tiled_wholes": false,
+      "tiled_cover_thresh": 0.8,
+      "agree_thresh": 0.5,
+      "min_support": 1,
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "axes": "zyx",
+      "source_path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-002_ac4_100slices.zarr",
+      "source_image_key": "raw",
+      "source_label_key": "labels/public_gt-cell-kasthuri15",
+      "image_level": 0,
+      "label_level": 0,
+      "native_box": [
+        [
+          14,
+          86
+        ],
+        [
+          84,
+          939
+        ],
+        [
+          84,
+          939
+        ]
+      ],
+      "annotated_box": [
+        [
+          0,
+          100
+        ],
+        [
+          0,
+          1024
+        ],
+        [
+          0,
+          1024
+        ]
+      ],
+      "read_shape": [
+        72,
+        342,
+        342
+      ],
+      "scale": [
+        3.5555555555555554,
+        0.7485380116959064,
+        0.7485380116959064
+      ],
+      "effective_voxel_nm": [
+        8.15625,
+        8.015625,
+        8.015625
+      ],
+      "covers_full_box": false,
+      "box_coverage": 0.501955,
+      "patch": [
+        256,
+        256,
+        256
+      ],
+      "stride": [
+        128,
+        128,
+        128
+      ],
+      "run": "sam1__arm6_8nm_gb16_musam_r0_20260915_124216",
+      "run_dir": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/runs/sam1__arm6_8nm_gb16_musam_r0_20260915_124216",
+      "step": 200000,
+      "data_config": "/groups/scicompsoft/home/orhane/projects/mia-train/experiments/lmd_ssl_v1/lmd_val_singlescale.yaml",
+      "volume": "kasthuri15_ac4"
+    }
+  },
+  "scores": {
+    "voxel_instance": {
+      "adapted_rand_error": 0.6830588764571949,
+      "false_negative": 3170.75,
+      "false_positive": 2240.5,
+      "instances_predicted": 2689.75,
+      "instances_truth": 3620.0,
+      "iou_threshold": 0.5,
+      "pq": 0.22440002002644097,
+      "rq": 0.31106927176967536,
+      "sq": 0.697204857255469,
+      "true_positive": 449.25,
+      "voi_merge": 3.5374039498157823,
+      "voi_split": 0.915349861590177,
+      "voi_sum": 4.45275381140596,
+      "volumes_scored": 4.0
+    }
+  },
+  "ranking": {
+    "metric": "voxel_instance",
+    "key": "pq",
+    "value": 0.22440002002644097,
+    "higher_is_better": true
+  },
+  "postprocess": {
+    "name": "size_filter",
+    "params": {
+      "min_size": 5000
+    },
+    "describe": "size_filter(min_size=5000)",
+    "fitted_on": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/finetune",
+    "fitted_on_data_config": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/lmd_ssl_v1_neuron_instance/data/fit.yaml",
+    "validation_scores": {
+      "voxel_instance": {
+        "adapted_rand_error": 0.46788683158662453,
+        "false_negative": 1753.5,
+        "false_positive": 1199.0,
+        "instances_predicted": 1944.25,
+        "instances_truth": 2498.75,
+        "iou_threshold": 0.5,
+        "pq": 0.36418415878040666,
+        "rq": 0.47474728415679884,
+        "sq": 0.7574422389977989,
+        "true_positive": 745.25,
+        "voi_merge": 1.1985399814919524,
+        "voi_split": 0.8961716349143727,
+        "voi_sum": 2.0947116164063253,
+        "volumes_scored": 4.0
+      }
+    },
+    "scored_artifacts": {
+      "kasthuri15_ac4": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/score/arm6_8nm_gb16_musam_r0/scored/kasthuri15_ac4.zarr",
+      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/score/arm6_8nm_gb16_musam_r0/scored/zebrafish_fish2_doublecube1.zarr",
+      "liconn_mouse_hippocampus": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/score/arm6_8nm_gb16_musam_r0/scored/liconn_mouse_hippocampus.zarr",
+      "liconn_expid82": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/score/arm6_8nm_gb16_musam_r0/scored/liconn_expid82.zarr"
+    }
+  },
+  "region": {
+    "volumes": {
+      "kasthuri15_ac4": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          256,
+          640,
+          640
+        ],
+        "whole_region": false,
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/kasthuri15_ac4.zarr",
+        "scored_artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/score/arm6_8nm_gb16_musam_r0/scored/kasthuri15_ac4.zarr"
+      },
+      "zebrafish_fish2_doublecube1": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          1920,
+          1920,
+          1920
+        ],
+        "whole_region": false,
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/zebrafish_fish2_doublecube1.zarr",
+        "scored_artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/score/arm6_8nm_gb16_musam_r0/scored/zebrafish_fish2_doublecube1.zarr"
+      },
+      "liconn_mouse_hippocampus": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          512,
+          512,
+          512
+        ],
+        "whole_region": false,
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/liconn_mouse_hippocampus.zarr",
+        "scored_artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/score/arm6_8nm_gb16_musam_r0/scored/liconn_mouse_hippocampus.zarr"
+      },
+      "liconn_expid82": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          768,
+          1152,
+          1152
+        ],
+        "whole_region": false,
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/liconn_expid82.zarr",
+        "scored_artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/score/arm6_8nm_gb16_musam_r0/scored/liconn_expid82.zarr"
+      }
+    }
+  },
+  "config": {
+    "task_name": "lmd_ssl_v1_neuron_instance",
+    "task": {
+      "name": "instance_seg",
+      "kwargs": {
+        "truth_kind": "instances_resampled"
+      }
+    },
+    "postprocess": {
+      "name": "size_filter",
+      "kwargs": {
+        "min_sizes": [
+          0,
+          500,
+          5000,
+          50000
+        ]
+      }
+    },
+    "metrics": [
+      "voxel_instance"
+    ],
+    "rank_by": "voxel_instance",
+    "data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/lmd_ssl_v1_neuron_instance/data/test.yaml",
+    "volumes": [
+      {
+        "name": "kasthuri15_ac4",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-002_ac4_100slices.zarr",
+        "label_key": "labels/public_gt-cell-kasthuri15",
+        "bounding_box": [
+          [
+            0,
+            1024
+          ],
+          [
+            0,
+            1024
+          ],
+          [
+            0,
+            100
+          ]
+        ]
+      },
+      {
+        "name": "zebrafish_fish2_doublecube1",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr",
+        "label_key": "labels/proofread-cell-seg230927",
+        "bounding_box": [
+          [
+            0,
+            2000
+          ],
+          [
+            0,
+            2000
+          ],
+          [
+            0,
+            2112
+          ]
+        ]
+      },
+      {
+        "name": "liconn_mouse_hippocampus",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-hippocampus-202507013_ExPID10-02_2percentAA_S2_Atto488_40XW_004/crop-001.zarr",
+        "label_key": "labels/manual_gt-cell-final",
+        "bounding_box": [
+          [
+            496,
+            976
+          ],
+          [
+            496,
+            976
+          ],
+          [
+            44,
+            236
+          ]
+        ]
+      },
+      {
+        "name": "liconn_expid82",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-ExPID82-1/crop-002_sub.zarr",
+        "label_key": "labels/proofread-cell-agglom-dense-v20240123",
+        "bounding_box": [
+          [
+            1229,
+            2253
+          ],
+          [
+            1642,
+            2666
+          ],
+          [
+            0,
+            534
+          ]
+        ]
+      }
+    ],
+    "fit_data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/lmd_ssl_v1_neuron_instance/data/fit.yaml",
+    "fit_volumes": [
+      {
+        "name": "kasthuri15_ac3",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-001_ac3_100slices.zarr",
+        "label_key": "labels/public_gt-cell-kasthuri15",
+        "bounding_box": [
+          [
+            0,
+            1024
+          ],
+          [
+            0,
+            1024
+          ],
+          [
+            0,
+            100
+          ]
+        ]
+      },
+      {
+        "name": "zebrafish_fish2_quadcube1",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-003_quadcube1_x23908_y18314_z0.zarr",
+        "label_key": "labels/proofread-cell-seg230927",
+        "bounding_box": [
+          [
+            0,
+            2000
+          ],
+          [
+            0,
+            2000
+          ],
+          [
+            0,
+            1364
+          ]
+        ]
+      },
+      {
+        "name": "liconn_mouse_dg",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-DG-20250809_ExPID19-02_2ndGel_C5_Atto488_40XW_002/crop-001.zarr",
+        "label_key": "labels/manual_gt-cell-final",
+        "bounding_box": [
+          [
+            1416,
+            1892
+          ],
+          [
+            516,
+            996
+          ],
+          [
+            83,
+            276
+          ]
+        ]
+      },
+      {
+        "name": "hemibrain_ellipsoid_body",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-hemibrain/crop-001_EllipsoidBody_x24000_y23000_z17000.zarr",
+        "label_key": "labels/proofread-cell-hemibrain-v1.2",
+        "bounding_box": [
+          [
+            1988,
+            3012
+          ],
+          [
+            1988,
+            3012
+          ],
+          [
+            1988,
+            3012
+          ]
+        ]
+      }
+    ],
+    "notes": "Voxel metrics, not skeleton ones: these volumes ship dense label arrays and no skeletons, so nERL is\nunavailable and panoptic quality ranks. Not comparable with any NISB nERL figure.\nScored region per volume is the largest lattice-aligned sub-box of each volume's bounding box, the\nsame region the mws and cc_threshold entries use, so the routes are directly comparable.\nLabellings come from mia-train's predict.py (a `PromptGridPredictor` pass with the labeller's own\ngates, windows reconciled by agreement); 0 is background and every id is one object.\n",
+    "route": "size_filter"
+  },
+  "per_volume": {
+    "kasthuri15_ac4": {
+      "voxel_instance": {
+        "pq": 0.44698652650654375,
+        "sq": 0.7506000162091018,
+        "rq": 0.5955056179775281,
+        "true_positive": 159.0,
+        "false_positive": 102.0,
+        "false_negative": 114.0,
+        "instances_truth": 273.0,
+        "instances_predicted": 261.0,
+        "voi_split": 0.921054383088558,
+        "voi_merge": 1.4687891435853926,
+        "voi_sum": 2.3898435266739506,
+        "adapted_rand_error": 0.6315806198949301,
+        "iou_threshold": 0.5
+      }
+    },
+    "zebrafish_fish2_doublecube1": {
+      "voxel_instance": {
+        "pq": 0.09159885503175762,
+        "sq": 0.6881942867372859,
+        "rq": 0.13310028402883986,
+        "true_positive": 1523.0,
+        "false_positive": 8383.0,
+        "false_negative": 11456.0,
+        "instances_truth": 12979.0,
+        "instances_predicted": 9906.0,
+        "voi_split": 1.581299647429808,
+        "voi_merge": 5.680627394812461,
+        "voi_sum": 7.261927042242269,
+        "adapted_rand_error": 0.9849683813355616,
+        "iou_threshold": 0.5
+      }
+    },
+    "liconn_mouse_hippocampus": {
+      "voxel_instance": {
+        "pq": 0.3356742929093674,
+        "sq": 0.6996357453335692,
+        "rq": 0.4797843665768194,
+        "true_positive": 89.0,
+        "false_positive": 90.0,
+        "false_negative": 103.0,
+        "instances_truth": 192.0,
+        "instances_predicted": 179.0,
+        "voi_split": 0.6924690871941745,
+        "voi_merge": 0.8916252509021714,
+        "voi_sum": 1.584094338096346,
+        "adapted_rand_error": 0.20599336309292327,
+        "iou_threshold": 0.5
+      }
+    },
+    "liconn_expid82": {
+      "voxel_instance": {
+        "pq": 0.023340405658095097,
+        "sq": 0.6503893807419192,
+        "rq": 0.035886818495514144,
+        "true_positive": 26.0,
+        "false_positive": 387.0,
+        "false_negative": 1010.0,
+        "instances_truth": 1036.0,
+        "instances_predicted": 413.0,
+        "voi_split": 0.466576328648167,
+        "voi_merge": 6.108574009963105,
+        "voi_sum": 6.575150338611272,
+        "adapted_rand_error": 0.9096931415053645,
+        "iou_threshold": 0.5
+      }
+    }
+  },
+  "provenance": {
+    "mia_evals_commit": "67beafb1daa8c82da19a79680bbfaa2d9c77044d (dirty)",
+    "run_dir": "/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/runs/sam1__arm6_8nm_gb16_musam_r0_20260915_124216",
+    "resolved_config": {
+      "experiment_name": "sam1__arm6_8nm_gb16_musam_r0",
+      "model": {
+        "name": "dinov3_vit3d",
+        "kwargs": {
+          "img_size": 256,
+          "patch_size": 16,
+          "in_chans": 1,
+          "embed_dim": 1024,
+          "depth": 24,
+          "num_heads": 16,
+          "n_storage_tokens": 4,
+          "layerscale_init": 1e-05,
+          "mask_k_bias": true,
+          "pos_embed_rope_dtype": "fp32",
+          "pos_embed_rope_type": "vanilla",
+          "drop_path_rate": 0.0,
+          "use_fa4": false
+        }
+      },
+      "algorithm": {
+        "name": "promptable_seg",
+        "kwargs": {
+          "prompt_dim": 256,
+          "decoder_depth": 2,
+          "decoder_heads": 8,
+          "num_multimask_outputs": 3,
+          "mask_upscale": 4,
+          "mask_feature_dim": 64,
+          "mask_refine_depth": 2,
+          "masks_per_sample": 32,
+          "min_object_voxels": 512,
+          "rounds": 3,
+          "box_prob": 0.5,
+          "attention_backend": "sdpa",
+          "correction_pairs": true,
+          "mask_prompt_prob": 0.5
+        }
+      },
+      "data": {
+        "name": "miao_volumes",
+        "kwargs": {
+          "volumes": [
+            {
+              "name": "kasthuri15_ac3",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-001_ac3_100slices.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/public_gt-cell-kasthuri15",
+              "weight": 0.25,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  0,
+                  1024
+                ],
+                [
+                  0,
+                  1024
+                ],
+                [
+                  0,
+                  100
+                ]
+              ]
+            },
+            {
+              "name": "zebrafish_fish2_quadcube1",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-003_quadcube1_x23908_y18314_z0.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-seg230927",
+              "weight": 0.25,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  0,
+                  2000
+                ],
+                [
+                  0,
+                  2000
+                ],
+                [
+                  0,
+                  1364
+                ]
+              ]
+            },
+            {
+              "name": "liconn_mouse_dg",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-DG-20250809_ExPID19-02_2ndGel_C5_Atto488_40XW_002/crop-001.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/manual_gt-cell-final",
+              "weight": 0.25,
+              "normalize": true,
+              "normalize_min": 301.0,
+              "normalize_max": 1130.0,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  1416,
+                  1892
+                ],
+                [
+                  516,
+                  996
+                ],
+                [
+                  83,
+                  276
+                ]
+              ]
+            },
+            {
+              "name": "hemibrain_ellipsoid_body",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-hemibrain/crop-001_EllipsoidBody_x24000_y23000_z17000.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-hemibrain-v1.2",
+              "weight": 0.25,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  1988,
+                  3012
+                ],
+                [
+                  1988,
+                  3012
+                ],
+                [
+                  1988,
+                  3012
+                ]
+              ]
+            }
+          ],
+          "augment_fn": null,
+          "resolutions": [
+            [
+              8.0,
+              8.0,
+              8.0
+            ]
+          ],
+          "resolution_sampling": null,
+          "output_axes": "lcxyz",
+          "patch_size": [
+            256,
+            256,
+            256
+          ],
+          "bbox_mode": "absolute",
+          "samples_per_epoch": 100000,
+          "cache_bytes": 1073741824,
+          "file_io_concurrency": 64,
+          "sampling": "random",
+          "size_weighting_exponent": 0.0,
+          "overlap": 0,
+          "sample_windows": false,
+          "image_dtype": "float32",
+          "chunk_aligned": false,
+          "defer_image_ops": false
+        }
+      },
+      "trainer": {
+        "max_steps": 200000,
+        "batch_size": 2,
+        "lr": 0.0003,
+        "weight_decay": 0.05,
+        "beta1": 0.9,
+        "beta2": 0.95,
+        "warmup_steps": 3000,
+        "min_lr_ratio": 0.001,
+        "grad_clip_norm": 1.0,
+        "lr_schedule": "linear",
+        "layerwise_lr_decay": 1.0,
+        "patch_embed_lr_mult": 1.0,
+        "final_weight_decay": null,
+        "zero_weight_decay_on_norm_and_bias": true,
+        "zero_weight_decay_on_lora": true,
+        "activation_checkpointing": true,
+        "peak_tflops": null,
+        "measure_mfu": true,
+        "profile": false,
+        "profile_start_step": 50,
+        "profile_steps": 6,
+        "profile_all_ranks": false,
+        "profile_memory": false,
+        "freeze_backbone_steps": 0,
+        "unfreeze_warmup_steps": 1000,
+        "precision": "bf16",
+        "compile": true,
+        "log_every": 100,
+        "checkpoint_every": 12500,
+        "val_every": 2500,
+        "num_workers": 8,
+        "persistent_workers": false,
+        "prefetch_factor": 2,
+        "seed": 0
+      },
+      "parallelism": {
+        "dp_replicate": 1,
+        "dp_shard": 8,
+        "tp": 1,
+        "fsdp_unit_budget_gb": "auto"
+      },
+      "val_data": {
+        "name": "miao_volumes",
+        "kwargs": {
+          "volumes": [
+            {
+              "name": "kasthuri15_ac4",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-002_ac4_100slices.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/public_gt-cell-kasthuri15",
+              "weight": 0.25,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  0,
+                  1024
+                ],
+                [
+                  0,
+                  1024
+                ],
+                [
+                  0,
+                  100
+                ]
+              ]
+            },
+            {
+              "name": "zebrafish_fish2_doublecube1",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-seg230927",
+              "weight": 0.25,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  0,
+                  2000
+                ],
+                [
+                  0,
+                  2000
+                ],
+                [
+                  0,
+                  2112
+                ]
+              ]
+            },
+            {
+              "name": "liconn_mouse_hippocampus",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-hippocampus-202507013_ExPID10-02_2percentAA_S2_Atto488_40XW_004/crop-001.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/manual_gt-cell-final",
+              "weight": 0.25,
+              "normalize": true,
+              "normalize_min": 219.0,
+              "normalize_max": 919.0,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  496,
+                  976
+                ],
+                [
+                  496,
+                  976
+                ],
+                [
+                  44,
+                  236
+                ]
+              ]
+            },
+            {
+              "name": "liconn_expid82",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-ExPID82-1/crop-002_sub.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-agglom-dense-v20240123",
+              "weight": 0.25,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  1229,
+                  2253
+                ],
+                [
+                  1642,
+                  2666
+                ],
+                [
+                  0,
+                  534
+                ]
+              ]
+            }
+          ],
+          "augment_fn": null,
+          "resolutions": [
+            [
+              8.0,
+              8.0,
+              8.0
+            ]
+          ],
+          "resolution_sampling": null,
+          "output_axes": "lcxyz",
+          "patch_size": [
+            256,
+            256,
+            256
+          ],
+          "bbox_mode": "absolute",
+          "samples_per_epoch": 32,
+          "cache_bytes": 1073741824,
+          "file_io_concurrency": 64,
+          "sampling": "random",
+          "size_weighting_exponent": 0.0,
+          "overlap": 0,
+          "sample_windows": false,
+          "image_dtype": "float32",
+          "chunk_aligned": false,
+          "defer_image_ops": false
+        }
+      },
+      "init": {
+        "path": "/groups/miaai/miaai/pretrained_models/dinov3/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth",
+        "prefix": "",
+        "inflate_2d_to_3d": true,
+        "skip": [
+          "rope_embed."
+        ],
+        "strict": true,
+        "allow_unused": false,
+        "target": "model",
+        "merge_lora": false
+      },
+      "augment": {
+        "rotate": "inplane",
+        "drop_slice_prob": 0.05,
+        "shift_slice_prob": 0.05,
+        "shift_magnitude": 10,
+        "intensity": true,
+        "mul_intensity": 0.1,
+        "add_intensity": 0.1,
+        "noise_scale": 0.5
+      },
+      "lora": {
+        "rank": 0,
+        "alpha": 0.0,
+        "targets": [
+          "attn_qkv",
+          "attn_proj"
+        ],
+        "train_stem": true,
+        "train_norms": true,
+        "train_tokens": true
+      }
+    },
+    "producer_commit": "82f23d6ed3b0043307d89eb49de6d7aff6beebc3 (dirty)"
+  },
+  "views": {
+    "kasthuri15_ac4": {
+      "overlay": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-002_ac4_100slices.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/score/arm6_8nm_gb16_musam_r0/scored/kasthuri15_ac4.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/kasthuri15_ac4.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Afalse%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/kasthuri15_ac4.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%7D%2C%22layout%22%3A%224panel-alt%22%2C%22dimensions%22%3A%7B%22z%22%3A%5B8.15625e-09%2C%22m%22%5D%2C%22y%22%3A%5B8.015625e-09%2C%22m%22%5D%2C%22x%22%3A%5B8.015625e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B176.5%2C383.0029239766082%2C383.0029239766082%5D%7D",
+      "side_by_side": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-002_ac4_100slices.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/score/arm6_8nm_gb16_musam_r0/scored/kasthuri15_ac4.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/kasthuri15_ac4.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Atrue%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/kasthuri15_ac4.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%7D%2C%22layout%22%3A%7B%22type%22%3A%22row%22%2C%22children%22%3A%5B%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22truth%22%5D%2C%22layout%22%3A%22xy%22%7D%2C%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%5D%2C%22layout%22%3A%22xy%22%7D%5D%7D%2C%22dimensions%22%3A%7B%22z%22%3A%5B8.15625e-09%2C%22m%22%5D%2C%22y%22%3A%5B8.015625e-09%2C%22m%22%5D%2C%22x%22%3A%5B8.015625e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B176.5%2C383.0029239766082%2C383.0029239766082%5D%7D",
+      "shows": "scored"
+    },
+    "liconn_expid82": {
+      "overlay": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-ExPID82-1/crop-002_sub.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/score/arm6_8nm_gb16_musam_r0/scored/liconn_expid82.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/liconn_expid82.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Afalse%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/liconn_expid82.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%7D%2C%22layout%22%3A%224panel-alt%22%2C%22dimensions%22%3A%7B%22z%22%3A%5B8.095855e-09%2C%22m%22%5D%2C%22y%22%3A%5B8.039892402312502e-09%2C%22m%22%5D%2C%22x%22%3A%5B8.039892402312502e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B426.9%2C2600.952830188679%2C2102.235849056604%5D%7D",
+      "side_by_side": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-ExPID82-1/crop-002_sub.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/score/arm6_8nm_gb16_musam_r0/scored/liconn_expid82.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/liconn_expid82.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Atrue%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/liconn_expid82.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%7D%2C%22layout%22%3A%7B%22type%22%3A%22row%22%2C%22children%22%3A%5B%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22truth%22%5D%2C%22layout%22%3A%22xy%22%7D%2C%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%5D%2C%22layout%22%3A%22xy%22%7D%5D%7D%2C%22dimensions%22%3A%7B%22z%22%3A%5B8.095855e-09%2C%22m%22%5D%2C%22y%22%3A%5B8.039892402312502e-09%2C%22m%22%5D%2C%22x%22%3A%5B8.039892402312502e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B426.9%2C2600.952830188679%2C2102.235849056604%5D%7D",
+      "shows": "scored"
+    },
+    "liconn_mouse_hippocampus": {
+      "overlay": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-hippocampus-202507013_ExPID10-02_2percentAA_S2_Atto488_40XW_004/crop-001.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%2C%22shaderControls%22%3A%7B%22normalized%22%3A%7B%22range%22%3A%5B219.0%2C919.0%5D%7D%7D%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/score/arm6_8nm_gb16_musam_r0/scored/liconn_mouse_hippocampus.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/liconn_mouse_hippocampus.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Afalse%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/liconn_mouse_hippocampus.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%7D%2C%22layout%22%3A%224panel-alt%22%2C%22dimensions%22%3A%7B%22x%22%3A%5B8.046321777343751e-09%2C%22m%22%5D%2C%22y%22%3A%5B8.046321777343751e-09%2C%22m%22%5D%2C%22z%22%3A%5B8.007812500000001e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B914.519417475728%2C914.519417475728%2C436.0121951219512%5D%7D",
+      "side_by_side": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-hippocampus-202507013_ExPID10-02_2percentAA_S2_Atto488_40XW_004/crop-001.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%2C%22shaderControls%22%3A%7B%22normalized%22%3A%7B%22range%22%3A%5B219.0%2C919.0%5D%7D%7D%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/score/arm6_8nm_gb16_musam_r0/scored/liconn_mouse_hippocampus.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/liconn_mouse_hippocampus.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Atrue%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/liconn_mouse_hippocampus.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%7D%2C%22layout%22%3A%7B%22type%22%3A%22row%22%2C%22children%22%3A%5B%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22truth%22%5D%2C%22layout%22%3A%22xy%22%7D%2C%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%5D%2C%22layout%22%3A%22xy%22%7D%5D%7D%2C%22dimensions%22%3A%7B%22x%22%3A%5B8.046321777343751e-09%2C%22m%22%5D%2C%22y%22%3A%5B8.046321777343751e-09%2C%22m%22%5D%2C%22z%22%3A%5B8.007812500000001e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B914.519417475728%2C914.519417475728%2C436.0121951219512%5D%7D",
+      "shows": "scored"
+    },
+    "zebrafish_fish2_doublecube1": {
+      "overlay": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/score/arm6_8nm_gb16_musam_r0/scored/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/zebrafish_fish2_doublecube1.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Afalse%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%7D%2C%22layout%22%3A%224panel-alt%22%2C%22dimensions%22%3A%7B%22x%22%3A%5B8e-09%2C%22m%22%5D%2C%22y%22%3A%5B8e-09%2C%22m%22%5D%2C%22z%22%3A%5B8.027343750000001e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B1000.0%2C1000.0%2C986.1934306569343%5D%7D",
+      "side_by_side": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/score/arm6_8nm_gb16_musam_r0/scored/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/zebrafish_fish2_doublecube1.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Atrue%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/sam_lmd_v1/eval/arm6_8nm_gb16_musam_r0/test/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%7D%2C%22layout%22%3A%7B%22type%22%3A%22row%22%2C%22children%22%3A%5B%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22truth%22%5D%2C%22layout%22%3A%22xy%22%7D%2C%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22sam1__arm6_8nm_gb16_musam_r0_20260915_124216.step200000.size_filter%22%5D%2C%22layout%22%3A%22xy%22%7D%5D%7D%2C%22dimensions%22%3A%7B%22x%22%3A%5B8e-09%2C%22m%22%5D%2C%22y%22%3A%5B8e-09%2C%22m%22%5D%2C%22z%22%3A%5B8.027343750000001e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B1000.0%2C1000.0%2C986.1934306569343%5D%7D",
+      "shows": "scored"
+    }
+  },
+  "versions": {
+    "python": "3.14.6",
+    "numpy": "2.4.6",
+    "zarr": "3.3.0",
+    "miao": "present",
+    "numba": "0.66.0",
+    "networkx": "3.6.1",
+    "funlib.evaluate": "present"
+  },
+  "schema_version": 1,
+  "label": "",
+  "route": "size_filter"
+}

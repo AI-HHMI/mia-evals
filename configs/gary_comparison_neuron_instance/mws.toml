@@ -1,4 +1,4 @@
-# gary_comparison -- neuron instance segmentation on the colleague's test corner of the hemibrain
+# gary_comparison -- neuron instance segmentation on the test corner of the hemibrain
 # Ellipsoid Body crop, from affinities through MUTEX WATERSHED and a size filter.
 #
 #   mia-evals score configs/gary_comparison_neuron_instance/mws.toml \
@@ -15,7 +15,7 @@ task_name = "gary_comparison_neuron_instance"
 route = "mws"
 
 notes = """
-One volume, one test block: the colleague's [4000, 5000)^3 corner of the hemibrain Ellipsoid Body
+One volume, one test block: the [4000, 5000)^3 corner of the hemibrain Ellipsoid Body
 crop, scored on its lattice-aligned 896^3 centre. Voxel metrics, not skeleton ones (dense labels,
 no skeletons): panoptic quality ranks; VOI split/merge, SQ, RQ and adapted Rand error are reported.
 

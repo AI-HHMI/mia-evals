@@ -1,0 +1,32 @@
+# Direct instance labellings (the promptable / SAM arms of mia-train's sam_lmd_v1): the producer
+# already wrote objects, so the only post-processing is the size filter, fitted on the [data.fit]
+# half and applied once to [data.test] -- exactly the filter the mutex-watershed rows go through
+# (mws.toml), so a record here differs from an mws record only in what wrote the labelling.
+task_name = "lmd_ssl_v1_neuron_instance"
+route = "size_filter"
+notes = """
+Voxel metrics, not skeleton ones: these volumes ship dense label arrays and no skeletons, so nERL is
+unavailable and panoptic quality ranks. Not comparable with any NISB nERL figure.
+Scored region per volume is the largest lattice-aligned sub-box of each volume's bounding box, the
+same region the mws and cc_threshold entries use, so the routes are directly comparable.
+Labellings come from mia-train's predict.py (a `PromptGridPredictor` pass with the labeller's own
+gates, windows reconciled by agreement); 0 is background and every id is one object.
+"""
+
+[data.test]
+config_path = "data/test.yaml"
+
+[data.fit]
+config_path = "data/fit.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "instances_resampled"   # <volume>.gt.zarr beside each labelling, written by predict.py
+
+[postprocess]
+name = "size_filter"
+min_sizes = [0, 500, 5000, 50000]
+
+[metric]
+names = ["voxel_instance"]
+rank_by = "voxel_instance"        # primary key: pq
