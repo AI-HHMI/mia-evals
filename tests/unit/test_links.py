@@ -164,6 +164,11 @@ def test_the_state_places_three_layers_and_centres_on_the_prediction(tmp_path):
     assert state["layers"][2]["visible"] is False and state["layout"] == "4panel-alt"
     assert state["layers"][0]["shaderControls"] == {"normalized": {"range": [301.0, 1130.0]}}
     assert state["dimensions"] == {"z": [8e-9, "m"], "y": [8e-9, "m"], "x": [8e-9, "m"]}
+    # Raised memory budgets travel with every view: at the viewer's 1 GB / 2 GB defaults our
+    # single-level 256^3 segmentation chunks do not all fit and show as holes.
+    from report.links import GPU_MEMORY_LIMIT, SYSTEM_MEMORY_LIMIT
+    assert (state["gpuMemoryLimit"], state["systemMemoryLimit"]) == (
+        GPU_MEMORY_LIMIT, SYSTEM_MEMORY_LIMIT) == (4_000_000_000, 8_000_000_000)
     # centre = translation / voxel + shape / 2, in the state's own (voxel) units
     assert state["position"] == pytest.approx([100 / 8 + 2, 200 / 8 + 3, 300 / 8 + 4])
     assert ome_transform(tmp_path / "absent.zarr") is None

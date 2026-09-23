@@ -38,6 +38,19 @@ from typing import Any
 FILEGLANCER = "https://fileglancer.int.janelia.org"
 SHARES_API = f"{FILEGLANCER}/api/file-share-paths"
 NEUROGLANCER = f"{FILEGLANCER}/neuroglancer/#!"
+
+#: Neuroglancer memory budgets written into every view, in bytes. The viewer's defaults are 1 GB of
+#: GPU memory and 2 GB of system memory, far too little for our segmentation layers: they have one
+#: resolution level and 256^3 chunks, 128 MiB decoded for a uint64 truth array and 64 MiB for a
+#: uint32 labelling. With a whole 896^3 block in view, the three-panel layout crosses 37 chunks per
+#: segmentation layer, 2.3 GiB for the labelling alone, and a chunk the viewer cannot keep is simply
+#: not drawn: it shows as a chunk-shaped hole, and which chunks lose out changes from load to load.
+#: These are budgets, not reservations, so a zoomed-in view uses far less; someone on a smaller
+#: machine can lower them in the viewer's settings panel for their session. Even these do not cover
+#: the heaviest view (truth switched on, whole block, ~7 GiB): smaller chunks or a coarser level in
+#: the arrays themselves are the fix that removes the holes for everyone.
+GPU_MEMORY_LIMIT = 4_000_000_000
+SYSTEM_MEMORY_LIMIT = 8_000_000_000
 SHARE_KEYS = "fileglancer_shares.json"     # untracked, beside the leaderboard's task directories
 MISSING = "missing"
 
@@ -252,7 +265,8 @@ def neuroglancer_state(raw: str, prediction: str, truth: str | None,
     its tab is clicked. `side_by_side`: two viewers sharing position and zoom, truth over raw on
     the left and prediction over raw on the right. Centred on the prediction when its OME
     metadata is readable. Sources use fileglancer's `<url>/|zarr3:` form. `unfiltered`, when
-    given, is the producer's output before post-processing, added as a hidden layer.
+    given, is the producer's output before post-processing, added as a hidden layer. The viewer's
+    memory budgets are raised to `GPU_MEMORY_LIMIT` / `SYSTEM_MEMORY_LIMIT`.
     """
     image: dict[str, Any] = {"type": "image", "source": f"{raw}/|zarr3:", "name": "raw"}
     if window is not None:
@@ -267,7 +281,9 @@ def neuroglancer_state(raw: str, prediction: str, truth: str | None,
     if unfiltered:
         layers.append({"type": "segmentation", "source": f"{unfiltered}/|zarr3:",
                        "name": "unfiltered", "visible": False})
-    state: dict[str, Any] = {"layers": layers, "selectedLayer": {"visible": True, "layer": name}}
+    state: dict[str, Any] = {"layers": layers, "selectedLayer": {"visible": True, "layer": name},
+                             "gpuMemoryLimit": GPU_MEMORY_LIMIT,
+                             "systemMemoryLimit": SYSTEM_MEMORY_LIMIT}
     if mode == "side_by_side" and truth:
         state["layout"] = {"type": "row", "children": [
             {"type": "viewer", "layers": ["raw", "truth"], "layout": "xy"},
