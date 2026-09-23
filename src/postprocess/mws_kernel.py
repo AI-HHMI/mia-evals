@@ -21,8 +21,22 @@ speed fix, it removes the dominant memory term as well.
 
 **The edge arrays are the term it does not fix**: 21 B/edge over 41.6 G edges is 0.87 TB, which
 still cannot be held. That needs priority-bucketed streaming (or blockwise processing, which
-changes the answer because global edge order is what the algorithm is defined on). This module is
-step one of two, and on its own it makes whole volumes faster, not possible.
+changes the answer because global edge order is what the algorithm is defined on), which
+`mws_stream.py` provides on top of this same loop. `mws.segment()` is the one entry point the scorer
+uses: it runs this kernel with every edge in memory, or streams the edges through disk when there
+are too many to hold. The Python reference is never used for scoring.
+
+**Capacity grows instead of being guessed.** Measured pair insertions run from 0.43 per voxel on
+the hemibrain crop to 3.5 on the zebrafish cubes, an 8x spread that no size chosen up front fits:
+sized for zebrafish, a hemibrain block reserves ten times what it uses; sized lower, zebrafish
+raised "pair table too small" hours into a run. So `process_edges` stops *before* the first edge it
+lacks headroom for -- having changed nothing for that edge except path compression, which never
+changes the partition -- and `run_edges` grows the state (`grow_state`) and resumes at that very
+edge. Every decision is taken in the same order and against the same state as in an uninterrupted
+run, so the partition is identical. Growing the pair table rehashes it and drops stale pairs, those
+naming a cluster that has since been merged into another: lookups only ever ask about current
+roots, and a cluster that stops being a root never becomes one again, so a stale pair can never be
+found.
 
 Mutex storage: partners live in one flat pool with a per-root singly-linked chain, and membership is
 tested against a global open-addressed hash set of packed root pairs. The two structures answer the
@@ -122,7 +136,9 @@ def make_state(
     `process_edges` calls: whole-volume runs feed edges in priority-ordered batches and must carry
     the partition across them, since the algorithm is defined on one global ordering.
 
-    `counters` holds [pairs_used, pool_used] so those high-water marks survive between calls.
+    `counters` holds [slots_used, pool_used, headroom_needed, pair_insertions]. `slots_used` is what
+    the half-full ceiling is checked against and falls back to the live pair count whenever
+    `grow_state` rehashes; `pair_insertions` only ever counts up, for reporting.
     """
     parent = np.arange(n_nodes, dtype=np.int64)
     key_a = np.full(pair_capacity, EMPTY, dtype=np.int64)
@@ -131,7 +147,7 @@ def make_state(
     chain_len = np.zeros(n_nodes, dtype=np.int64)
     pool_val = np.empty(pool_capacity, dtype=np.int64)
     pool_next = np.empty(pool_capacity, dtype=np.int64)
-    counters = np.zeros(2, dtype=np.int64)
+    counters = np.zeros(4, dtype=np.int64)
     return parent, key_a, key_b, head, chain_len, pool_val, pool_next, counters
 
 
@@ -148,14 +164,21 @@ def process_edges(
     pool_val: np.ndarray,
     pool_next: np.ndarray,
     counters: np.ndarray,
-) -> None:
-    """Consume one batch of edges, already in descending priority order, updating the state.
+) -> np.int64:
+    """Consume edges, already in descending priority order, updating the state; how many it took.
 
     Edges must arrive in globally descending priority across all calls. The algorithm's result is
     defined by that order, so a batch containing an edge weaker than one in a later batch changes
     the answer -- which is why the streaming driver buckets by priority rather than by position.
+
+    Returns early, at the first edge whose worst case would not fit -- one pair for a new mutex,
+    one per entry of the smaller cluster's partner chain for a merge -- with that headroom in
+    `counters[2]` and nothing of that edge applied. `run_edges` grows the state and calls again
+    from that edge. A return equal to `u.shape[0]` means the whole batch was consumed.
     """
     capacity = np.int64(key_a.shape[0])
+    pair_room = capacity // 2
+    pool_room = np.int64(pool_val.shape[0])
     for i in range(u.shape[0]):
         ru = _find(parent, u[i])
         rv = _find(parent, v[i])
@@ -175,6 +198,10 @@ def process_edges(
             else:
                 big = rv
                 small = ru
+            need = chain_len[small]
+            if counters[0] + need > pair_room or counters[1] + 2 * need > pool_room:
+                counters[2] = need
+                return np.int64(i)
             parent[small] = big
 
             node = head[small]
@@ -190,6 +217,7 @@ def process_edges(
                         key_a[nslot] = nlo
                         key_b[nslot] = nhi
                         counters[0] += 1
+                        counters[3] += 1
                         if counters[1] + 2 > pool_val.shape[0]:
                             raise RuntimeError("mws: partner pool too small")
                         pool_val[counters[1]] = other
@@ -207,11 +235,13 @@ def process_edges(
             chain_len[small] = 0
         else:
             if not forbidden:
-                if counters[0] + 1 > key_a.shape[0] // 2:
-                    raise RuntimeError("mws: pair table too small")
+                if counters[0] + 1 > pair_room or counters[1] + 2 > pool_room:
+                    counters[2] = 1
+                    return np.int64(i)
                 key_a[slot] = lo
                 key_b[slot] = hi
                 counters[0] += 1
+                counters[3] += 1
                 if counters[1] + 2 > pool_val.shape[0]:
                     raise RuntimeError("mws: partner pool too small")
                 pool_val[counters[1]] = rv
@@ -224,6 +254,115 @@ def process_edges(
                 head[rv] = counters[1]
                 chain_len[rv] += 1
                 counters[1] += 1
+    counters[2] = 0
+    return np.int64(u.shape[0])
+
+
+@njit(cache=True, nogil=True)
+def _count_live(key_a: np.ndarray, key_b: np.ndarray, parent: np.ndarray) -> np.int64:
+    """Pairs whose two clusters are both still roots -- the only pairs a lookup can ever find."""
+    live = np.int64(0)
+    for s in range(key_a.shape[0]):
+        a = key_a[s]
+        if a != EMPTY and parent[a] == a and parent[key_b[s]] == key_b[s]:
+            live += 1
+    return live
+
+
+@njit(cache=True, nogil=True)
+def _rehash(
+    key_a: np.ndarray, key_b: np.ndarray, parent: np.ndarray, capacity: np.int64
+) -> tuple[np.ndarray, np.ndarray]:
+    """The live pairs of a table, reinserted into a fresh one of `capacity` slots (odd)."""
+    new_a = np.full(capacity, EMPTY, dtype=np.int64)
+    new_b = np.full(capacity, EMPTY, dtype=np.int64)
+    for s in range(key_a.shape[0]):
+        a = key_a[s]
+        if a == EMPTY:
+            continue
+        b = key_b[s]
+        if parent[a] != a or parent[b] != b:
+            continue                          # stale: one side has merged away
+        slot = _pair_find(new_a, new_b, a, b, capacity)
+        new_a[slot] = a
+        new_b[slot] = b
+    return new_a, new_b
+
+
+def grow_state(state: tuple, pool_growth: float = 1.5) -> tuple:
+    """Make room for the headroom `process_edges` asked for in `counters[2]`; the new state.
+
+    The pair table is rehashed whenever it is short, which also drops stale pairs, and is only
+    enlarged if the live pairs plus the request would not sit at a quarter full or less: after a
+    rehash the table has room to double before the next one. The partner pool is copied into a
+    larger one when it is short; its entries are chain links addressed by index, so they are
+    copied, never rehashed.
+    """
+    parent, key_a, key_b, head, chain_len, pool_val, pool_next, counters = state
+    need = int(counters[2])
+    capacity = int(key_a.shape[0])
+    if int(counters[0]) + need > capacity // 2:
+        live = int(_count_live(key_a, key_b, parent))
+        target = 4 * (live + need)
+        new_capacity = (capacity if target <= capacity else max(2 * capacity, target)) | 1
+        key_a, key_b = _rehash(key_a, key_b, parent, np.int64(new_capacity))
+        counters[0] = live
+    used = int(counters[1])
+    if used + 2 * need > pool_val.shape[0]:
+        size = max(int(pool_val.shape[0] * pool_growth), used + 2 * need)
+        grown_val = np.empty(size, dtype=np.int64)
+        grown_next = np.empty(size, dtype=np.int64)
+        grown_val[:used] = pool_val[:used]
+        grown_next[:used] = pool_next[:used]
+        pool_val, pool_next = grown_val, grown_next
+    counters[2] = 0
+    return parent, key_a, key_b, head, chain_len, pool_val, pool_next, counters
+
+
+def run_edges(
+    state: tuple, u: np.ndarray, v: np.ndarray, attractive: np.ndarray
+) -> tuple[tuple, int]:
+    """Feed edges, in descending priority, through the kernel; the final state and its growths.
+
+    The state is returned because growing it replaces arrays: callers must use the returned tuple.
+    """
+    total, done, growths = int(u.shape[0]), 0, 0
+    while True:
+        done += int(process_edges(u[done:], v[done:], attractive[done:], *state))
+        if done >= total:
+            return state, growths
+        state = grow_state(state)
+        growths += 1
+
+
+def initial_capacities(n_nodes: int) -> tuple[int, int]:
+    """Starting pair-table and pool sizes: room for one pair insertion per voxel.
+
+    That covers the hemibrain crop (0.43 per voxel) with no growth at all, and reaches the zebrafish
+    cubes' 3.5 in two or three growths. Odd, because the table reduces by modulo.
+    """
+    return max(1025, 2 * n_nodes) | 1, max(1024, 2 * n_nodes)
+
+
+def compact_roots(roots: np.ndarray) -> np.ndarray:
+    """Root ids -> labels 1..k, uint32 while k allows, in the order of the roots' ids.
+
+    Numbered from 1, never 0: mutex watershed assigns every voxel to a cluster, so there is no
+    background, and a metric reading `background_id = 0` would silently drop a real cluster.
+
+    In slabs rather than `np.unique(..., return_inverse=True)` over the whole array, which on a
+    7.08-gigavoxel volume is a 114 GB transient; two slab passes need one slab plus the id map.
+    Compacting also keeps later consumers on the metrics' counting path, which needs the id span
+    under 2**31 -- raw root ids reach the voxel count.
+    """
+    slab = max(1, roots.shape[0] // 64)
+    bounds = range(0, roots.shape[0], slab)
+    distinct = np.unique(np.concatenate([np.unique(roots[lo: lo + slab]) for lo in bounds]))
+    narrow = np.uint32 if distinct.size < np.iinfo(np.uint32).max else np.int64
+    labels = np.empty(roots.shape, dtype=narrow)
+    for lo in bounds:
+        labels[lo: lo + slab] = np.searchsorted(distinct, roots[lo: lo + slab]) + 1
+    return labels
 
 
 @njit(cache=True, nogil=True)
@@ -245,22 +384,24 @@ def mutex_watershed_kernel(
 ) -> tuple[np.ndarray, np.int64, np.int64]:
     """One-shot form: all edges at once, `order` giving descending priority.
 
-    Kept because it is what the tests compare against the Python reference, and what a
-    single-block call wants. Whole volumes go through `process_edges` in batches instead.
+    Returns (roots per node, pair insertions, pool entries used). The capacities are starting
+    sizes: the state grows when they run short. What the tests compare against the Python
+    reference; `mws.segment()` does the same with the edge arrays gathered in place, to hold one
+    copy of them rather than two.
 
     The edge arrays are gathered into priority order rather than indirected through `order` inside
     the loop. Indirection costs three random reads per edge into arrays of 10^8 elements; the
     gather is one sequential pass and the loop then reads sequentially.
     """
     state = make_state(n_nodes, pair_capacity, pool_capacity)
-    parent, key_a, key_b, head, chain_len, pool_val, pool_next, counters = state
-    process_edges(
+    state, _ = run_edges(
+        state,
         np.ascontiguousarray(u[order]),
         np.ascontiguousarray(v[order]),
         np.ascontiguousarray(attractive[order]),
-        parent, key_a, key_b, head, chain_len, pool_val, pool_next, counters,
     )
-    return finalize(parent), counters[0], counters[1]
+    counters = state[-1]
+    return finalize(state[0]), counters[3], counters[1]
 
 
 def _numba_version() -> str:

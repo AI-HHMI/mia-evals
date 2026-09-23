@@ -210,6 +210,21 @@ watershed, which uses the long-range affinity channels that a threshold discards
 threshold at all; it is more accurate on the volumes measured here but far more expensive, and
 `src/postprocess/mws.py` documents both.
 
+`mws` always runs the compiled kernel (`src/postprocess/mws_kernel.py`). A block with at most
+`max_in_memory_edges` edges, 8 G by default, is watershedded with all its edges in memory, which
+peaks at about 37 bytes per edge; a larger one has its edges streamed through the scorer's
+`--scratch` in priority bands (`src/postprocess/mws_stream.py`). Both give exactly the partition
+of the plain Python implementation, `mutex_watershed_reference`, which the tests use as the
+oracle and nothing scores with. So the setting changes time and memory, never a number; a record
+names the path taken under `region.volumes.<volume>.postprocess_run`. An 896^3 block, 4.3 G edges
+at repulsive stride 1, takes about 20 minutes when the job has its node to itself, and two to five
+times longer beside another memory-heavy job, so give mws scoring jobs a whole node. Before
+2026-09-23 the scorer ran the Python implementation, about two and a half hours per block.
+Re-scoring every gary_comparison mws record then reproduced each pq, fitted parameter and scored
+partition exactly. The one visible trace of the change is in VOI: the labels are numbered
+differently, VOI sums in label order, and so it can differ in the 15th digit from a record scored
+before that date.
+
 ### Metrics
 
 | name | canonical form | ranks on | also reported |

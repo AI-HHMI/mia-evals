@@ -70,6 +70,16 @@ class BasePostprocess(abc.ABC):
         """
         return [{}]
 
+    def use_scratch(self, directory: Any) -> None:
+        """Where this postprocessor may write large intermediates; the runner passes its --scratch.
+
+        Ignored by default. `mws` streams a block's edges there when they are too many to hold.
+        """
+
+    def run_info(self) -> dict[str, Any] | None:
+        """How the most recent call computed its result, for the record; None if nothing to say."""
+        return None
+
     @abc.abstractmethod
     def __call__(self, array: np.ndarray, **params: Any) -> np.ndarray:
         """Prediction -> (*spatial) integer labelling. `params` comes from `search_space()`."""

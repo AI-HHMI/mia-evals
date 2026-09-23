@@ -14,30 +14,32 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from postprocess.mws import LONG, mutex_watershed, segment
+from postprocess.mws import (
+    LONG, build_edges, count_edges, mutex_watershed_reference, segment,
+)
 
 pytestmark = pytest.mark.unit
 
 
 def test_definitional_cases():
     # 1. Two nodes, one attractive edge -> one cluster.
-    out = mutex_watershed(np.array([0]), np.array([1]), np.array([0.9]), np.array([True]), 2)
+    out = mutex_watershed_reference(np.array([0]), np.array([1]), np.array([0.9]), np.array([True]), 2)
     assert len(set(out.tolist())) == 1, out
 
     # 2. The same pair, but a stronger repulsive edge first -> two clusters. This is the whole
     #    point: repulsion seen earlier blocks a later merge.
-    out = mutex_watershed(np.array([0, 0]), np.array([1, 1]), np.array([0.9, 0.5]),
+    out = mutex_watershed_reference(np.array([0, 0]), np.array([1, 1]), np.array([0.9, 0.5]),
                           np.array([False, True]), 2)
     assert len(set(out.tolist())) == 2, out
 
     # 3. Weaker repulsion, stronger attraction -> merged, because the merge is processed first and
     #    the mutex arrives too late to undo it.
-    out = mutex_watershed(np.array([0, 0]), np.array([1, 1]), np.array([0.9, 0.2]),
+    out = mutex_watershed_reference(np.array([0, 0]), np.array([1, 1]), np.array([0.9, 0.2]),
                           np.array([True, False]), 2)
     assert len(set(out.tolist())) == 1, out
 
     # 4. Transitivity of the constraint: a-b merge, b-c mutex, then a-c attractive must be blocked.
-    out = mutex_watershed(
+    out = mutex_watershed_reference(
         np.array([0, 1, 0]), np.array([1, 2, 2]), np.array([0.9, 0.8, 0.7]),
         np.array([True, False, True]), 3)
     assert out[0] == out[1] != out[2], out
@@ -101,3 +103,95 @@ def test_mws_default_applies_no_size_filter():
     assert MutexWatershed(repulsive_strides=[1]).search_space() == [
         {"repulsive_stride": 1, "min_size": 0}
     ]
+
+
+# --- the production path must reproduce the reference, partition for partition ------------------
+#
+# `segment()` scores every mws record. It runs the compiled kernel, in memory or with the edges
+# streamed through disk, and both must give exactly the partition the Python reference gives: the
+# labels may be numbered differently, which no metric sees, but no voxel may change cluster.
+
+
+def _canonical(labels) -> np.ndarray:
+    """Relabel by order of first appearance, so only the partition matters."""
+    labels = np.asarray(labels).ravel()
+    _, first_index, inverse = np.unique(labels, return_index=True, return_inverse=True)
+    remap = np.empty(first_index.size, dtype=np.int64)
+    remap[np.argsort(first_index)] = np.arange(first_index.size)
+    return remap[inverse]
+
+
+def _float16_affinities(shape, seed):
+    """float16-quantised like the artifacts on disk, which makes exact ties abundant."""
+    rng = np.random.default_rng(seed)
+    return rng.random((6, *shape), dtype=np.float32).astype(np.float16).astype(np.float32)
+
+
+def _reference_labels(aff, stride):
+    u, v, priority, attractive = build_edges(aff, stride)
+    return mutex_watershed_reference(u, v, priority, attractive, int(np.prod(aff.shape[1:])))
+
+
+@pytest.mark.parametrize("shape", [(12, 12, 12), (5, 17, 9), (20, 8, 14), (3, 3, 3)])
+@pytest.mark.parametrize("stride", [1, 2, 3])
+def test_count_edges_matches_build_edges(shape, stride):
+    aff = np.zeros((6, *shape), dtype=np.float32)
+    assert count_edges(shape, stride) == build_edges(aff, stride)[0].size
+
+
+@pytest.mark.parametrize("seed", range(4))
+@pytest.mark.parametrize("shape", [(14, 14, 14), (6, 23, 11), (18, 9, 21)])
+@pytest.mark.parametrize("stride", [1, 2, 3])
+@pytest.mark.parametrize("path", ["memory", "stream"])
+def test_segment_reproduces_the_reference_partition(monkeypatch, tmp_path, seed, shape, stride,
+                                                   path):
+    aff = _float16_affinities(shape, seed)
+    info = {}
+    if path == "memory":
+        labels = segment(aff, stride, info=info)
+        assert info["implementation"] == "compiled kernel, edges in memory"
+    else:
+        # Small blocks, so every volume here is several blocks per axis and the per-block stride
+        # subsampling has to line up with the whole-volume one (the block is a multiple of it).
+        from postprocess import mws as module
+        monkeypatch.setattr(module, "STREAM_BLOCK", 8)
+        labels = segment(aff, stride, max_in_memory_edges=0, scratch=tmp_path, info=info)
+        assert info["implementation"] == "compiled kernel, edges streamed through disk"
+        assert not any(tmp_path.rglob("bucket_*")), "the streamed edges must be cleaned up"
+    assert info["edges"] == count_edges(shape, stride)
+    assert labels.shape == shape and labels.min() == 1
+    assert np.array_equal(_canonical(_reference_labels(aff, stride)), _canonical(labels))
+
+
+def test_segment_matches_on_smooth_affinities_with_large_clusters():
+    """Random affinities give small clusters; a smooth field gives few large ones, the regime where
+    merges move long partner chains and the tables grow."""
+    rng = np.random.default_rng(3)
+    z, y, x = np.meshgrid(*[np.linspace(0, 3 * np.pi, 24)] * 3, indexing="ij")
+    field = (np.sin(z) * np.cos(y) + np.sin(x)) / 2
+    aff = np.clip(0.5 + 0.45 * field[None] + 0.05 * rng.standard_normal((6, 24, 24, 24)), 0, 1)
+    aff = aff.astype(np.float16).astype(np.float32)
+    for stride in (1, 2):
+        expected = _canonical(_reference_labels(aff, stride))
+        assert np.array_equal(expected, _canonical(segment(aff, stride)))
+
+
+def test_streaming_without_a_scratch_directory_is_refused():
+    aff = _float16_affinities((6, 6, 6), 0)
+    with pytest.raises(ValueError, match="scratch"):
+        segment(aff, 1, max_in_memory_edges=0)
+
+
+def test_the_postprocessor_streams_through_its_scratch_and_says_so(tmp_path):
+    from postprocess.mws import MutexWatershed
+
+    aff = _float16_affinities((10, 10, 10), 1)
+    in_memory = MutexWatershed(repulsive_strides=[1])
+    held = in_memory(aff.copy(), repulsive_stride=1, min_size=0)
+    assert in_memory.run_info()["implementation"] == "compiled kernel, edges in memory"
+
+    streaming = MutexWatershed(repulsive_strides=[1], max_in_memory_edges=0)
+    streaming.use_scratch(tmp_path)
+    streamed = streaming(aff.copy(), repulsive_stride=1, min_size=0)
+    assert streaming.run_info()["implementation"] == "compiled kernel, edges streamed through disk"
+    assert np.array_equal(_canonical(held), _canonical(streamed))

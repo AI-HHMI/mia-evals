@@ -20,7 +20,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-from postprocess.mws import build_edges, mutex_watershed  # noqa: E402
+from postprocess.mws import build_edges, mutex_watershed_reference  # noqa: E402
 from postprocess.mws_kernel import mutex_watershed_kernel  # noqa: E402
 from postprocess.mws_stream import (  # noqa: E402
     EDGE,
@@ -74,9 +74,10 @@ def test_streaming_equals_one_shot(tmp_path, size, block):
     assert np.array_equal(canonical(one_shot(aff)), canonical(streamed)), (
         f"streaming with block={block} disagrees with the one-shot kernel"
     )
-    # The high-water marks are what a caller sizes the next, larger run from, so they must be
-    # reported and must be under the capacity that was actually allocated.
-    assert 0 < stats["pair_insertions"] <= stats["pair_capacity"] // 2
+    # The table never runs more than half full, and the pool never overflows. Cumulative insertions
+    # may exceed half the final table: growing it drops the pairs of clusters that merged away.
+    assert stats["pair_insertions"] > 0
+    assert stats["pair_slots_used"] <= stats["pair_capacity"] // 2
     assert 0 < stats["pool_used"] <= stats["pool_capacity"]
     assert stats["edges"] > 0
 
@@ -86,13 +87,28 @@ def test_streaming_also_equals_the_python_reference(tmp_path):
     aff = affinities((16, 16, 16), seed=3)
     shape = tuple(aff.shape[1:])
     u, v, priority, attractive = build_edges(aff, 1)
-    reference = mutex_watershed(u, v, priority, attractive, int(np.prod(shape)))
+    reference = mutex_watershed_reference(u, v, priority, attractive, int(np.prod(shape)))
 
     def read_block(origin, sz):
         return aff[(slice(None),) + tuple(slice(o, o + s) for o, s in zip(origin, sz, strict=True))]
 
     streamed, _ = segment_streaming(read_block, shape, tmp_path, block=8, n_buckets=32)
     assert np.array_equal(canonical(reference), canonical(streamed))
+
+
+def test_streaming_grows_its_state_across_buckets(tmp_path):
+    """Starting capacities far below need: the state grows between and within buckets, and the
+    partition is still the one-shot kernel's."""
+    aff = affinities((16, 16, 16), seed=5)
+    shape = tuple(aff.shape[1:])
+
+    def read_block(origin, sz):
+        return aff[(slice(None),) + tuple(slice(o, o + s) for o, s in zip(origin, sz, strict=True))]
+
+    streamed, stats = segment_streaming(read_block, shape, tmp_path, block=8, n_buckets=32,
+                                        pair_capacity=3, pool_capacity=2)
+    assert stats["growths"] > 0
+    assert np.array_equal(canonical(one_shot(aff)), canonical(streamed))
 
 
 def test_block_decomposition_emits_every_edge_exactly_once():

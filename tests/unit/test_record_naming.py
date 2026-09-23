@@ -60,9 +60,9 @@ def test_mws_runs_the_watershed_once_per_stride_across_the_size_sweep(monkeypatc
     from postprocess import mws as module
     calls = []
     real = module.segment
-    def counted(affinities, stride):
+    def counted(affinities, stride, **options):
         calls.append(stride)
-        return real(affinities, stride)
+        return real(affinities, stride, **options)
     monkeypatch.setattr(module, "segment", counted)
     rng = np.random.default_rng(0)
     aff = rng.random((6, 12, 12, 12), dtype=np.float32)

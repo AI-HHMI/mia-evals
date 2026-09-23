@@ -19,24 +19,56 @@ checkpoint it scored 0.024 nERL against thresholded components' 0.584, with 242 
 Most of that is `repulsive_stride = 4` discarding 64x of the repulsive edges (at stride 1 it
 recovers to 0.380), but components still win by 2x. It is kept because the reasoning above is
 sound and the failure is a tuning story, not because it is currently the better choice.
+
+**One production path, one oracle.** `mutex_watershed_reference` below is the algorithm written as
+plainly as possible, in Python: the definition, and the oracle the compiled kernel is tested
+against. Nothing scores with it. `segment()` is what the post-processor calls. It runs the compiled
+kernel (`mws_kernel.py`) with every edge in memory, or, above `MAX_IN_MEMORY_EDGES`, streams the
+edges through disk in priority bands (`mws_stream.py`) into the same kernel. Both reproduce the
+reference's partition exactly -- the unit tests require it -- so which one runs decides the time
+and memory of a scoring job, never its numbers. Until 2026-09-23 `segment()` ran the Python
+reference: about 2.5 hours per 896^3 block, against about 20 minutes compiled on a node of its own
+(measured that day on all seven gary_comparison mws records; a second memory-heavy job on the same
+node made it two to five times slower).
+
+The labels come out numbered differently from the reference's, a permutation of the same clusters.
+No metric depends on numbering, but VOI sums its terms in label order, so it can move in the 15th
+digit: re-scoring the seven records above reproduced every pq, choice and partition bit for bit,
+and VOI to within 6e-15.
 """
 
 from __future__ import annotations
 
+import hashlib
+import shutil
+import tempfile
+import time
+from collections import OrderedDict
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 
-import hashlib
-from collections import OrderedDict
-
 from .base import BasePostprocess
 from .registry import PostprocessRegistry
+from .mws_kernel import compact_roots, finalize, initial_capacities, make_state, run_edges
 from .size_filter import drop_small_components
 
 SHORT_OFFSETS = ((1, 0, 0), (0, 1, 0), (0, 0, 1))
 LONG = 10
 LONG_OFFSETS = ((LONG, 0, 0), (0, LONG, 0), (0, 0, LONG))
+
+#: Above this many edges, `segment()` streams them through disk instead of holding them. Held in
+#: memory the edge list peaks at about 37 bytes per edge, while it is being sorted: source and
+#: target (16), priority and its negation (8), the attractive flag (1), the sort order (8) and the
+#: sort's buffer (4). 8 G edges is therefore about 300 GB; an 896^3 block at stride 1 has 4.3 G.
+#: Streaming holds one priority band at a time instead, at the price of writing every edge to disk
+#: and reading it back. Both feed the same kernel in the same order, so the limit changes time and
+#: memory only; a scoring config can move it with `max_in_memory_edges` under `[postprocess]`.
+MAX_IN_MEMORY_EDGES = 8_000_000_000
+#: Streaming block edge, in voxels. Rounded down to a multiple of the repulsive stride, so that the
+#: sources each block keeps are exactly the ones `build_edges` keeps for the whole volume.
+STREAM_BLOCK = 256
 
 
 def build_edges(
@@ -86,10 +118,24 @@ def build_edges(
     )
 
 
-def mutex_watershed(
+def count_edges(shape: tuple[int, ...], repulsive_stride: int) -> int:
+    """How many edges `build_edges` would emit for this shape and stride, without building them."""
+    total = 0
+    for channel, offset in enumerate(SHORT_OFFSETS + LONG_OFFSETS):
+        extents = [max(int(s) - o, 0) for s, o in zip(shape, offset, strict=True)]
+        if channel >= len(SHORT_OFFSETS) and repulsive_stride > 1:
+            extents = [-(-e // repulsive_stride) for e in extents]
+        total += int(np.prod(extents))
+    return total
+
+
+def mutex_watershed_reference(
     u: np.ndarray, v: np.ndarray, priority: np.ndarray, attractive: np.ndarray, n_nodes: int
 ) -> np.ndarray:
-    """Mutex watershed: edges in descending priority -> a label per node.
+    """Mutex watershed: edges in descending priority -> a label per node. The reference.
+
+    The algorithm as plainly as it can be written, and the oracle `mws_kernel` is tested against;
+    nothing scores with it. It walks about 0.3 M edges per second, against 2.3 M compiled.
 
     Union-find, plus a set of forbidden partners per cluster. Walking edges from most to least
     confident:
@@ -145,12 +191,87 @@ def mutex_watershed(
     return (labels + 1).astype(np.uint32)
 
 
-def segment(affinities: np.ndarray, repulsive_stride: int) -> np.ndarray:
-    """(6, X, Y, Z) affinities -> (X, Y, Z) uint32 instance labels."""
-    shape = affinities.shape[1:]
+def _in_memory(affinities: np.ndarray, repulsive_stride: int) -> tuple[np.ndarray, dict[str, Any]]:
+    """Every edge built, sorted and fed to the compiled kernel at once."""
+    shape = tuple(int(s) for s in affinities.shape[1:])
+    n_nodes = int(np.prod(shape))
     u, v, priority, attractive = build_edges(affinities, repulsive_stride)
-    labels = mutex_watershed(u, v, priority, attractive, int(np.prod(shape)))
-    return labels.reshape(shape)
+    n_edges = int(u.size)
+    # The reference's ordering, expression for expression. Affinities are float16 on disk, so equal
+    # priorities are abundant, and the partition depends on how those ties are broken: here, as
+    # there, by position in `build_edges`' output.
+    order = np.argsort(-priority, kind="stable")
+    del priority
+    u, v, attractive = u[order], v[order], attractive[order]
+    del order
+    pairs, pool = initial_capacities(n_nodes)
+    state = make_state(np.int64(n_nodes), np.int64(pairs), np.int64(pool))
+    state, growths = run_edges(state, u, v, attractive)
+    del u, v, attractive
+    parent, insertions = state[0], int(state[-1][3])
+    del state
+    labels = compact_roots(finalize(parent).reshape(shape))
+    return labels, {"edges": n_edges, "pair_insertions": insertions, "growths": growths}
+
+
+def _streamed(
+    affinities: np.ndarray, repulsive_stride: int, scratch: Path
+) -> tuple[np.ndarray, dict[str, Any]]:
+    """The edges written to disk in priority bands and fed to the same kernel band by band."""
+    from .mws_stream import segment_streaming      # imports this module's offsets
+
+    shape = tuple(int(s) for s in affinities.shape[1:])
+    block = max(repulsive_stride, (STREAM_BLOCK // repulsive_stride) * repulsive_stride)
+
+    def read_block(origin: tuple[int, ...], size: tuple[int, ...]) -> np.ndarray:
+        window = tuple(slice(o, o + n) for o, n in zip(origin, size, strict=True))
+        return affinities[(slice(None), *window)]
+
+    scratch.mkdir(parents=True, exist_ok=True)
+    work = Path(tempfile.mkdtemp(prefix="mws_stream_", dir=scratch))
+    try:
+        labels, stats = segment_streaming(
+            read_block, shape, work, block=block, repulsive_stride=repulsive_stride
+        )
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    return labels, {k: stats[k] for k in ("edges", "pair_insertions", "growths")}
+
+
+def segment(
+    affinities: np.ndarray,
+    repulsive_stride: int,
+    *,
+    max_in_memory_edges: int = MAX_IN_MEMORY_EDGES,
+    scratch: str | Path | None = None,
+    info: dict[str, Any] | None = None,
+) -> np.ndarray:
+    """(6, X, Y, Z) affinities -> (X, Y, Z) instance labels 1..k, by the compiled kernel.
+
+    In memory when the block has at most `max_in_memory_edges` edges, streamed through `scratch`
+    otherwise. The partition is the reference's either way; the labels are numbered in the order of
+    the clusters' root ids, so they are a permutation of the reference's numbering, which no metric
+    sees. `info`, when given, receives how the labelling was computed.
+    """
+    shape = tuple(int(s) for s in affinities.shape[1:])
+    n_edges = count_edges(shape, repulsive_stride)
+    start = time.perf_counter()
+    if n_edges <= max_in_memory_edges:
+        labels, stats = _in_memory(affinities, repulsive_stride)
+        how = "compiled kernel, edges in memory"
+    else:
+        if scratch is None:
+            raise ValueError(
+                f"this block has {n_edges:,} edges, more than max_in_memory_edges="
+                f"{max_in_memory_edges:,}, so its edges must be streamed through disk -- but no "
+                "scratch directory was given. `mia-evals score` passes its --scratch; a direct "
+                "caller passes `scratch=` (or calls `use_scratch` on the post-processor)."
+            )
+        labels, stats = _streamed(affinities, repulsive_stride, Path(scratch))
+        how = "compiled kernel, edges streamed through disk"
+    if info is not None:
+        info.update(implementation=how, seconds=round(time.perf_counter() - start, 1), **stats)
+    return labels
 
 
 @PostprocessRegistry.register("mws")
@@ -178,11 +299,18 @@ class MutexWatershed(BasePostprocess):
         self,
         repulsive_strides: tuple[int, ...] | list[int] = (1, 2, 4),
         min_sizes: tuple[int, ...] | list[int] = (0,),
+        max_in_memory_edges: int = MAX_IN_MEMORY_EDGES,
         **settings: Any,
     ) -> None:
         super().__init__(
-            repulsive_strides=repulsive_strides, min_sizes=min_sizes, **settings
+            repulsive_strides=repulsive_strides, min_sizes=min_sizes,
+            max_in_memory_edges=max_in_memory_edges, **settings
         )
+        if int(max_in_memory_edges) < 0:
+            raise ValueError(f"max_in_memory_edges must be >= 0, got {max_in_memory_edges}")
+        self.max_in_memory_edges = int(max_in_memory_edges)
+        self._scratch: Path | None = None
+        self._last_run: dict[str, Any] | None = None
         if not repulsive_strides:
             raise ValueError("mws with an empty `repulsive_strides` has nothing to sweep")
         bad = sorted(s for s in repulsive_strides if int(s) < 1)
@@ -202,9 +330,17 @@ class MutexWatershed(BasePostprocess):
         # candidate -- at 896^3 a watershed is 4 G edges and about two hours, so four candidates
         # would have cost eight. Keyed by a content fingerprint rather than object identity because
         # the scorer re-reads the artifact for every candidate.
-        self._labellings: OrderedDict[tuple, np.ndarray] = OrderedDict()
+        self._labellings: OrderedDict[tuple, tuple[np.ndarray, dict[str, Any]]] = OrderedDict()
 
     CACHE_ENTRIES = 4                      # int64 labellings; 4 x 896^3 is ~23 GB
+
+    def use_scratch(self, directory: str | Path) -> None:
+        """Where to stream edges for a block above `max_in_memory_edges`."""
+        self._scratch = Path(directory) / "mws"
+
+    def run_info(self) -> dict[str, Any] | None:
+        """How the labelling behind the last call was computed: implementation, edges, seconds."""
+        return None if self._last_run is None else dict(self._last_run)
 
     @staticmethod
     def _fingerprint(affinities: np.ndarray) -> str:
@@ -219,13 +355,22 @@ class MutexWatershed(BasePostprocess):
         key = (stride, self._fingerprint(affinities))
         cached = self._labellings.get(key)
         if cached is None:
-            cached = segment(affinities, stride).astype(np.int64)
+            info: dict[str, Any] = {}
+            labels = segment(
+                affinities, stride, max_in_memory_edges=self.max_in_memory_edges,
+                scratch=self._scratch, info=info,
+            ).astype(np.int64)
+            print(f"  mws watershed: {info['edges']:,} edges, {info['implementation']}, "
+                  f"{info['seconds']:.0f} s, {info['pair_insertions']:,} pair insertions, "
+                  f"{info['growths']} growth(s)", flush=True)
+            cached = (labels, info)
             self._labellings[key] = cached
             while len(self._labellings) > self.CACHE_ENTRIES:
                 self._labellings.popitem(last=False)
         else:
             self._labellings.move_to_end(key)
-        return cached
+        self._last_run = cached[1]
+        return cached[0]
 
     def search_space(self) -> list[dict[str, Any]]:
         return [

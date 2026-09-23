@@ -51,7 +51,7 @@ from pathlib import Path
 import numpy as np
 
 from .mws import LONG_OFFSETS, SHORT_OFFSETS
-from .mws_kernel import finalize, make_state, process_edges
+from .mws_kernel import compact_roots, finalize, initial_capacities, make_state, run_edges
 
 OFFSETS = SHORT_OFFSETS + LONG_OFFSETS
 N_SHORT = len(SHORT_OFFSETS)
@@ -188,11 +188,10 @@ def segment_streaming(
     Labels are compacted to 1..k. There is no background: mutex watershed assigns every voxel to a
     cluster, so ids start at 1 and 0 never appears.
 
-    Returns the labelling and a stats dict. The high-water marks are part of the return rather
-    than printed and forgotten: capacity has to be sized per volume, and the only honest basis for
-    that is what a comparable volume actually used. Sizing a ten-hour run from a safety multiplier
-    instead costs real headroom -- at 8x the voxel count the zebrafish doublecube projects to
-    1,869 GB against a 1.9 TB node, where its measured need is far lower.
+    Returns the labelling and a stats dict. `pair_capacity` and `pool_capacity` are starting sizes,
+    by default `initial_capacities`: the state grows when they run short (see `mws_kernel`), so
+    they no longer have to be sized from a probe of a comparable volume, and a short guess costs a
+    rehash rather than a run that raises hours in.
     """
     n_nodes = int(np.prod(shape))
     counts = write_buckets(
@@ -200,18 +199,13 @@ def segment_streaming(
         repulsive_stride=repulsive_stride,
     )
 
-    # Pair insertions per voxel, with nothing reclaimed: 2.45 measured at 256^3 but 4.05 at 64^3,
-    # since a small volume is proportionally more surface and merges less. Sizing from the 256^3
-    # figure put the ceiling at 4.00 and a 64^3 run raised "pair table too small" -- so size from
-    # the small-volume rate with headroom. The table must also stay under half full, hence 16x.
-    # Odd, and not rounded up to a power of two: the table reduces by modulo, so any size works.
-    # Rounding cost 1.4x at the scale that matters -- the zebrafish doublecube needs 49.5 G slots,
-    # which a power of two takes to 68.72 G, i.e. 792 GB of pair table becoming 1,100 GB.
-    capacity = (pair_capacity or max(1025, 16 * n_nodes)) | 1
-    parent, key_a, key_b, head, chain_len, pool_val, pool_next, counters = make_state(
-        np.int64(n_nodes), np.int64(capacity), np.int64(pool_capacity or max(1024, 16 * n_nodes))
+    default_pairs, default_pool = initial_capacities(n_nodes)
+    state = make_state(
+        np.int64(n_nodes), np.int64((pair_capacity or default_pairs) | 1),
+        np.int64(pool_capacity or default_pool),
     )
     steps = offset_steps(shape)
+    growths = 0
 
     for bucket in range(n_buckets):
         if counts[bucket] == 0:
@@ -230,54 +224,38 @@ def segment_streaming(
         )
         source = np.ascontiguousarray(records["source"][order])
         offset_index = records["offset"][order]
-        process_edges(
+        state, grown = run_edges(
+            state,
             source,
             np.ascontiguousarray(source + steps[offset_index]),
             np.ascontiguousarray(offset_index < np.uint8(N_SHORT)),
-            parent, key_a, key_b, head, chain_len, pool_val, pool_next, counters,
         )
+        growths += grown
         if not keep_buckets:
             os.unlink(path)
 
+    parent, counters = state[0], state[-1]
+    pair_insertions, pool_used, slots_used = int(counters[3]), int(counters[1]), int(counters[0])
+    final_pairs, final_pool = int(state[1].shape[0]), int(state[5].shape[0])
     roots = finalize(parent).reshape(shape)
-    pair_insertions, pool_used = int(counters[0]), int(counters[1])
 
     # Free the mutex structures before compacting. They are the bulk of the resident set -- about
     # 1.66 TB of the 1.70 TB peak on a 7.08-gigavoxel volume -- and are dead the moment `finalize`
     # has run, so releasing them is what makes the next step affordable.
-    del key_a, key_b, pool_val, pool_next, head, chain_len, counters
-
-    # Compact root ids to 1..k.
-    #
-    # An earlier version returned raw root ids and justified it by saying the metrics factorise ids
-    # rather than assuming a width. That is true but not sufficient: `_factorize` only takes its
-    # counting path while the id *span* stays under 2**31, and root ids on a 7.08-gigavoxel volume
-    # reach 7.08e9. So sparse ids are scored correctly but by sorting 7.08 G int64 -- 57 GB plus
-    # sort temporaries -- every time any metric touches the labelling. Compacting once here puts
-    # every later consumer on the counting path.
-    #
-    # Done in slabs rather than with `np.unique(..., return_inverse=True)` over the whole array,
-    # which is the 114 GB transient that made compaction look unaffordable in the first place. Two
-    # slab passes need one slab plus the id map: 85 GB against the 1.66 TB just released.
-    #
-    # Numbered from 1, never 0. Mutex watershed assigns every voxel to a cluster, so there is no
-    # background -- and a metric reading `background_id = 0` would silently drop a real cluster.
-    slab = max(1, shape[0] // 64)
-    bounds = range(0, shape[0], slab)
-    distinct = np.unique(np.concatenate([np.unique(roots[lo: lo + slab]) for lo in bounds]))
-    narrow = np.uint32 if distinct.size < np.iinfo(np.uint32).max else np.int64
-    labels = np.empty(shape, dtype=narrow)
-    for lo in bounds:
-        labels[lo: lo + slab] = np.searchsorted(distinct, roots[lo: lo + slab]) + 1
+    del state, counters
+    labels = compact_roots(roots)
+    segments = int(labels.max()) if labels.size else 0
     del roots, parent
 
     stats = {
         "edges": int(sum(counts)),
         "pair_insertions": pair_insertions,
+        "pair_slots_used": slots_used,
         "pool_used": pool_used,
-        "pair_capacity": int(capacity),
-        "pool_capacity": int(pool_capacity or max(1024, 16 * n_nodes)),
+        "pair_capacity": final_pairs,
+        "pool_capacity": final_pool,
+        "growths": growths,
         "n_nodes": n_nodes,
-        "segments": int(distinct.size),
+        "segments": segments,
     }
     return labels, stats

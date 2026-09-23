@@ -22,7 +22,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-from postprocess.mws import mutex_watershed  # noqa: E402
+from postprocess.mws import mutex_watershed_reference  # noqa: E402
 from postprocess.mws_kernel import mutex_watershed_kernel  # noqa: E402
 
 pytestmark = pytest.mark.unit
@@ -75,7 +75,7 @@ def test_kernel_matches_reference_on_random_graphs(seed):
         pytest.skip("degenerate draw: no edges after removing self-loops")
     priority = rng.random(u.size).astype(np.float32)
     attractive = rng.random(u.size) < 0.6
-    expected = canonical(mutex_watershed(u, v, priority, attractive, n))
+    expected = canonical(mutex_watershed_reference(u, v, priority, attractive, n))
     assert np.array_equal(expected, canonical(run_kernel(u, v, priority, attractive, n)))
 
 
@@ -96,21 +96,46 @@ def test_an_attractive_edge_merges_when_nothing_forbids_it():
     assert canonical(parent).tolist() == [0, 0]
 
 
-def test_too_small_a_pair_table_raises_rather_than_corrupting():
-    """Capacity is checked, not assumed: a silently overflowing table would corrupt the partition
-    in a way only a comparison against the reference could catch -- and at whole-volume scale there
-    is no reference to compare against."""
-    rng = np.random.default_rng(0)
+@pytest.mark.parametrize("seed", range(6))
+@pytest.mark.parametrize("repulsive_share", [1.0, 0.5])
+def test_a_table_that_starts_far_too_small_grows_and_keeps_the_partition(seed, repulsive_share):
+    """Capacity is grown, not assumed, and growing must not change a single decision.
+
+    Starting at 3 slots and 2 pool entries forces dozens of growths, each of which rehashes the
+    pair table and drops its stale pairs. A lost live pair would silently let through a merge a
+    mutex should have blocked -- a plausible partition, not an error -- so the result is checked
+    against the reference, and the all-repulsive draws maximise pair insertions.
+    """
+    rng = np.random.default_rng(seed)
     n, m = 200, 2000
     u = rng.integers(0, n, size=m).astype(np.int64)
     v = rng.integers(0, n, size=m).astype(np.int64)
     keep = u != v
     u, v = u[keep], v[keep]
     priority = rng.random(u.size).astype(np.float32)
-    attractive = np.zeros(u.size, dtype=bool)       # all repulsive: maximum pair insertions
+    attractive = rng.random(u.size) >= repulsive_share
     order = np.argsort(-priority, kind="stable").astype(np.int64)
-    with pytest.raises(RuntimeError, match="too small"):
-        mutex_watershed_kernel(u, v, order, attractive, np.int64(n), np.int64(64), np.int64(64))
+    expected = canonical(mutex_watershed_reference(u, v, priority, attractive, n))
+    parent, pairs, _ = mutex_watershed_kernel(
+        u, v, order, attractive, np.int64(n), np.int64(3), np.int64(2))
+    assert np.array_equal(expected, canonical(parent))
+    assert pairs > 3, "the table must actually have been outgrown"
+
+
+def test_growth_resumes_exactly_where_the_kernel_stopped():
+    """`process_edges` stops before the edge it has no room for, reports the headroom, and the run
+    continues from that edge once the state has grown."""
+    from postprocess.mws_kernel import make_state, process_edges, run_edges
+
+    u = np.array([0, 2, 0], dtype=np.int64)
+    v = np.array([1, 3, 3], dtype=np.int64)
+    attractive = np.array([False, False, False])
+    state = make_state(np.int64(4), np.int64(3), np.int64(2))   # room for one pair
+    done = process_edges(u, v, attractive, *state)
+    assert done == 1 and state[-1][2] == 1, "the second mutex needs one more pair"
+    assert state[-1][3] == 1, "nothing of the refused edge may have been applied"
+    state, growths = run_edges(state, u[done:], v[done:], attractive[done:])
+    assert growths >= 1 and state[-1][3] == 3 and state[-1][2] == 0
 
 
 # --- the pair table no longer needs a power-of-two capacity ------------------------------------
@@ -139,7 +164,7 @@ def test_partition_is_independent_of_table_capacity(capacity):
     attractive = rng.random(u.size) < 0.6
     order = np.argsort(-priority, kind="stable").astype(np.int64)
 
-    expected = canonical(mutex_watershed(u, v, priority, attractive, n))
+    expected = canonical(mutex_watershed_reference(u, v, priority, attractive, n))
     parent, _, _ = mutex_watershed_kernel(
         u, v, order, attractive.astype(np.bool_),
         np.int64(n), np.int64(capacity), np.int64(8 * m))
@@ -166,7 +191,7 @@ def test_a_nearly_full_odd_table_still_finds_every_pair():
 
     distinct = len({(min(a, b), max(a, b)) for a, b in zip(u, v, strict=True)})
     capacity = (2 * distinct + 3) | 1                  # just past half full
-    expected = canonical(mutex_watershed(u, v, priority, attractive, n))
+    expected = canonical(mutex_watershed_reference(u, v, priority, attractive, n))
     parent, pairs, _ = mutex_watershed_kernel(
         u, v, order, attractive, np.int64(n), np.int64(capacity), np.int64(8 * m))
     assert pairs == distinct, f"inserted {pairs} pairs, expected {distinct} distinct"
@@ -184,7 +209,7 @@ def test_capacity_one_less_than_a_power_of_two_wraps_correctly():
     priority = rng.random(u.size).astype(np.float32)
     attractive = rng.random(u.size) < 0.5
     order = np.argsort(-priority, kind="stable").astype(np.int64)
-    expected = canonical(mutex_watershed(u, v, priority, attractive, n))
+    expected = canonical(mutex_watershed_reference(u, v, priority, attractive, n))
     for capacity in (2**12 - 1, 2**13 - 1, 2**14 - 1):
         parent, _, _ = mutex_watershed_kernel(
             u, v, order, attractive.astype(np.bool_),

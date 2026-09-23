@@ -5,9 +5,10 @@
 #       --test <artifacts>/test --val <artifacts>/fit --run-dir <mia-train run dir>
 #
 # The route the lmd_ssl_v1 arms were best under (MWS labelling + size filter), run here in one go
-# rather than from a stored labelling: at 896^3 the watershed is ~4 G edges and ~2 h in memory, and
-# the `mws` post-processor now computes it ONCE per volume and sweeps `min_sizes` on top, so the
-# whole scoring is a single CPU job of a few hours (32 slots; the edge arrays alone are ~90 GB).
+# rather than from a stored labelling: at 896^3 the watershed is 4.3 G edges and about 20 minutes on
+# the compiled kernel (2.5 h on the Python reference before 2026-09-23), and the `mws` post-processor
+# computes it ONCE per volume and sweeps `min_sizes` on top, so the whole scoring is a single CPU job
+# of about an hour (peak ~200 GB; give it a whole node, a neighbouring job slows it several-fold).
 # Same task as `cc_threshold.toml` beside it (the baseline); the two routes
 # land in one table, with `route` telling them apart in the record name.
 

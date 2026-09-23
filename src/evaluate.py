@@ -241,6 +241,11 @@ def score_once(
             "whole_region": context["whole_region"],
             "artifact": str(artifact.path),
         }
+        run = processor.run_info()
+        if run:
+            # How the post-processor computed this volume's result -- for mws, which watershed
+            # implementation ran and how long it took. Provenance only: no score depends on it.
+            regions[volume.name]["postprocess_run"] = run
         if keep is not None and task.canonical == "instances":
             keep.mkdir(parents=True, exist_ok=True)
             regions[volume.name]["scored_artifact"] = str(write_scored(
@@ -301,6 +306,7 @@ def cmd_score(args: argparse.Namespace) -> None:
     candidates = processor.search_space()
     scratch = Path(args.scratch or (Path(args.test).parent / ".mia_evals_scratch"))
     scratch.mkdir(parents=True, exist_ok=True)
+    processor.use_scratch(scratch)
 
     if len(candidates) > 1 and args.val is None:
         raise SystemExit(
