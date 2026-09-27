@@ -40,6 +40,7 @@ and VOI to within 6e-15.
 from __future__ import annotations
 
 import hashlib
+import math
 import shutil
 import tempfile
 import time
@@ -52,7 +53,7 @@ import numpy as np
 from .base import BasePostprocess
 from .registry import PostprocessRegistry
 from .mws_kernel import compact_roots, finalize, initial_capacities, make_state, run_edges
-from .size_filter import drop_small_components
+from .size_filter import drop_small_components, fill_holes, nearest_segment
 
 SHORT_OFFSETS = ((1, 0, 0), (0, 1, 0), (0, 0, 1))
 LONG = 10
@@ -290,6 +291,14 @@ class MutexWatershed(BasePostprocess):
     PQ was still 0.0049, because it also returned 57,350 single-figure fragments and PQ counts each
     as a false positive regardless of size. Without a size filter the metric hides the improvement
     almost completely.
+
+    **`fill_distances` grows the surviving segments back into the holes the size filter leaves**:
+    every background voxel within that many voxels (Euclidean) of a segment takes its nearest
+    segment's label, `"all"` filling every one (`size_filter.fill_holes`). It is the inference half
+    of training on eroded labels -- the gap such a model predicts between neurons becomes specks the
+    filter deletes -- and it is swept jointly with `min_sizes`, innermost, so one distance transform
+    serves every distance of a given size filter. The default `[0]` adds nothing to the sweep, so a
+    config without it scores exactly as before.
     """
 
     accepts = ("affinity",)
@@ -299,12 +308,13 @@ class MutexWatershed(BasePostprocess):
         self,
         repulsive_strides: tuple[int, ...] | list[int] = (1, 2, 4),
         min_sizes: tuple[int, ...] | list[int] = (0,),
+        fill_distances: tuple[int | str, ...] | list[int | str] = (0,),
         max_in_memory_edges: int = MAX_IN_MEMORY_EDGES,
         **settings: Any,
     ) -> None:
         super().__init__(
             repulsive_strides=repulsive_strides, min_sizes=min_sizes,
-            max_in_memory_edges=max_in_memory_edges, **settings
+            fill_distances=fill_distances, max_in_memory_edges=max_in_memory_edges, **settings
         )
         if int(max_in_memory_edges) < 0:
             raise ValueError(f"max_in_memory_edges must be >= 0, got {max_in_memory_edges}")
@@ -325,6 +335,24 @@ class MutexWatershed(BasePostprocess):
         if any(int(v) < 0 for v in min_sizes):
             raise ValueError(f"min_sizes must be non-negative voxel counts, got {list(min_sizes)}")
         self.min_sizes = tuple(sorted({int(v) for v in min_sizes}))
+        if not fill_distances:
+            raise ValueError(
+                "mws with an empty `fill_distances` has nothing to sweep. Use `[0]` for no filling, "
+                "which is the default."
+            )
+        bad = [v for v in fill_distances
+               if v != "all" and (isinstance(v, bool) or not isinstance(v, int) or v < 0)]
+        if bad:
+            raise ValueError(
+                f'fill_distances must be non-negative voxel counts or "all", got {bad}'
+            )
+        self.fill_distances: tuple[int | str, ...] = tuple(
+            sorted({int(v) for v in fill_distances if v != "all"})
+        ) + (("all",) if "all" in fill_distances else ())
+        #: The last size-filtered labelling that was filled and its distance transform, keyed by
+        #: (stride, affinities fingerprint, min_size): the candidates of one min_size are adjacent in
+        #: `search_space()`, so one entry is enough, and each entry is ~28 GB on a 1000^3 block.
+        self._filled_basis: tuple[tuple, np.ndarray, tuple[np.ndarray, np.ndarray]] | None = None
         # The watershed depends on the affinities and the stride only; the size filter is applied on
         # top. Sweeping `min_sizes` therefore needs ONE watershed per (volume, stride), not one per
         # candidate -- at 896^3 a watershed is 4 G edges and about two hours, so four candidates
@@ -373,11 +401,26 @@ class MutexWatershed(BasePostprocess):
         return cached[0]
 
     def search_space(self) -> list[dict[str, Any]]:
-        return [
+        space = [
             {"repulsive_stride": stride, "min_size": min_size}
             for stride in self.repulsive_strides
             for min_size in self.min_sizes
         ]
+        if self.fill_distances == (0,):
+            return space              # no `fill_distance` key: earlier configs' records stay identical
+        return [{**point, "fill_distance": fill} for point in space for fill in self.fill_distances]
+
+    def _filled(self, affinities: np.ndarray, labels: np.ndarray, stride: int, min_size: int,
+                fill: int | str) -> np.ndarray:
+        key = (stride, self._fingerprint(affinities), min_size)
+        if self._filled_basis is None or self._filled_basis[0] != key:
+            self._filled_basis = None                    # free the previous ~28 GB first
+            filtered = drop_small_components(labels.copy(), min_size)
+            self._filled_basis = (key, filtered, nearest_segment(filtered))
+        _, filtered, nearest = self._filled_basis
+        filled = fill_holes(filtered, math.inf if fill == "all" else int(fill), nearest)
+        # Always a fresh array, as the unfilled path returns: the basis serves the next distance.
+        return filled.copy() if filled is filtered else filled
 
     def __call__(self, array: np.ndarray, **params: Any) -> np.ndarray:
         if array.shape[0] < 6:
@@ -387,10 +430,18 @@ class MutexWatershed(BasePostprocess):
                 "half there are no repulsive edges, so it would degenerate to connected components "
                 "over the attractive graph; use cc_threshold for that."
             )
-        labels = self._labelling(np.asarray(array, dtype=np.float32), int(params["repulsive_stride"]))
-        return drop_small_components(labels.copy(), int(params.get("min_size", 0)))
+        affinities = np.asarray(array, dtype=np.float32)
+        stride = int(params["repulsive_stride"])
+        labels = self._labelling(affinities, stride)
+        min_size = int(params.get("min_size", 0))
+        fill = params.get("fill_distance", 0)
+        if not fill:
+            return drop_small_components(labels.copy(), min_size)
+        return self._filled(affinities, labels, stride, min_size, fill)
 
     def describe(self, params: dict[str, Any]) -> str:
         text = f"mws(repulsive_stride={params['repulsive_stride']}"
         min_size = int(params.get("min_size", 0))
-        return text + (f", min_size={min_size}" if min_size else "") + ")"
+        fill = params.get("fill_distance", 0)
+        return (text + (f", min_size={min_size}" if min_size else "")
+                + (f", fill={fill}" if fill else "") + ")")

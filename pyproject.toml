@@ -10,6 +10,7 @@ dependencies = [
     "zarr>=3.0",
     "miao-io>=0.3.0",
     "numba>=0.59",        # compiles the connected-components and mutex-watershed kernels
+    "scipy>=1.10",        # exact Euclidean distance transform for filling the size filter's holes
     "networkx>=3.0",      # skeleton graph handling, for `skeleton_erl`
     "tqdm>=4.0",          # progress on the long skeleton scoring loops
     "pillow>=9.0",        # writes the comparison figures

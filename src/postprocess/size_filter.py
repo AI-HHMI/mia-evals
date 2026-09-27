@@ -1,4 +1,5 @@
-"""Dropping instance components below a voxel count, shared by every postprocessor that needs it.
+"""Dropping instance components below a voxel count, shared by every postprocessor that needs it,
+and filling the holes that leaves.
 
 Its own module because it is not specific to how the labelling was produced. `cc_threshold` and
 `mws` both emit enormous numbers of tiny fragments on real affinity maps -- 3,583,131 predicted
@@ -16,6 +17,7 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+from scipy import ndimage
 
 from .base import BasePostprocess
 from .registry import PostprocessRegistry
@@ -58,6 +60,39 @@ def drop_small_components(labels: np.ndarray, min_size: int) -> np.ndarray:
         chunk = labels[start : start + slab]
         chunk[...] = remap[chunk]
     return labels
+
+
+def nearest_segment(labels: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """(distance, index) from every background voxel to its nearest segment voxel, in voxels.
+
+    Exact Euclidean (`scipy.ndimage.distance_transform_edt`). Split from `fill_holes` so that one
+    labelling can be filled to several distances from a single transform, which on a 1000^3 block
+    is a float64 distance and an int32 index per voxel per axis -- about 20 GB.
+    """
+    return ndimage.distance_transform_edt(labels == 0, return_indices=True)
+
+
+def fill_holes(
+    labels: np.ndarray,
+    max_distance: float,
+    nearest: tuple[np.ndarray, np.ndarray] | None = None,
+) -> np.ndarray:
+    """Grow the segments into the background within `max_distance` voxels of them.
+
+    Every background voxel at most `max_distance` from a segment takes the label of its nearest
+    segment voxel, so segments meet where their gaps close instead of each dilating by a fixed
+    amount. Meant for the holes a size filter leaves and for the gaps of a model trained on eroded
+    labels; `math.inf` fills every background voxel, which on this task also floods the true
+    background between neurons. `nearest` is `nearest_segment(labels)`, when the caller has it.
+    Returns a new array, or `labels` itself when there is nothing to do.
+    """
+    if max_distance <= 0 or not labels.any():
+        return labels
+    distance, index = nearest if nearest is not None else nearest_segment(labels)
+    fill = (labels == 0) & (distance <= max_distance)
+    filled = labels.copy()
+    filled[fill] = labels[tuple(axis[fill] for axis in index)]
+    return filled
 
 
 @PostprocessRegistry.register("size_filter")

@@ -195,3 +195,46 @@ def test_the_postprocessor_streams_through_its_scratch_and_says_so(tmp_path):
     streamed = streaming(aff.copy(), repulsive_stride=1, min_size=0)
     assert streaming.run_info()["implementation"] == "compiled kernel, edges streamed through disk"
     assert np.array_equal(_canonical(held), _canonical(streamed))
+
+
+# --- growing the segments back into the size filter's holes --------------------------------------
+
+from postprocess import mws as mws_module  # noqa: E402
+from postprocess.mws import MutexWatershed  # noqa: E402
+
+
+def test_fill_distances_join_the_sweep_innermost_and_name_themselves():
+    processor = MutexWatershed(repulsive_strides=[1], min_sizes=[0, 500], fill_distances=[2, "all", 0])
+    assert processor.search_space() == [
+        {"repulsive_stride": 1, "min_size": min_size, "fill_distance": fill}
+        for min_size in (0, 500) for fill in (0, 2, "all")
+    ]
+    assert "fill" not in processor.describe({"repulsive_stride": 1, "min_size": 500, "fill_distance": 0})
+    assert "fill=2" in processor.describe({"repulsive_stride": 1, "min_size": 500, "fill_distance": 2})
+    assert "fill=all" in processor.describe({"repulsive_stride": 1, "min_size": 0, "fill_distance": "all"})
+
+
+@pytest.mark.parametrize("bad", [[], [-1], [1.5], [True], ["inf"]])
+def test_rejects_an_unusable_fill_distances(bad):
+    with pytest.raises(ValueError, match="fill_distances"):
+        MutexWatershed(repulsive_strides=[1], fill_distances=bad)
+
+
+def test_the_speck_the_filter_drops_is_filled_by_its_neighbours(monkeypatch):
+    """One transform per size filter; every call returns a fresh array."""
+    watershed = np.array([1, 1, 1, 3, 2, 2, 2], dtype=np.int64).reshape(-1, 1, 1)
+    processor = MutexWatershed(repulsive_strides=[1], min_sizes=[2], fill_distances=[0, 1])
+    monkeypatch.setattr(processor, "_labelling", lambda affinities, stride: watershed)
+    transforms = []
+    real = mws_module.nearest_segment
+    monkeypatch.setattr(mws_module, "nearest_segment", lambda labels: transforms.append(1) or real(labels))
+    affinities = np.zeros((6, 7, 1, 1), dtype=np.float32)
+
+    unfilled = processor(affinities, repulsive_stride=1, min_size=2, fill_distance=0)
+    assert unfilled.ravel().tolist() == [1, 1, 1, 0, 2, 2, 2]
+    filled = processor(affinities, repulsive_stride=1, min_size=2, fill_distance=1)
+    assert filled.ravel()[3] in (1, 2) and 0 not in filled.ravel().tolist()
+    filled[...] = 9
+    again = processor(affinities, repulsive_stride=1, min_size=2, fill_distance=1)
+    assert 9 not in again.ravel().tolist() and len(transforms) == 1
+    assert watershed.ravel().tolist() == [1, 1, 1, 3, 2, 2, 2], "the cached watershed must stay intact"

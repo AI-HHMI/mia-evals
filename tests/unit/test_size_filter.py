@@ -76,3 +76,41 @@ def test_a_float_array_is_refused_rather_than_silently_labelled():
 def test_rejects_an_unusable_min_sizes(bad):
     with pytest.raises(ValueError, match="min_sizes"):
         SizeFilter(min_sizes=bad)
+
+
+# --- filling the holes the filter leaves ---------------------------------------------------------
+
+from postprocess.size_filter import fill_holes, nearest_segment  # noqa: E402
+
+
+def _row(values: list[int]) -> np.ndarray:
+    """One X row as a (X, 1, 1) labelling, so distances are plain index differences."""
+    return np.array(values, dtype=np.int64).reshape(-1, 1, 1)
+
+
+def test_fill_closes_a_gap_from_both_sides():
+    """Each hole voxel takes its nearest segment: the gap is shared, not taken by one side."""
+    filled = fill_holes(_row([1, 1, 0, 0, 2, 2]), 1)
+    assert filled.ravel().tolist() == [1, 1, 1, 2, 2, 2]
+
+
+def test_fill_stops_at_its_distance_and_inf_fills_everything():
+    labels = _row([1, 0, 0, 0, 0, 2])
+    assert fill_holes(labels, 1).ravel().tolist() == [1, 1, 0, 0, 2, 2]
+    assert fill_holes(labels, float("inf")).ravel().tolist() == [1, 1, 1, 2, 2, 2]
+    assert labels.ravel().tolist() == [1, 0, 0, 0, 0, 2], "the input must not be modified"
+
+
+def test_fill_with_nothing_to_do_returns_its_input():
+    labels = _row([1, 0, 2])
+    assert fill_holes(labels, 0) is labels
+    empty = _row([0, 0, 0])
+    assert fill_holes(empty, float("inf")) is empty
+
+
+def test_a_precomputed_transform_gives_the_same_fill():
+    rng = np.random.default_rng(0)
+    labels = rng.integers(0, 4, (6, 7, 5)) * (rng.random((6, 7, 5)) < 0.3)
+    nearest = nearest_segment(labels)
+    for distance in (1, 2, float("inf")):
+        assert np.array_equal(fill_holes(labels, distance, nearest), fill_holes(labels, distance))
