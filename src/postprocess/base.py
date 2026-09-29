@@ -19,6 +19,7 @@ split it is being handed.
 from __future__ import annotations
 
 import abc
+import inspect
 from typing import Any
 
 import numpy as np
@@ -38,6 +39,20 @@ class BasePostprocess(abc.ABC):
     produces: str = ""
 
     def __init__(self, **settings: Any) -> None:
+        # The settings a postprocessor takes are its own __init__'s named parameters. Anything else
+        # would be kept and never read: the config would run without it while its record still
+        # listed it (`fill_distances` on cc_threshold, 2026-09-29).
+        variadic = (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD)
+        takes = sorted(
+            name for name, parameter in inspect.signature(type(self).__init__).parameters.items()
+            if name != "self" and parameter.kind not in variadic
+        )
+        unknown = sorted(set(settings) - set(takes))
+        if unknown:
+            raise ValueError(
+                f"[postprocess] {type(self).__name__} has unknown key(s) {unknown}; "
+                f"it takes {takes or 'none'}"
+            )
         self.settings = settings
         unknown = sorted(set(self.accepts) - set(KINDS))
         if unknown:
