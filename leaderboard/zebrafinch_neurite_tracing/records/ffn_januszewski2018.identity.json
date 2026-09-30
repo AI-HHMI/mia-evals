@@ -1,0 +1,248 @@
+{
+  "task_name": "zebrafinch_neurite_tracing",
+  "producer": {
+    "artifacts": {
+      "zebrafinch_benchmark_test": "/groups/miaai/miaai/mia-evals-data/zebrafinch_j0126/ffn_januszewski2018/zebrafinch_benchmark_test.zarr"
+    },
+    "run": "ffn_januszewski2018",
+    "step": null,
+    "kind": "instances",
+    "convention": "FFN segmentation of j0126 (Januszewski et al. 2018, Nat Methods 15:605), cropped to the region, restricted to the FFN neuropil mask and relabelled into connected components by Sheridan et al. 2023; byte-identical to zebrafinch_realigned.zarr/volumes/ffn_benchmark_roi_masked_ffn_relabelled",
+    "artifact_attrs": {
+      "background_id": 0,
+      "convention": "FFN segmentation of j0126 (Januszewski et al. 2018, Nat Methods 15:605), cropped to the region, restricted to the FFN neuropil mask and relabelled into connected components by Sheridan et al. 2023; byte-identical to zebrafinch_realigned.zarr/volumes/ffn_benchmark_roi_masked_ffn_relabelled",
+      "covers_full_box": true,
+      "kind": "instances",
+      "mask": "labels/neuropil_mask",
+      "multiscales": [
+        {
+          "axes": [
+            {
+              "name": "z",
+              "type": "space",
+              "unit": "nanometer"
+            },
+            {
+              "name": "y",
+              "type": "space",
+              "unit": "nanometer"
+            },
+            {
+              "name": "x",
+              "type": "space",
+              "unit": "nanometer"
+            }
+          ],
+          "datasets": [
+            {
+              "coordinateTransformations": [
+                {
+                  "scale": [
+                    20.0,
+                    9.0,
+                    9.0
+                  ],
+                  "type": "scale"
+                },
+                {
+                  "translation": [
+                    4000.0,
+                    7200.0,
+                    4500.0
+                  ],
+                  "type": "translation"
+                }
+              ],
+              "path": "s0"
+            }
+          ],
+          "name": "ffn_januszewski2018 benchmark_roi",
+          "version": "0.4"
+        }
+      ],
+      "origin": [
+        200,
+        800,
+        500
+      ],
+      "run": "ffn_januszewski2018",
+      "source_image_key": "raw",
+      "source_path": "/groups/miaai/miaai/mia-evals-data/zebrafinch_j0126/zebrafinch_j0126.zarr",
+      "source_segmentation": "/nrs/funke/sheridana/lsd_data_upload/zebrafinch/testing/segmentations/data.zarr/volumes/FFN/benchmark_roi",
+      "offset": [
+        4000,
+        7200,
+        4500
+      ],
+      "resolution": [
+        20,
+        9,
+        9
+      ]
+    }
+  },
+  "scores": {
+    "skeleton_erl": {
+      "erl": 16747.060546875,
+      "erl_um": 16.747060546875,
+      "max_erl": 240661.640625,
+      "max_erl_um": 240.661640625,
+      "n_mergers": 4167.0,
+      "n_non0_mergers": 3064.0,
+      "n_splits": 6472.0,
+      "nerl": 0.0695875808596611,
+      "nerl_100": 0.15489134192466736,
+      "nerl_20": 0.10532097518444061,
+      "nerl_5": 0.08619914948940277,
+      "nerl_inf": 0.5041208863258362,
+      "skeleton_nodes": 431659.0,
+      "skeleton_nodes_full": 431659.0,
+      "voi_merge": 1.1879157006148855,
+      "voi_split": 1.0678871196386819,
+      "voi_sum": 2.2558028202535674,
+      "whole_region": 1.0,
+      "volumes_scored": 1.0
+    }
+  },
+  "ranking": {
+    "metric": "skeleton_erl",
+    "key": "nerl",
+    "value": 0.0695875808596611,
+    "higher_is_better": true
+  },
+  "postprocess": {
+    "name": "identity",
+    "params": {},
+    "describe": "Identity",
+    "fitted_on": null,
+    "fitted_on_data_config": null,
+    "validation_scores": {},
+    "scored_artifacts": {
+      "zebrafinch_benchmark_test": "/groups/miaai/miaai/mia-evals-data/zebrafinch_j0126/ffn_januszewski2018/zebrafinch_benchmark_test.zarr"
+    }
+  },
+  "region": {
+    "volumes": {
+      "zebrafinch_benchmark_test": {
+        "origin": [
+          200,
+          800,
+          500
+        ],
+        "shape": [
+          5300,
+          9300,
+          9700
+        ],
+        "whole_region": true,
+        "artifact": "/groups/miaai/miaai/mia-evals-data/zebrafinch_j0126/ffn_januszewski2018/zebrafinch_benchmark_test.zarr",
+        "scored_artifact": "/groups/miaai/miaai/mia-evals-data/zebrafinch_j0126/ffn_januszewski2018/zebrafinch_benchmark_test.zarr"
+      }
+    }
+  },
+  "config": {
+    "task_name": "zebrafinch_neurite_tracing",
+    "task": {
+      "name": "instance_seg",
+      "kwargs": {
+        "truth_kind": "skeleton",
+        "skeleton_name": "skeletons/{volume}.pkl"
+      }
+    },
+    "postprocess": {
+      "name": "identity",
+      "kwargs": {}
+    },
+    "metrics": [
+      "skeleton_erl"
+    ],
+    "rank_by": "skeleton_erl",
+    "data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/zebrafinch_neurite_tracing/data/test.yaml",
+    "volumes": [
+      {
+        "name": "zebrafinch_benchmark_test",
+        "path": "/groups/miaai/miaai/mia-evals-data/zebrafinch_j0126/zebrafinch_j0126.zarr",
+        "label_key": null,
+        "bounding_box": [
+          [
+            200,
+            5500
+          ],
+          [
+            800,
+            10100
+          ],
+          [
+            500,
+            10200
+          ]
+        ],
+        "truth_sha256": "9139d5bb25166344f6a4c65478687fcf25c05bcdb1f3a58042a92886741f3835"
+      }
+    ],
+    "fit_data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/zebrafinch_neurite_tracing/data/fit.yaml",
+    "fit_volumes": [
+      {
+        "name": "zebrafinch_benchmark_val",
+        "path": "/groups/miaai/miaai/mia-evals-data/zebrafinch_j0126/zebrafinch_j0126.zarr",
+        "label_key": null,
+        "bounding_box": [
+          [
+            200,
+            5500
+          ],
+          [
+            800,
+            10100
+          ],
+          [
+            500,
+            10200
+          ]
+        ]
+      }
+    ],
+    "notes": "",
+    "route": "identity"
+  },
+  "per_volume": {
+    "zebrafinch_benchmark_test": {
+      "skeleton_erl": {
+        "voi_sum": 2.2558028202535674,
+        "voi_split": 1.0678871196386819,
+        "voi_merge": 1.1879157006148855,
+        "erl": 16747.060546875,
+        "max_erl": 240661.640625,
+        "nerl": 0.0695875808596611,
+        "n_mergers": 4167.0,
+        "n_splits": 6472.0,
+        "n_non0_mergers": 3064.0,
+        "nerl_5": 0.08619914948940277,
+        "nerl_20": 0.10532097518444061,
+        "nerl_100": 0.15489134192466736,
+        "nerl_inf": 0.5041208863258362,
+        "erl_um": 16.747060546875,
+        "max_erl_um": 240.661640625,
+        "skeleton_nodes": 431659.0,
+        "skeleton_nodes_full": 431659.0,
+        "whole_region": 1.0
+      }
+    }
+  },
+  "provenance": {
+    "mia_evals_commit": "d62d9c081d983833ab7b84dfb53ecd660d1ff06a (dirty)"
+  },
+  "views": {},
+  "versions": {
+    "python": "3.14.6",
+    "numpy": "2.4.4",
+    "zarr": "3.2.1",
+    "miao": "present",
+    "numba": "0.67.0",
+    "networkx": "3.6.1",
+    "funlib.evaluate": "present"
+  },
+  "schema_version": 1,
+  "label": "",
+  "route": "identity"
+}

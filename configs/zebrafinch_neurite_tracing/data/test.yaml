@@ -1,0 +1,26 @@
+# zebrafinch_neurite_tracing -- the LSD paper's zebra finch (j0126) benchmark region, reported as [data.test].
+#
+# The region is LSD's "benchmark ROI" (Sheridan et al. 2023, Nat Methods 20:295, Supplementary Note D.3):
+# 87.3 x 83.7 x 106 um = 9700 x 9300 x 5300 voxels at 9 x 9 x 20 nm, 478 gigavoxels. The store is mia-evals'
+# wrapper over the LSD authors' realigned volume (`python -m truth.lsd_zebrafinch`; its manifest.json says what
+# was built from what). The ground truth is skeletons/zebrafinch_benchmark_test.pkl inside it: LSD's own node
+# set for the 50 hand-traced test skeletons, cut to this region and the FFN neuropil mask and relabelled into
+# connected components (3,410 pieces, 431,659 nodes, 75.95 mm; a perfect segmentation scores ERL 240.66 um).
+#
+# Axes are the store's own, z, y, x -- output_axes lczyx -- so the bounding box, an artifact's origin and the
+# skeleton's node positions all count in the same order.
+
+resolutions: [[20.0, 9.0, 9.0]]
+patch_size: [128, 256, 256]   # read by mia-train's predict.py, which requires the model's own: set it first
+output_axes: lczyx
+samples_per_epoch: 1000
+defer_image_ops: true   # irrelevant for scoring; kept so the rule holds for every miao config
+
+volumes:
+  - name: zebrafinch_benchmark_test
+    path: /groups/miaai/miaai/mia-evals-data/zebrafinch_j0126/zebrafinch_j0126.zarr
+    image_key: raw
+    zarr_version: zarr2
+    bounding_box: [[200, 5500], [800, 10100], [500, 10200]]
+    weight: 1.0
+    normalize: true   # uint8 on disk, so this maps to [0, 1] by dtype max

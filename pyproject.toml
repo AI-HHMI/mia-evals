@@ -27,6 +27,11 @@ dev = [
     "ruff>=0.4",
     "mypy>=1.8",
 ]
+# Building benchmark data (`python -m truth.<dataset>`), never needed for scoring.
+truth = [
+    "pymongo>=4.0",       # its `bson` module reads the LSD release's skeleton database dumps
+    "kimimaro>=4.0",      # skeletonises voxel ground truth (the hemibrain regions)
+]
 
 [build-system]
 requires = ["setuptools>=77"]

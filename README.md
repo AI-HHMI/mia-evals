@@ -53,6 +53,17 @@ pip install --no-build-isolation git+https://github.com/funkelab/funlib.evaluate
 Everything except `skeleton_erl` works without it. The import is lazy, so its absence is only felt
 if you actually run that metric, and the tests that need it skip themselves.
 
+### Building benchmark data
+
+Scoring never needs this. The `src/truth/` modules build a task's benchmark data once from a public
+release -- OME-Zarr wrappers over its arrays and the ground truth derived from them -- as
+`python -m truth.<dataset> --out <dir>` (e.g. `truth.lsd_zebrafinch` for the zebrafinch neurite
+tracing tasks). They need the `[truth]` extra:
+
+```bash
+pip install -e '.[truth]'
+```
+
 ### Verifying an installation
 
 Run these from the repository root (the leaderboard commands default to the checkout's
@@ -238,7 +249,11 @@ before that date.
 Currently, `mia-evals` supports `instance_seg` and `semantic_seg`. 
 
 For instance segmentation, `[task].truth_kind` selects where the ground truth comes from:
-- `skeleton`: a traced skeleton, read from `skeleton.pkl` inside the volume's Zarr group
+- `skeleton`: a traced skeleton, read from `[task].skeleton_name` inside the volume's Zarr group
+  (default `skeleton.pkl`; `{volume}` in it is replaced by the volume's name, so one store can hold
+  one skeleton per scored volume, e.g. `skeletons/{volume}.pkl`). Node positions are absolute voxels
+  of the store, in the order the graph's `axes` attribute names; a stored labelling is then read only
+  at the nodes, never in full
 - `instances`: a dense instance labelling, read from the volume's own label array over the region the artifact covers
 - `instances_resampled`: a dense instance labelling written by the producer on the prediction's own grid
 
@@ -365,9 +380,11 @@ name.
 | `src/metrics/` | the metrics, each declaring its own primary key and direction |
 | `src/report/` | the record format, the leaderboard renderer, and the fileglancer / neuroglancer links |
 | `src/viz/` | the two figure commands |
+| `src/truth/` | builds a task's benchmark data from a public release (`python -m truth.<dataset>`); never run by scoring |
 | `src/utils/` | two modules recycled verbatim from BANIS; see `ACKNOWLEDGEMENTS.md` |
 | `configs/<task_name>/` | one directory per task: `<route>.toml` scoring configs (task + splits + post-processing route) and `data/{test,fit}.yaml`, the `miao` data configs of that task |
 | `docs/controls.md` | control experiments: baseline task metric scores without a model |
+| `docs/neurite_tracing.md` | the zebrafinch neurite tracing tasks: protocol, published numbers, data, how to submit |
 | `tests/unit/` | fast, single-process tests |
 
 ## Extending `mia-evals`

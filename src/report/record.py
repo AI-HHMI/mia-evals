@@ -181,6 +181,9 @@ def task_identity(volumes: list[dict[str, Any]], metric: str, key: str) -> dict[
                         None if v.get("bounding_box") is None
                         else [[int(a), int(b)] for a, b in v["bounding_box"]]
                     ),
+                    # A skeleton file's content hash (`BaseTask.truth_digest`); None for truth read
+                    # from a label array, and in every record written before skeletons had one.
+                    "truth_sha256": v.get("truth_sha256"),
                 }
                 for v in volumes
             ),
@@ -204,7 +207,7 @@ def identity_differences(reference: dict[str, Any], other: dict[str, Any]) -> li
     if set(mine) != set(theirs):
         out.append(f"volumes {sorted(mine)} vs {sorted(theirs)}")
     for name in sorted(set(mine) & set(theirs)):
-        for field_name in ("path", "label_key", "bounding_box"):
+        for field_name in ("path", "label_key", "bounding_box", "truth_sha256"):
             if mine[name][field_name] != theirs[name][field_name]:
                 out.append(
                     f"{name}: {field_name} {mine[name][field_name]!r} vs "

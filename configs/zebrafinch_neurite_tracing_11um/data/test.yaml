@@ -1,0 +1,23 @@
+# zebrafinch_neurite_tracing_11um -- the 10.8 um cube at the centre of LSD's zebra finch benchmark region, [data.test].
+#
+# The smallest region of the LSD paper's ladder (Supplementary Note D.3): 1200 x 1200 x 540 voxels at 9 x 9 x 20 nm,
+# 0.78 gigavoxels -- small enough for the exact mutex watershed in memory, so it is where models are scored first
+# and where a blockwise watershed is checked against the exact one. The ground truth is
+# skeletons/zebrafinch_11um_test.pkl in the store: LSD's node set for the test skeletons, cut to this region and
+# the FFN neuropil mask and relabelled into connected components (67 pieces, 3,488 nodes, 0.52 mm; a perfect
+# segmentation scores ERL 17.91 um). See ../zebrafinch_neurite_tracing/data/test.yaml for the store and the axes.
+
+resolutions: [[20.0, 9.0, 9.0]]
+patch_size: [128, 256, 256]   # read by mia-train's predict.py, which requires the model's own: set it first
+output_axes: lczyx
+samples_per_epoch: 1000
+defer_image_ops: true   # irrelevant for scoring; kept so the rule holds for every miao config
+
+volumes:
+  - name: zebrafinch_11um_test
+    path: /groups/miaai/miaai/mia-evals-data/zebrafinch_j0126/zebrafinch_j0126.zarr
+    image_key: raw
+    zarr_version: zarr2
+    bounding_box: [[2540, 3080], [4800, 6000], [4900, 6100]]
+    weight: 1.0
+    normalize: true   # uint8 on disk, so this maps to [0, 1] by dtype max

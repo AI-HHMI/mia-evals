@@ -57,6 +57,12 @@ class BaseMetric(abc.ABC):
     #: two-voxel fragments, while the split/merge terms that say HOW a segmentation failed were
     #: dropped. Empty means "no secondary columns".
     report_keys: tuple[str, ...] = ()
+    #: Whether this metric needs the labelling only at a set of points -- a skeleton's nodes. When
+    #: every metric of a scoring config says so and the post-processor can hand the stored labelling
+    #: over unread (`BasePostprocess.lazy`), the region is never loaded: the metric receives an
+    #: `artifact.LazyLabelling`, whose `lookup(points)` reads just the chunks those points touch.
+    #: That is the only way a 478-gigavoxel region is scoreable at all.
+    point_lookups: bool = False
 
     def __init__(self, **settings: Any) -> None:
         self.settings = settings

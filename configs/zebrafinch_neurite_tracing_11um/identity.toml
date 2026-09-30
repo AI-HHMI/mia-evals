@@ -1,0 +1,26 @@
+# zebrafinch_neurite_tracing_11um from a finished segmentation -- FFN's reference row, or anyone's labelling.
+#
+# The LSD paper's protocol, exactly as ../zebrafinch_neurite_tracing/identity.toml describes it, on the 10.8 um
+# cube at the centre of the benchmark region: a labelling must be restricted to the FFN neuropil mask and
+# relabelled into connected components inside this cube, as FFN's reference artifact is (the LSD authors'
+# ffn_11_micron_roi_masked_ffn_relabelled).
+
+task_name = "zebrafinch_neurite_tracing_11um"
+
+[data.test]
+config_path = "data/test.yaml"
+
+[data.fit]
+config_path = "data/fit.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "skeleton"
+skeleton_name = "skeletons/{volume}.pkl"   # inside each volume's store (the data YAML's `path`), {volume} = its name
+
+[postprocess]
+name = "identity"
+
+[metric]
+names = ["skeleton_erl"]
+rank_by = "skeleton_erl"

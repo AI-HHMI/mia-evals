@@ -145,4 +145,14 @@ class BaseTask(abc.ABC):
             "ignore_id": artifact.ignore_id,
             "background_id": 0 if artifact.background_id is None else artifact.background_id,
             "volume": volume.name,
+            "axes": artifact.axes,
         }
+
+    def truth_digest(self, volume: Volume) -> str | None:
+        """A content hash of this volume's ground truth, when it is one file; None otherwise.
+
+        Recorded per volume and compared as part of the task's identity, so ground truth that was
+        rebuilt differently cannot join a table scored against the old one. A label array is not
+        hashed (terabytes, and its store path and key already name it); a skeleton file is.
+        """
+        return None

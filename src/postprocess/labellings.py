@@ -37,6 +37,13 @@ class Identity(BasePostprocess):
         # right thing, and at these volumes an unnecessary cast is tens of gigabytes.
         return array
 
+    def lazy(self, artifact: Any, origin: tuple[int, ...], shape: tuple[int, ...],
+             **params: Any) -> Any:
+        """The stored labelling itself, read only where a point-lookup metric looks."""
+        from artifact import LazyLabelling
+
+        return LazyLabelling(artifact, origin, shape)
+
 
 @PostprocessRegistry.register("argmax")
 class Argmax(BasePostprocess):

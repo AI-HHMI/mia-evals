@@ -1,0 +1,32 @@
+# zebrafinch_neurite_tracing from a finished segmentation -- FFN's reference row, or anyone's labelling.
+#
+# The protocol is the LSD paper's (Supplementary Note D.4; the authors' 05_evaluate_annotations_zfinch_masked.py).
+# The ground truth's nodes -- inside the region and the FFN neuropil mask, relabelled into connected components --
+# are looked up in the labelling. funlib's expected run length is computed over those components, a segment that
+# touches two of them making all its edges wrong. nERL divides by what a perfect segmentation scores (240.66 um
+# here), and VOI is over nodes. A labelling must therefore itself be restricted to the neuropil mask and relabelled
+# into connected components inside the region, as FFN's reference artifact is (the LSD authors' own
+# ffn_benchmark_roi_masked_ffn_relabelled); at this size the scorer does not do it for you.
+#
+# Scored lazily: with `identity` and `skeleton_erl` the 478-gigavoxel region is never read, only the chunks the
+# skeleton's nodes touch.
+
+task_name = "zebrafinch_neurite_tracing"
+
+[data.test]
+config_path = "data/test.yaml"
+
+[data.fit]
+config_path = "data/fit.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "skeleton"
+skeleton_name = "skeletons/{volume}.pkl"   # inside each volume's store (the data YAML's `path`), {volume} = its name
+
+[postprocess]
+name = "identity"
+
+[metric]
+names = ["skeleton_erl"]
+rank_by = "skeleton_erl"

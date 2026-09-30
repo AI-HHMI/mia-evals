@@ -7,6 +7,7 @@ shared, and lives in the postprocess and metric registries.
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -91,6 +92,23 @@ class InstanceSegmentation(BaseTask):
         """`<volume>.gt.zarr` beside the prediction."""
         return artifact.path.parent / f"{volume.name}.gt.zarr"
 
+    def skeleton_path(self, volume: Volume) -> Path:
+        """The volume's skeleton, relative to its store: `skeleton_name` with `{volume}` filled in.
+
+        One file per store was enough for NISB (`skeleton.pkl` in each cube). A store scored as
+        several volumes -- the zebrafinch regions, each with test and validation skeletons -- holds
+        one file per volume, e.g. `skeletons/{volume}.pkl`.
+        """
+        return volume.path / self.skeleton_name.format(volume=volume.name)
+
+    def truth_digest(self, volume: Volume) -> str | None:
+        if self.truth_kind != "skeleton":
+            return None
+        path = self.skeleton_path(volume)
+        if not path.is_file():
+            return None
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
     def ground_truth(self, volume: Volume, artifact: Artifact) -> Any:
         if self.truth_kind == "instances_resampled":
             from artifact import open_artifact
@@ -118,12 +136,12 @@ class InstanceSegmentation(BaseTask):
                     )
             return truth.load()
         if self.truth_kind == "skeleton":
-            path = volume.path / self.skeleton_name
+            path = self.skeleton_path(volume)
             if not path.is_file():
                 raise FileNotFoundError(
-                    f"volume {volume.name!r} has no {self.skeleton_name} at {path}. NISB cubes "
-                    "carry one inside the zarr group; volumes with dense voxel truth instead need "
-                    'truth_kind = "instances".'
+                    f"volume {volume.name!r} has no skeleton at {path} (skeleton_name = "
+                    f"{self.skeleton_name!r}, relative to the volume's store). Volumes with dense "
+                    'voxel truth instead need truth_kind = "instances".'
                 )
             return path
         origin, shape = self.region(volume, artifact)

@@ -1,0 +1,26 @@
+# hemibrain_eb_neurite_tracing from a finished segmentation -- FFN's reference rows, or anyone's labelling.
+#
+# The zebrafinch tasks' protocol on the LSD paper's hemibrain regions: the skeleton pieces derived from the
+# whitelisted proofread neurons are looked up in the labelling, funlib's expected run length is computed over them
+# (a segment touching two pieces makes all its edges wrong), nERL divides by what a perfect segmentation scores, and
+# VOI is over nodes; the three regions are averaged unweighted. A labelling must be restricted to the ellipsoid
+# body (labels/eb_mask in each store) and relabelled into connected components inside the region, as FFN's
+# reference artifacts are; the scorer does not do it for you. The paper itself reported only voxel VOI here, so
+# these run lengths have no published counterpart.
+
+task_name = "hemibrain_eb_neurite_tracing"
+
+[data]
+config_path = "data/test.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "skeleton"
+skeleton_name = "skeletons/{volume}.pkl"   # inside each volume's store (the data YAML's `path`), {volume} = its name
+
+[postprocess]
+name = "identity"
+
+[metric]
+names = ["skeleton_erl"]
+rank_by = "skeleton_erl"

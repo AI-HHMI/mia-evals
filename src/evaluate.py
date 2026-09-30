@@ -218,12 +218,17 @@ def score_once(
     With `keep`, each volume's post-processed labelling -- the voxels actually scored -- is
     written to `keep/<volume>.zarr` (`artifact.write_scored`) and named in the regions, so a
     viewer can show what the number was computed on rather than the producer's raw output.
+
+    When every metric only looks the labelling up at points (`point_lookups`, a skeleton's nodes)
+    and the post-processor can hand the stored labelling over unread (`lazy`, `identity`), the
+    region is never loaded. The scored labelling is then the artifact itself and is not copied.
     """
     for metric in metric_objects.values():
         # A metric that accumulates must start clean for each candidate, or the second candidate
         # scores against the first one's counts as well as its own.
         if metric.accumulates and hasattr(metric, "reset"):
             metric.reset()
+    points_only = all(metric.point_lookups for metric in metric_objects.values())
 
     per_volume: dict[str, dict[str, dict[str, float]]] = {}
     regions: dict[str, Any] = {}
@@ -232,9 +237,11 @@ def score_once(
         origin, shape = task.region(volume, artifact)
         context = task.context(volume, artifact)
         context["scratch_dir"] = scratch / volume.name
-        prediction = processor(
-            artifact.read(origin, shape, processor.reads_channels()), **params
-        )
+        prediction = processor.lazy(artifact, origin, shape, **params) if points_only else None
+        if prediction is None:
+            prediction = processor(
+                artifact.read(origin, shape, processor.reads_channels()), **params
+            )
         truth = task.ground_truth(volume, artifact)
         regions[volume.name] = {
             "origin": list(origin), "shape": list(shape),
@@ -247,12 +254,17 @@ def score_once(
             # implementation ran and how long it took. Provenance only: no score depends on it.
             regions[volume.name]["postprocess_run"] = run
         if keep is not None and task.canonical == "instances":
-            keep.mkdir(parents=True, exist_ok=True)
-            regions[volume.name]["scored_artifact"] = str(write_scored(
-                keep / f"{volume.name}.zarr", prediction, artifact, origin,
-                convention=processor.describe(params),
-                postprocess={"name": type(processor).__name__, "params": params},
-            ))
+            if isinstance(prediction, np.ndarray):
+                keep.mkdir(parents=True, exist_ok=True)
+                regions[volume.name]["scored_artifact"] = str(write_scored(
+                    keep / f"{volume.name}.zarr", prediction, artifact, origin,
+                    convention=processor.describe(params),
+                    postprocess={"name": type(processor).__name__, "params": params},
+                ))
+            else:
+                # Scored lazily, so nothing was computed: the voxels scored are the artifact's own,
+                # and a copy of a 478-gigavoxel labelling would be terabytes of duplicate.
+                regions[volume.name]["scored_artifact"] = str(artifact.path)
         per_volume[volume.name] = {
             name: metric(prediction, truth, **context)
             for name, metric in metric_objects.items()
@@ -353,6 +365,14 @@ def cmd_score(args: argparse.Namespace) -> None:
     print(f"  {config.rank_by}.{ranking_metric.primary} = {value:.4f} "
           f"(unweighted mean over {len(per_volume)} volumes)", flush=True)
 
+    # A skeleton's content hash is part of what the task *is* (`report.record.task_identity`), so
+    # ground truth rebuilt differently cannot join a table scored against the old one.
+    record_config = config.as_record()
+    for entry, volume in zip(record_config["volumes"], config.volumes, strict=True):
+        digest = task.truth_digest(volume)
+        if digest is not None:
+            entry["truth_sha256"] = digest
+
     submission = Submission(
         task_name=config.task_name,
         producer={
@@ -385,7 +405,7 @@ def cmd_score(args: argparse.Namespace) -> None:
             "scored_artifacts": scored,
         },
         region=region,
-        config=config.as_record(),
+        config=record_config,
         provenance=_provenance(args, representative),
         route=config.route,
     )

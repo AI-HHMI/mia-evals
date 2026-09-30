@@ -95,6 +95,16 @@ class BasePostprocess(abc.ABC):
         """How the most recent call computed its result, for the record; None if nothing to say."""
         return None
 
+    def lazy(self, artifact: Any, origin: tuple[int, ...], shape: tuple[int, ...],
+             **params: Any) -> Any:
+        """This region's labelling without reading it, or None when that is impossible.
+
+        Only a post-processor that leaves the stored values as they are can do this -- `identity` --
+        because anything computed from the values has to read them. The runner asks only when every
+        metric declares `point_lookups`, and falls back to `__call__` on None.
+        """
+        return None
+
     @abc.abstractmethod
     def __call__(self, array: np.ndarray, **params: Any) -> np.ndarray:
         """Prediction -> (*spatial) integer labelling. `params` comes from `search_space()`."""

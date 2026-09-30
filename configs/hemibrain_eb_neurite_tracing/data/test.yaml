@@ -1,0 +1,42 @@
+# hemibrain_eb_neurite_tracing -- the LSD paper's three hemibrain test regions in the ellipsoid body, reported as [data].
+#
+# Sheridan et al. 2023 (Nat Methods 20:295, Supplementary Note E): cubes of 12, 22 and 17 um (the release's roi_1,
+# roi_2, roi_3) at 8 nm, 3.2, 20.2 and 9.3 gigavoxels. Each store is mia-evals' wrapper over the region's release
+# arrays (`python -m truth.lsd_hemibrain`; its manifest.json says what was built from what): `raw` is the release's
+# own raw -- the scored core plus a context margin around it -- and each bounding box below is that core in raw's
+# voxels. The ground truth is skeletons/<volume>.pkl in the store, derived from the release's whitelisted proofread
+# neurons (consolidated_ids) and asserted to lie inside them. No validation set exists (the paper chose thresholds on
+# test), so nothing is fitted: every route of this task has a single candidate.
+#
+# Axes are the stores' own, z, y, x -- output_axes lczyx -- as for the zebrafinch tasks. These regions lie inside
+# lmd's ellipsoid-body crop and largely inside gary_comparison's training blocks (roi_1 entirely): a model trained
+# with that crop's labels has seen this ground truth.
+
+resolutions: [[8.0, 8.0, 8.0]]
+patch_size: [256, 256, 256]   # read by mia-train's predict.py, which requires the model's own: set it first
+output_axes: lczyx
+samples_per_epoch: 1000
+defer_image_ops: true   # irrelevant for scoring; kept so the rule holds for every miao config
+
+volumes:
+  - name: hemibrain_eb_roi_1          # 12 um: 1475^3 core inside a 1875^3 raw
+    path: /groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/roi_1.zarr
+    image_key: raw
+    zarr_version: zarr2
+    bounding_box: [[200, 1675], [200, 1675], [200, 1675]]
+    weight: 1.0
+    normalize: true   # uint8 on disk, so this maps to [0, 1] by dtype max
+  - name: hemibrain_eb_roi_2          # 22 um: 2725^3 core inside a 3125^3 raw
+    path: /groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/roi_2.zarr
+    image_key: raw
+    zarr_version: zarr2
+    bounding_box: [[200, 2925], [200, 2925], [200, 2925]]
+    weight: 1.0
+    normalize: true
+  - name: hemibrain_eb_roi_3          # 17 um: 2100^3 core inside a 2500^3 raw, 210 voxels in along z
+    path: /groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/roi_3.zarr
+    image_key: raw
+    zarr_version: zarr2
+    bounding_box: [[210, 2310], [200, 2300], [200, 2300]]
+    weight: 1.0
+    normalize: true

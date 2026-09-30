@@ -1,0 +1,21 @@
+# zebrafinch_neurite_tracing_11um -- the validation skeletons in the same 10.8 um cube, as [data.fit].
+#
+# Same store and box as test.yaml, different neurons, as for the benchmark region (see
+# ../zebrafinch_neurite_tracing/data/fit.yaml for why that is the published protocol). Only 5 of the 12
+# validation skeletons reach this cube: skeletons/zebrafinch_11um_val.pkl, 12 pieces, 528 nodes, 0.09 mm --
+# too little to choose a threshold on reliably, which matters only once a route has more than one candidate.
+
+resolutions: [[20.0, 9.0, 9.0]]
+patch_size: [128, 256, 256]   # read by mia-train's predict.py, which requires the model's own: set it first
+output_axes: lczyx
+samples_per_epoch: 1000
+defer_image_ops: true   # irrelevant for scoring; kept so the rule holds for every miao config
+
+volumes:
+  - name: zebrafinch_11um_val
+    path: /groups/miaai/miaai/mia-evals-data/zebrafinch_j0126/zebrafinch_j0126.zarr
+    image_key: raw
+    zarr_version: zarr2
+    bounding_box: [[2540, 3080], [4800, 6000], [4900, 6100]]
+    weight: 1.0
+    normalize: true   # uint8 on disk, so this maps to [0, 1] by dtype max

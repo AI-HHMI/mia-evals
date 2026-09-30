@@ -34,6 +34,8 @@ read.
 
 from __future__ import annotations
 
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -81,6 +83,11 @@ class Artifact:
     attrs: dict[str, Any] = field(default_factory=dict)
     #: The array inside a single-level OME-Zarr group, or None when `path` is the array itself.
     array_path: Path | None = None
+    #: Spatial axis names in storage order, e.g. "zyx", from the group's OME `multiscales`; None for
+    #: a bare array, which declares none. A skeleton states the order its node positions count in,
+    #: and the two are compared before any node is looked up: transposed, every lookup still lands
+    #: on a real voxel and the score is plausible nonsense.
+    axes: str | None = None
 
     @property
     def canonical(self) -> str:
@@ -173,9 +180,11 @@ def open_artifact(path: str | Path) -> Artifact:
     store = zarr.open(str(path), mode="r")
     array_path: Path | None = None
     attrs: dict[str, Any]
+    axes: str | None = None
     if hasattr(store, "shape"):
         attrs = dict(store.attrs)
     else:
+        axes = spatial_axes(dict(store.attrs))
         level = single_level(store)
         if level is None:
             # A zarr *group* with several (or no) levels, most likely a multiscale OME-Zarr
@@ -250,7 +259,98 @@ def open_artifact(path: str | Path) -> Artifact:
         convention=str(attrs.get("convention", "")),
         attrs=attrs,
         array_path=array_path,
+        axes=axes,
     )
+
+
+def spatial_axes(group_attrs: dict[str, Any]) -> str | None:
+    """"zyx"-style names of an OME group's spatial axes, in storage order; None if it names none."""
+    ome = group_attrs.get("ome") if isinstance(group_attrs.get("ome"), dict) else group_attrs
+    scales = ome.get("multiscales") if isinstance(ome, dict) else None
+    if not isinstance(scales, list) or not scales or not isinstance(scales[0], dict):
+        return None
+    names = [
+        str(axis.get("name")) for axis in scales[0].get("axes") or []
+        if isinstance(axis, dict) and axis.get("type") != "channel"
+    ]
+    return "".join(names) if names and all(len(n) == 1 for n in names) else None
+
+
+class LazyLabelling:
+    """A stored labelling over one region, read only where a metric looks at it.
+
+    `score_once` hands this, instead of an array, to metrics that need the labelling at a few
+    points -- a skeleton's nodes -- when the post-processor leaves the stored values untouched
+    (`identity`). The zebrafinch benchmark region is 478 gigavoxels, 3.8 TB as uint64, while its
+    431,659 skeleton nodes touch a few thousand chunks. `lookup` reads each of those chunks once;
+    anything that would need the whole array (`np.asarray`) is refused, so pairing this with a voxel
+    metric fails at once instead of trying to allocate terabytes.
+    """
+
+    def __init__(self, artifact: Artifact, origin: tuple[int, ...], shape: tuple[int, ...],
+                 workers: int = 16) -> None:
+        if not artifact.is_labelling:
+            raise ValueError(f"{artifact.path} is kind={artifact.kind!r}, not a labelling")
+        self.artifact = artifact
+        self.origin = tuple(int(o) for o in origin)
+        self.shape = tuple(int(s) for s in shape)
+        self.ndim = len(self.shape)
+        self.workers = int(workers)
+        #: Region-local voxel + this = artifact-local voxel.
+        self._offset = np.asarray(self.origin, dtype=np.int64) - np.asarray(artifact.origin)
+        high = self._offset + np.asarray(self.shape)
+        if np.any(self._offset < 0) or np.any(high > np.asarray(artifact.spatial_shape)):
+            raise ValueError(
+                f"region at {self.origin} of shape {self.shape} is not inside {artifact.path}, "
+                f"which covers origin {artifact.origin}, shape {artifact.spatial_shape}"
+            )
+        self._local = threading.local()
+
+    def _store(self) -> Any:
+        store = getattr(self._local, "store", None)
+        if store is None:
+            store = self._local.store = self.artifact._store()
+        return store
+
+    @property
+    def dtype(self) -> np.dtype:
+        return np.dtype(self._store().dtype)
+
+    def __array__(self, *args: Any, **kwargs: Any) -> np.ndarray:
+        raise TypeError(
+            f"refusing to materialise the lazily scored labelling {self.artifact.path} "
+            f"({int(np.prod(self.shape)):,} voxels): only point lookups are supported"
+        )
+
+    def lookup(self, points: np.ndarray) -> np.ndarray:
+        """The label at each region-local integer point, `(N, ndim)`; each chunk is read once."""
+        points = np.asarray(points, dtype=np.int64).reshape(-1, self.ndim)
+        if points.shape[0] == 0:
+            return np.zeros(0, dtype=self.dtype)
+        if np.any(points < 0) or np.any(points >= np.asarray(self.shape)):
+            raise IndexError(f"points fall outside the region of shape {self.shape}")
+        local = points + self._offset
+        store = self._store()
+        chunks = np.asarray(store.chunks, dtype=np.int64)
+        extent = np.asarray(store.shape, dtype=np.int64)
+        keys = local // chunks
+        order = np.lexsort(keys.T[::-1])
+        ordered = keys[order]
+        starts = np.flatnonzero(np.r_[True, np.any(np.diff(ordered, axis=0) != 0, axis=1)])
+        ends = np.r_[starts[1:], len(order)]
+        out = np.empty(points.shape[0], dtype=store.dtype)
+
+        def read(run: int) -> None:
+            low = ordered[starts[run]] * chunks
+            high = np.minimum(low + chunks, extent)
+            window = tuple(slice(a, b) for a, b in zip(low, high, strict=True))
+            block = np.asarray(self._store()[window])
+            members = order[starts[run]:ends[run]]
+            out[members] = block[tuple((local[members] - low).T)]
+
+        with ThreadPoolExecutor(max_workers=self.workers) as pool:
+            list(pool.map(read, range(len(starts))))
+        return out
 
 
 def write_scored(
