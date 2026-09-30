@@ -3,25 +3,21 @@
 `mia-evals` scores model predictions on volumetric instance and semantic segmentation tasks, and maintains a per-task
 leaderboard of the results.
 
-The central idea is that `mia-evals` scores model predictions, not models themselves. Whatever produced a prediction
-writes it to disk as a self-describing Zarr array (bare, or the single level of an OME-Zarr
-group that also records where it sits in the volume) called a **prediction artifact**, and `mia-evals`
-reads that artifact and scores it. Nothing in this repository imports `torch`, loads a checkpoint,
-or rebuilds a network. A segmentation produced by a collaborator, a published tool, or a manual
-proofreading pass is therefore a first-class submission, on exactly the same footing as one of our
-own models.
+The central idea is that `mia-evals` scores model predictions and it does not have to know anything about
+the model that generated those predictions. Model predictions must be saved in a self-describing Zarr array 
+called a **prediction artifact**, and `mia-evals` simply reads that artifact and scores it. 
+Nothing in this repository imports `torch`, loads a checkpoint, or rebuilds a network. 
+A segmentation produced by a collaborator, a published tool, or a manual proofreading pass is therefore 
+a first-class submission, on exactly the same footing as one of our own models.
 
-[`mia-train`](https://github.com/AI-HHMI/mia-train) is the sister repository that trains models and
-writes prediction artifacts. Both repositories read data through
-[`miao`](https://pypi.org/project/miao-io/).
-
-The prediction artifact is the whole interface between the two repositories. `mia-train` trains a
-model and runs inference with it, writing the result to a Zarr array. `mia-evals` picks that array
-up and does everything afterwards: post-processing it into a labelling, scoring that labelling
+[`mia-train`](https://github.com/AI-HHMI/mia-train) is our sister repository that trains models and
+writes prediction artifacts. The prediction artifact is the whole interface between the two repositories. 
+`mia-train` trains a model and runs inference with it, writing the result to a Zarr array. `mia-evals` then 
+picks up that array and does everything afterwards: post-processing it into a labelling, scoring that labelling
 against ground truth, writing a record, and rendering the leaderboard.
 
-Because the boundary is a file on disk rather than a Python API, the two sides are installed, run,
-and versioned independently, and neither needs to import the other.
+Prediction artifacts do not have to be generated via `mia-train` as long as they satisfy a few basic requirements
+(see [below](#prediction-artifacts)).
 
 ## Installation
 
@@ -43,25 +39,11 @@ pip install -e '.[dev]'
 
 The `skeleton_erl` metric computes expected run length through
 [`funlib.evaluate`](https://github.com/funkelab/funlib.evaluate), which is not on PyPI and cannot be
-declared as a normal dependency. Install it explicitly if you need skeleton scoring:
+declared as a normal dependency. So, if you need to do skeleton scoring, install it explicitly:
 
 ```bash
 pip install cython scipy
 pip install --no-build-isolation git+https://github.com/funkelab/funlib.evaluate.git
-```
-
-Everything except `skeleton_erl` works without it. The import is lazy, so its absence is only felt
-if you actually run that metric, and the tests that need it skip themselves.
-
-### Building benchmark data
-
-Scoring never needs this. The `src/truth/` modules build a task's benchmark data once from a public
-release -- OME-Zarr wrappers over its arrays and the ground truth derived from them -- as
-`python -m truth.<dataset> --out <dir>` (e.g. `truth.lsd_zebrafinch` for the zebrafinch neurite
-tracing tasks). They need the `[truth]` extra:
-
-```bash
-pip install -e '.[truth]'
 ```
 
 ### Verifying an installation
