@@ -133,22 +133,22 @@ def _group_table(group: list[Submission], shares: dict[str, str] | None, show_tr
                 if column not in columns and inner in submission.scores[name]:
                     columns.append(column)
 
-    head = ["model", "scored", "links", "postprocess", *(["truth"] if show_truth else []),
-            f"{ranked} ({'higher' if higher else 'lower'} is better)", *columns[1:]]
+    head = ["scored", f"{ranked} ({'higher' if higher else 'lower'} is better)", *columns[1:],
+            "model", "postprocess", *(["truth"] if show_truth else []), "links"]
     rows = []
     for submission in group:
-        cells = [
-            f"<td>{escape(submission.identifier())}</td>",
-            _date_cell(submission),
-            f"<td>{_links(submission, shares)}</td>",
-            f"<td>{escape(str(submission.postprocess.get('describe', '—')))}</td>",
-            *([f"<td>{escape(_truth_kind(submission))}</td>"] if show_truth else []),
-        ]
+        cells = [_date_cell(submission)]
         for column in columns:
             name, _, inner = column.partition(".")
             value = submission.scores.get(name, {}).get(inner)
             data = "" if value is None else f' data-v="{value}"'
             cells.append(f'<td class="n"{data}>{_cell(value)}</td>')
+        cells += [
+            f"<td>{escape(submission.identifier())}</td>",
+            f"<td>{escape(str(submission.postprocess.get('describe', '—')))}</td>",
+            *([f"<td>{escape(_truth_kind(submission))}</td>"] if show_truth else []),
+            f"<td>{_links(submission, shares)}</td>",
+        ]
         rows.append("<tr>" + "".join(cells) + "</tr>")
     header = "".join(f"<th>{escape(h)}</th>" for h in head)
     table = f"<table><thead><tr>{header}</tr></thead><tbody>{''.join(rows)}</tbody></table>"
