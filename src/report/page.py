@@ -7,7 +7,6 @@ metric is the initial order.
 
 from __future__ import annotations
 
-import re
 from datetime import datetime
 from html import escape
 from pathlib import Path
@@ -65,18 +64,14 @@ for (const th of document.querySelectorAll("th")) th.onclick = () => {{
 """
 
 
-def _run_time(submission: Submission) -> datetime | None:
-    """When the producing run was launched, from the `_YYYYMMDD_HHMMSS` its name ends in.
-
-    Records store no scoring time, so this is the closest date they carry.
-    """
-    match = re.search(r"_(\d{8}_\d{6})$", str(submission.producer.get("run", "")))
-    return datetime.strptime(match.group(1), "%Y%m%d_%H%M%S") if match else None
+def _scored_time(submission: Submission) -> datetime | None:
+    """When the record was scored, or None if unknown."""
+    return datetime.fromisoformat(submission.scored_at) if submission.scored_at else None
 
 
 def _plot(group: list[Submission], label: str) -> str:
-    """Scatter of the ranking score against run date, as inline SVG."""
-    points = [(t, s.ranking["value"], s.identifier()) for s in group if (t := _run_time(s))]
+    """Scatter of the ranking score against scoring date, as inline SVG."""
+    points = [(t, s.ranking["value"], s.identifier()) for s in group if (t := _scored_time(s))]
     if len(points) < 2:
         return ""
     width, height, left, right, top, bottom = 640, 260, 60, 20, 20, 40
@@ -97,7 +92,7 @@ def _plot(group: list[Submission], label: str) -> str:
         f'<text x="{left}" y="{height - bottom + 16}">{t0:%Y-%m-%d}</text>'
         f'<text x="{width - right}" y="{height - bottom + 16}" text-anchor="end">{t1:%Y-%m-%d}</text>'
         f'<text x="{(left + width - right) / 2}" y="{height - 6}" text-anchor="middle">'
-        f'run date vs {escape(label)}</text>{dots}</svg>'
+        f'scoring date vs {escape(label)}</text>{dots}</svg>'
     )
 
 
@@ -118,7 +113,7 @@ def _links(submission: Submission, shares: dict[str, str] | None) -> str:
 
 
 def _date_cell(submission: Submission) -> str:
-    time = _run_time(submission)
+    time = _scored_time(submission)
     return "<td>—</td>" if time is None else f'<td data-v="{time.timestamp()}">{time:%Y-%m-%d}</td>'
 
 
@@ -138,7 +133,7 @@ def _group_table(group: list[Submission], shares: dict[str, str] | None, show_tr
                 if column not in columns and inner in submission.scores[name]:
                     columns.append(column)
 
-    head = ["model", "run date", "links", "postprocess", *(["truth"] if show_truth else []),
+    head = ["model", "scored", "links", "postprocess", *(["truth"] if show_truth else []),
             f"{ranked} ({'higher' if higher else 'lower'} is better)", *columns[1:]]
     rows = []
     for submission in group:
