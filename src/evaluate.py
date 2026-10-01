@@ -262,9 +262,10 @@ def score_once(
                     postprocess={"name": type(processor).__name__, "params": params},
                 ))
             else:
-                # Scored lazily, so nothing was computed: the voxels scored are the artifact's own,
-                # and a copy of a 478-gigavoxel labelling would be terabytes of duplicate.
-                regions[volume.name]["scored_artifact"] = str(artifact.path)
+                # Scored lazily: the voxels scored are the stored labelling's own -- the artifact
+                # itself for `identity`, the one `mws_blockwise` built on disk -- and a copy of a
+                # 478-gigavoxel labelling would be terabytes of duplicate.
+                regions[volume.name]["scored_artifact"] = str(prediction.artifact.path)
         per_volume[volume.name] = {
             name: metric(prediction, truth, **context)
             for name, metric in metric_objects.items()

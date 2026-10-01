@@ -1,0 +1,346 @@
+{
+  "task_name": "hemibrain_eb_neurite_tracing",
+  "producer": {
+    "artifacts": {
+      "hemibrain_eb_roi_1": "/groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/ffn_januszewski2018/hemibrain_eb_roi_1.zarr",
+      "hemibrain_eb_roi_2": "/groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/ffn_januszewski2018/hemibrain_eb_roi_2.zarr",
+      "hemibrain_eb_roi_3": "/groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/ffn_januszewski2018/hemibrain_eb_roi_3.zarr"
+    },
+    "run": "ffn_januszewski2018",
+    "step": null,
+    "kind": "instances",
+    "convention": "FFN segmentation of the hemibrain (Januszewski et al. 2018; Scheffer et al. 2020), cropped to the region's core, restricted to the ellipsoid body and relabelled into connected components, as released by Sheridan et al. 2023 (FFN/roi_1/consolidated_ids)",
+    "artifact_attrs": {
+      "background_id": 0,
+      "convention": "FFN segmentation of the hemibrain (Januszewski et al. 2018; Scheffer et al. 2020), cropped to the region's core, restricted to the ellipsoid body and relabelled into connected components, as released by Sheridan et al. 2023 (FFN/roi_1/consolidated_ids)",
+      "covers_full_box": true,
+      "kind": "instances",
+      "mask": "labels/eb_mask",
+      "multiscales": [
+        {
+          "axes": [
+            {
+              "name": "z",
+              "type": "space",
+              "unit": "nanometer"
+            },
+            {
+              "name": "y",
+              "type": "space",
+              "unit": "nanometer"
+            },
+            {
+              "name": "x",
+              "type": "space",
+              "unit": "nanometer"
+            }
+          ],
+          "datasets": [
+            {
+              "coordinateTransformations": [
+                {
+                  "scale": [
+                    8.0,
+                    8.0,
+                    8.0
+                  ],
+                  "type": "scale"
+                },
+                {
+                  "translation": [
+                    140800.0,
+                    205120.0,
+                    198400.0
+                  ],
+                  "type": "translation"
+                }
+              ],
+              "path": "s0"
+            }
+          ],
+          "name": "ffn_januszewski2018 roi_1",
+          "version": "0.4"
+        }
+      ],
+      "origin": [
+        200,
+        200,
+        200
+      ],
+      "run": "ffn_januszewski2018",
+      "source_image_key": "raw",
+      "source_path": "/groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/roi_1.zarr",
+      "source_segmentation": "/nrs/funke/sheridana/lsd_data_upload/hemi/testing/segmentations/data.zarr/volumes/FFN/roi_1/consolidated_ids",
+      "offset": [
+        140800,
+        205120,
+        198400
+      ],
+      "resolution": [
+        8,
+        8,
+        8
+      ]
+    }
+  },
+  "scores": {
+    "skeleton_erl": {
+      "erl": 66075.32942708333,
+      "erl_um": 66.07532942708333,
+      "max_erl": 80280.41015625,
+      "max_erl_um": 80.28041015625,
+      "n_mergers": 13.666666666666666,
+      "n_non0_mergers": 13.666666666666666,
+      "n_splits": 125.66666666666667,
+      "nerl": 0.8254755934079488,
+      "nerl_100": 0.8331659436225891,
+      "nerl_20": 0.8257801135381063,
+      "nerl_5": 0.8254755934079488,
+      "nerl_inf": 0.8578125834465027,
+      "skeleton_nodes": 97545.66666666667,
+      "skeleton_nodes_full": 97545.66666666667,
+      "voi_merge": 0.032847950566620376,
+      "voi_split": 0.2473141195969868,
+      "voi_sum": 0.28016207016360717,
+      "whole_region": 1.0,
+      "volumes_scored": 3.0
+    }
+  },
+  "ranking": {
+    "metric": "skeleton_erl",
+    "key": "nerl",
+    "value": 0.8254755934079488,
+    "higher_is_better": true
+  },
+  "postprocess": {
+    "name": "identity",
+    "params": {},
+    "describe": "Identity",
+    "fitted_on": null,
+    "fitted_on_data_config": null,
+    "validation_scores": {},
+    "scored_artifacts": {
+      "hemibrain_eb_roi_1": "/groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/ffn_januszewski2018/hemibrain_eb_roi_1.zarr",
+      "hemibrain_eb_roi_2": "/groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/ffn_januszewski2018/hemibrain_eb_roi_2.zarr",
+      "hemibrain_eb_roi_3": "/groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/ffn_januszewski2018/hemibrain_eb_roi_3.zarr"
+    }
+  },
+  "region": {
+    "volumes": {
+      "hemibrain_eb_roi_1": {
+        "origin": [
+          200,
+          200,
+          200
+        ],
+        "shape": [
+          1475,
+          1475,
+          1475
+        ],
+        "whole_region": true,
+        "artifact": "/groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/ffn_januszewski2018/hemibrain_eb_roi_1.zarr",
+        "scored_artifact": "/groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/ffn_januszewski2018/hemibrain_eb_roi_1.zarr"
+      },
+      "hemibrain_eb_roi_2": {
+        "origin": [
+          200,
+          200,
+          200
+        ],
+        "shape": [
+          2725,
+          2725,
+          2725
+        ],
+        "whole_region": true,
+        "artifact": "/groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/ffn_januszewski2018/hemibrain_eb_roi_2.zarr",
+        "scored_artifact": "/groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/ffn_januszewski2018/hemibrain_eb_roi_2.zarr"
+      },
+      "hemibrain_eb_roi_3": {
+        "origin": [
+          210,
+          200,
+          200
+        ],
+        "shape": [
+          2100,
+          2100,
+          2100
+        ],
+        "whole_region": true,
+        "artifact": "/groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/ffn_januszewski2018/hemibrain_eb_roi_3.zarr",
+        "scored_artifact": "/groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/ffn_januszewski2018/hemibrain_eb_roi_3.zarr"
+      }
+    }
+  },
+  "config": {
+    "task_name": "hemibrain_eb_neurite_tracing",
+    "task": {
+      "name": "instance_seg",
+      "kwargs": {
+        "truth_kind": "skeleton",
+        "skeleton_name": "skeletons/{volume}.pkl"
+      }
+    },
+    "postprocess": {
+      "name": "identity",
+      "kwargs": {}
+    },
+    "metrics": [
+      "skeleton_erl"
+    ],
+    "rank_by": "skeleton_erl",
+    "data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/hemibrain_eb_neurite_tracing/data/test.yaml",
+    "volumes": [
+      {
+        "name": "hemibrain_eb_roi_1",
+        "path": "/groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/roi_1.zarr",
+        "label_key": null,
+        "bounding_box": [
+          [
+            200,
+            1675
+          ],
+          [
+            200,
+            1675
+          ],
+          [
+            200,
+            1675
+          ]
+        ],
+        "truth_sha256": "44bd03df5ae92e4fe00de174e409ce3f40139ab0704c360fd8b45bb003069af5"
+      },
+      {
+        "name": "hemibrain_eb_roi_2",
+        "path": "/groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/roi_2.zarr",
+        "label_key": null,
+        "bounding_box": [
+          [
+            200,
+            2925
+          ],
+          [
+            200,
+            2925
+          ],
+          [
+            200,
+            2925
+          ]
+        ],
+        "truth_sha256": "41204cbe14b081bd2596e39279bb2847f75313c0c0ac479d3aeef2a47e2362e4"
+      },
+      {
+        "name": "hemibrain_eb_roi_3",
+        "path": "/groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/roi_3.zarr",
+        "label_key": null,
+        "bounding_box": [
+          [
+            210,
+            2310
+          ],
+          [
+            200,
+            2300
+          ],
+          [
+            200,
+            2300
+          ]
+        ],
+        "truth_sha256": "2b7274bb2ab3329cc9ae1e6ea60e988bb403bbb74e261928944274d15805d977"
+      }
+    ],
+    "fit_data_config_path": null,
+    "fit_volumes": null,
+    "notes": "",
+    "route": "identity"
+  },
+  "per_volume": {
+    "hemibrain_eb_roi_1": {
+      "skeleton_erl": {
+        "voi_sum": 0.17219071585801515,
+        "voi_split": 0.12362536567200255,
+        "voi_merge": 0.0485653501860126,
+        "erl": 39951.86328125,
+        "max_erl": 45443.14453125,
+        "nerl": 0.8791614770889282,
+        "n_mergers": 8.0,
+        "n_splits": 17.0,
+        "n_non0_mergers": 8.0,
+        "nerl_5": 0.8791614770889282,
+        "nerl_20": 0.8791614770889282,
+        "nerl_100": 0.8793104887008667,
+        "nerl_inf": 0.9237700700759888,
+        "erl_um": 39.95186328125,
+        "max_erl_um": 45.44314453125,
+        "skeleton_nodes": 35616.0,
+        "skeleton_nodes_full": 35616.0,
+        "whole_region": 1.0
+      }
+    },
+    "hemibrain_eb_roi_2": {
+      "skeleton_erl": {
+        "voi_sum": 0.284176975287437,
+        "voi_split": 0.2550050448859782,
+        "voi_merge": 0.029171930401458823,
+        "erl": 101820.9609375,
+        "max_erl": 120007.90625,
+        "nerl": 0.848452091217041,
+        "n_mergers": 16.0,
+        "n_splits": 217.0,
+        "n_non0_mergers": 16.0,
+        "nerl_5": 0.848452091217041,
+        "nerl_20": 0.8493614196777344,
+        "nerl_100": 0.8652526140213013,
+        "nerl_inf": 0.8891884088516235,
+        "erl_um": 101.8209609375,
+        "max_erl_um": 120.00790625,
+        "skeleton_nodes": 160436.0,
+        "skeleton_nodes_full": 160436.0,
+        "whole_region": 1.0
+      }
+    },
+    "hemibrain_eb_roi_3": {
+      "skeleton_erl": {
+        "voi_sum": 0.38411851934536934,
+        "voi_split": 0.36331194823297963,
+        "voi_merge": 0.020806571112389705,
+        "erl": 56453.1640625,
+        "max_erl": 75390.1796875,
+        "nerl": 0.7488132119178772,
+        "n_mergers": 17.0,
+        "n_splits": 143.0,
+        "n_non0_mergers": 17.0,
+        "nerl_5": 0.7488132119178772,
+        "nerl_20": 0.7488174438476562,
+        "nerl_100": 0.7549347281455994,
+        "nerl_inf": 0.7604792714118958,
+        "erl_um": 56.4531640625,
+        "max_erl_um": 75.3901796875,
+        "skeleton_nodes": 96585.0,
+        "skeleton_nodes_full": 96585.0,
+        "whole_region": 1.0
+      }
+    }
+  },
+  "provenance": {
+    "mia_evals_commit": "74b969f4534e659cbff271d7a444dabdb74127c0 (dirty)"
+  },
+  "views": {},
+  "versions": {
+    "python": "3.14.6",
+    "numpy": "2.4.4",
+    "zarr": "3.2.1",
+    "miao": "present",
+    "numba": "0.67.0",
+    "networkx": "3.6.1",
+    "funlib.evaluate": "present"
+  },
+  "schema_version": 1,
+  "label": "",
+  "route": "identity"
+}

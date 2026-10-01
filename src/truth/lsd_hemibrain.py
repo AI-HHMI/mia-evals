@@ -33,8 +33,11 @@ kimimaro runs block by block, as igneous does at scale: whole-region runs alloca
 of an object's bounding box per worker, and these neurons span the region (roi_1 needed 249 GB).
 Blocks overlap by one voxel plane and `fix_borders` puts an object's endpoints on a face where both
 neighbours find them, so each object's pieces join on those shared vertices. A neurite running
-inside a shared plane is traced twice, so smaller blocks add track: on roi_1, 512^3 blocks gave 7%
-more cable than 1024^3 (5.38 against 5.02 mm), hence `BLOCK = 1024`.
+inside a shared plane is traced twice, so blocks add track. Measured on roi_1 against a single
+1536^3 block (no shared planes, 69 GB, 1.6 h serial): 4.77 mm of cable unblocked, 5.02 mm in 1024^3
+blocks, 5.38 mm in 512^3. The extra track inflates ERL and its perfect-segmentation ceiling alike,
+so it barely reaches the ranking number: FFN's roi_1 nERL is 0.8792 on the 1024^3 skeletons and
+0.8809 on the unblocked one, with identical merge and split counts. Hence `BLOCK = 1024`.
 
 **The unit of run length is the ground-truth object**, not a connected piece of its skeleton: every
 node's `id` is its object. LSD relabelled `consolidated_ids` into connected components before

@@ -6,6 +6,7 @@
 | task | entries | table |
 | --- | --- | --- |
 | `gary_comparison_neuron_instance` | 23 | [gary_comparison_neuron_instance/README.md](gary_comparison_neuron_instance/README.md) |
+| `hemibrain_eb_neurite_tracing` | 1 | [hemibrain_eb_neurite_tracing/README.md](hemibrain_eb_neurite_tracing/README.md) |
 | `lmd_ssl_v1_neuron_instance` | 13 | [lmd_ssl_v1_neuron_instance/README.md](lmd_ssl_v1_neuron_instance/README.md) |
 | `lmd_ssl_v1_zebrafish_instance` | 3 | [lmd_ssl_v1_zebrafish_instance/README.md](lmd_ssl_v1_zebrafish_instance/README.md) |
 | `zebrafinch_neurite_tracing` | 1 | [zebrafinch_neurite_tracing/README.md](zebrafinch_neurite_tracing/README.md) |
