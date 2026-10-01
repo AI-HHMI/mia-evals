@@ -44,14 +44,16 @@ import numpy as np
 import zarr
 
 # What a producer may declare, and what each kind promises about its array. `channels` is the
-# leading axis: an int fixes it, "rank*2" means two per spatial axis (the affinity offsets), and
-# None means there is no channel axis at all.
+# leading axis: an int fixes it, "rank|rank*2" means one or two per spatial axis (the short-range
+# affinity offsets alone, or short- then long-range), and None means there is no channel axis at
+# all. Which channel counts a post-processor can use is its own business (`check_artifact`): `mws`
+# needs all of them, `cc_threshold`, `mws3` and `ws_agglo` read only the short-range half.
 #
 # `canonical` is what postprocessing this kind must produce, and it is the narrow waist of the
 # whole design: metrics attach to the canonical form, never to the kind, so nERL neither knows nor
 # cares whether the labelling came from affinities, a watershed, or a file someone sent us.
 KINDS: dict[str, dict[str, Any]] = {
-    "affinity":     {"channels": "rank*2", "canonical": "instances", "floating": True},
+    "affinity":     {"channels": "rank|rank*2", "canonical": "instances", "floating": True},
     "boundary":     {"channels": 1,        "canonical": "instances", "floating": True},
     "embedding":    {"channels": "any",    "canonical": "instances", "floating": True},
     "sdt":          {"channels": 1,        "canonical": "instances", "floating": True},
@@ -157,11 +159,11 @@ def _check_channels(kind: str, shape: tuple[int, ...]) -> tuple[int, ...]:
             f"got shape {shape}"
         )
     channels, spatial = shape[0], shape[1:]
-    if expected == "rank*2" and channels != 2 * len(spatial):
+    if expected == "rank|rank*2" and channels not in (len(spatial), 2 * len(spatial)):
         raise ValueError(
             f"kind='affinity' over {len(spatial)} spatial axes needs {2 * len(spatial)} channels "
-            f"(short-range then long-range, one per axis), got {channels}. A 3-channel array is "
-            "the short-range half only: re-predict with all of them, or declare kind='boundary'."
+            f"(short-range then long-range, one per axis) or {len(spatial)} (the short-range ones "
+            f"only), got {channels}"
         )
     if isinstance(expected, int) and channels != expected:
         raise ValueError(f"kind={kind!r} needs {expected} channel(s), got {channels}")

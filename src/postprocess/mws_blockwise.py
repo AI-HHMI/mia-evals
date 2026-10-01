@@ -65,7 +65,14 @@ import zarr
 from zarr.errors import ContainsArrayError
 
 from .base import BasePostprocess
-from .mws import LONG, LONG_OFFSETS, SHORT_OFFSETS, build_edges, check_offsets
+from .mws import (
+    LONG,
+    LONG_OFFSETS,
+    SHORT_OFFSETS,
+    build_edges,
+    check_offsets,
+    require_long_range,
+)
 from .mws_kernel import EMPTY, finalize, initial_capacities, make_state, run_edges
 from .registry import PostprocessRegistry
 
@@ -722,6 +729,7 @@ class BlockwiseMutexWatershed(BasePostprocess):
         self._last_run: dict[str, Any] | None = None
 
     def check_artifact(self, artifact: Any) -> None:
+        require_long_range(artifact, "mws_blockwise")
         check_offsets(artifact, OFFSETS)
 
     def use_scratch(self, directory: str | Path) -> None:

@@ -42,14 +42,18 @@ def test_labelling_without_background_id_is_rejected(tmp_path):
 
 
 def test_affinity_channel_count_is_checked_against_rank(tmp_path):
-    """Three channels over three axes is the short-range half, not a 3D affinity artifact."""
-    with pytest.raises(ValueError, match="needs 6 channels"):
-        write_artifact(tmp_path / "half.zarr", np.zeros((3, 4, 4, 4), np.float16), "affinity")
+    """Over three axes: six channels (short- then long-range) or three (the short-range half, for
+    the three-channel routes). Any other count is not a 3D affinity artifact."""
+    for channels in (2, 4, 5, 7):
+        with pytest.raises(ValueError, match="needs 6 channels"):
+            write_artifact(tmp_path / f"c{channels}.zarr",
+                           np.zeros((channels, 4, 4, 4), np.float16), "affinity")
 
-    written = write_artifact(
-        tmp_path / "full.zarr", np.zeros((6, 4, 4, 4), np.float16), "affinity"
-    )
-    assert open_artifact(written).channels == 6
+    for channels in (3, 6):
+        written = write_artifact(
+            tmp_path / f"c{channels}.zarr", np.zeros((channels, 4, 4, 4), np.float16), "affinity"
+        )
+        assert open_artifact(written).channels == channels
 
 
 def test_read_uses_absolute_coordinates(tmp_path):

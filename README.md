@@ -176,7 +176,7 @@ labelling arrived as affinities, as a watershed, or as a finished mask from a co
 
 | kind | array shape | post-processors | canonical form |
 | --- | --- | --- | --- |
-| `affinity` | `(2·rank, *spatial)` | `cc_threshold`, `mws` | instance labelling |
+| `affinity` | `(2·rank, *spatial)`, or `(rank, *spatial)` short-range only | `cc_threshold`, `mws` (2·rank only), `mws3`, `ws_agglo` | instance labelling |
 | `instances` | `(*spatial)`, integer | `identity`, `size_filter` | instance labelling |
 | `class_scores` | `(K, *spatial)` | `argmax`, `per_class_threshold` | class labelling |
 | `class_labels` | `(*spatial)`, integer | `identity` | class labelling |
@@ -193,6 +193,8 @@ currently cannot be scored. Adding one is the normal way to extend the repositor
 | --- | --- | --- | --- |
 | `cc_threshold` | `affinity` | instances | `logits`, `min_sizes` |
 | `mws` | `affinity` | instances | `repulsive_strides`, `min_sizes` |
+| `mws3` | `affinity` (reads 3 channels) | instances | `min_sizes`, `fill_distances` |
+| `ws_agglo` | `affinity` (reads 3 channels) | instances | `merge_functions`, `thresholds`, `min_sizes` |
 | `size_filter` | `instances` | instances | `min_sizes` |
 | `identity` | `instances`, `class_labels` | either | none |
 | `argmax` | `class_scores` | classes | none |
@@ -202,6 +204,11 @@ currently cannot be scored. Adding one is the normal way to extend the repositor
 watershed, which uses the long-range affinity channels that a threshold discards and needs no
 threshold at all; it is more accurate on the volumes measured here but far more expensive, and
 `src/postprocess/mws.py` documents both.
+
+`mws3` and `ws_agglo` (branch `three-channel-mws` only) score affinity maps that carry the
+three short-range channels alone: a mutex watershed on the signed nearest-neighbour graph, and
+the LSD paper's watershed fragments plus agglomeration. See
+[docs/scoring_three_channel_affinities.md](docs/scoring_three_channel_affinities.md).
 
 `mws` always runs the compiled kernel (`src/postprocess/mws_kernel.py`). A block with at most
 `max_in_memory_edges` edges, 8 G by default, is watershedded with all its edges in memory, which

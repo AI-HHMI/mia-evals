@@ -1,0 +1,56 @@
+# gary_comparison -- neuron instance segmentation on the test corner of the hemibrain
+# Ellipsoid Body crop, from THREE-CHANNEL (short-range only) affinities through a SIGNED MUTEX
+# WATERSHED and a size filter.
+#
+#   mia-evals score configs/gary_comparison_neuron_instance/mws3.toml \
+#       --test <artifacts>/test --val <artifacts>/fit
+#
+# Branch `three-channel-mws` only, for a model that predicts the three nearest-neighbour affinities
+# and nothing else (docs/scoring_three_channel_affinities.md). Each edge is attractive when its
+# affinity is above 0.5 and repulsive otherwise (src/postprocess/mws3.py), so like `mws` it has no
+# threshold; the size filter and the fill are fitted on the fit block and applied once to the test
+# block. At 896^3: 2.2 G edges, all in memory. LSD's decoder for the same artifacts is `ws_agglo.toml`
+# beside this one. Same task name as `mws.toml`, so the rows rank in one table, with `route` telling
+# them apart in the record name.
+
+task_name = "gary_comparison_neuron_instance"
+route = "mws3"
+
+notes = """
+One volume, one test block: the [4000, 5000)^3 corner of the hemibrain Ellipsoid Body
+crop, scored on its lattice-aligned 896^3 centre. Voxel metrics, not skeleton ones (dense labels,
+no skeletons): panoptic quality ranks; VOI split/merge, SQ, RQ and adapted Rand error are reported.
+
+Post-processing is fitted on a 1000^3 block of the validation slab directly beneath the test
+corner (data/fit.yaml), never on the test block. Models trained on lmd_ssl_v1's finetune
+set saw this volume's central 1024^3, which lies in the train and validation slabs, not in the test
+corner, so they may be scored here as well.
+"""
+
+[data.test]
+config_path = "data/test.yaml"
+
+[data.fit]
+config_path = "data/fit.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "instances_resampled"   # <volume>.gt.zarr beside each prediction
+
+[postprocess]
+name = "mws3"
+# As in mws.toml: pq counts every surviving speck as a false positive, so the filter decides pq.
+# Without 0: the signed watershed leaves every voxel of a predicted membrane a cluster of its own
+# (all its edges repel), so an unfiltered labelling scores pq ~0 and takes the scorer ~21 minutes
+# per candidate at 896^3 (synthetic eroded-label affinities, 2026-10-01).
+min_sizes = [500, 5000, 20000, 50000]
+# Grow the survivors back into the filter's holes, fitted jointly with min_sizes as in
+# mws_fill.toml: a model trained on eroded labels predicts gaps between neurons, and the watershed
+# leaves those voxels as specks the filter deletes. Distance 0 keeps the plain route available.
+# Not "all": it floods true background too, and on synthetic eroded-label affinities it scored
+# 0.59 against fill 1's 0.75 (min_size 500, fit block), at ~12 minutes per filled candidate.
+fill_distances = [0, 1, 2]
+
+[metric]
+names = ["voxel_instance"]
+rank_by = "voxel_instance"        # primary key: pq

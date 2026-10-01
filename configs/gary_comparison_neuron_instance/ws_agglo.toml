@@ -1,0 +1,59 @@
+# gary_comparison -- neuron instance segmentation on the test corner of the hemibrain
+# Ellipsoid Body crop, from THREE-CHANNEL (short-range only) affinities through LSD's decoding:
+# WATERSHED FRAGMENTS, HIERARCHICAL AGGLOMERATION, a threshold and a size filter.
+#
+#   mia-evals score configs/gary_comparison_neuron_instance/ws_agglo.toml \
+#       --test <artifacts>/test --val <artifacts>/fit
+#
+# Branch `three-channel-mws` only (docs/scoring_three_channel_affinities.md). The decoder of the LSD
+# paper (Sheridan et al. 2023) and MALA (Funke et al. 2019), which their networks' nearest-neighbour
+# affinities were tuned for: src/postprocess/ws_agglo.py. Fragments are made once per block with
+# LSD's settings for isotropic FIB-SEM; the merge function, the threshold and the size filter are
+# fitted on the fit block and applied once to the test block. It needs predicted membranes that are
+# low in all three channels -- a model trained on eroded labels (gunpowder's GrowBoundary), as LSD's
+# and MALA's were; on affinities of un-eroded labels it merges touching neurons, and `mws3.toml`
+# beside this one is the route for those. The rows rank in one table with `mws.toml`'s.
+
+task_name = "gary_comparison_neuron_instance"
+route = "ws_agglo"
+
+notes = """
+One volume, one test block: the [4000, 5000)^3 corner of the hemibrain Ellipsoid Body
+crop, scored on its lattice-aligned 896^3 centre. Voxel metrics, not skeleton ones (dense labels,
+no skeletons): panoptic quality ranks; VOI split/merge, SQ, RQ and adapted Rand error are reported.
+
+Post-processing is fitted on a 1000^3 block of the validation slab directly beneath the test
+corner (data/fit.yaml), never on the test block. Models trained on lmd_ssl_v1's finetune
+set saw this volume's central 1024^3, which lies in the train and validation slabs, not in the test
+corner, so they may be scored here as well.
+"""
+
+[data.test]
+config_path = "data/test.yaml"
+
+[data.fit]
+config_path = "data/fit.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "instances_resampled"   # <volume>.gt.zarr beside each prediction
+
+[postprocess]
+name = "ws_agglo"
+# Fragments: LSD's settings (lsd.post.fragments): inside = mean affinity > 0.5, seeds at the maxima
+# of the boundary distance over 10 voxels, flooding the inverted distance. Each extra value here
+# costs a whole fragmentation of the block.
+interiors = [0.5]
+elevations = ["distance"]
+seed_distance = 10
+# The two merge functions LSD used, after MALA: the 50% and 75% quantiles of the face affinities.
+merge_functions = ["hist_quant_50", "hist_quant_75"]
+# In affinity units: a pair is merged while its score is at least the threshold (waterz: 1 - t).
+# Five, not LSD's fifty: every candidate costs the scorer ~3.7 minutes at 896^3 (it re-reads the
+# block and the truth for each), so 2 x 5 x 5 = 50 candidates are ~3 hours of fitting.
+thresholds = [0.1, 0.3, 0.5, 0.7, 0.9]
+min_sizes = [0, 500, 5000, 20000, 50000]
+
+[metric]
+names = ["voxel_instance"]
+rank_by = "voxel_instance"        # primary key: pq

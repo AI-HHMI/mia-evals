@@ -138,6 +138,21 @@ def check_offsets(artifact: Any, expected: tuple[tuple[int, ...], ...]) -> None:
         )
 
 
+def require_long_range(artifact: Any, route: str) -> None:
+    """Refuse a short-range-only affinity artifact: its long-range channels are the repulsive edges.
+
+    The contract admits both (`artifact.KINDS`), so this is the route's check rather than the
+    reader's, made before anything is read.
+    """
+    rank = len(artifact.spatial_shape)
+    if artifact.channels is not None and artifact.channels < 2 * rank:
+        raise ValueError(
+            f"{route} needs all {2 * rank} affinity channels -- the long-range ones are its "
+            f"repulsive edges -- but {artifact.path.name} has {artifact.channels}. Score "
+            "short-range-only affinities with mws3 or ws_agglo (or cc_threshold)."
+        )
+
+
 def count_edges(shape: tuple[int, ...], repulsive_stride: int) -> int:
     """How many edges `build_edges` would emit for this shape and stride, without building them."""
     total = 0
@@ -382,6 +397,7 @@ class MutexWatershed(BasePostprocess):
     CACHE_ENTRIES = 4                      # int64 labellings; 4 x 896^3 is ~23 GB
 
     def check_artifact(self, artifact: Any) -> None:
+        require_long_range(artifact, "mws")
         check_offsets(artifact, SHORT_OFFSETS + LONG_OFFSETS)
 
     def use_scratch(self, directory: str | Path) -> None:
@@ -450,7 +466,7 @@ class MutexWatershed(BasePostprocess):
                 f"mutex watershed needs all six affinity channels -- three attractive and three "
                 f"repulsive -- but this artifact has {array.shape[0]}. With only the short-range "
                 "half there are no repulsive edges, so it would degenerate to connected components "
-                "over the attractive graph; use cc_threshold for that."
+                "over the attractive graph; use mws3 or ws_agglo (or cc_threshold) for that."
             )
         affinities = np.asarray(array, dtype=np.float32)
         stride = int(params["repulsive_stride"])
