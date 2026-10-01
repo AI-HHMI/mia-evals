@@ -786,5 +786,6 @@
   },
   "schema_version": 1,
   "label": "",
-  "route": "cc_threshold_nosizesweep"
+  "route": "cc_threshold_nosizesweep",
+  "scored_at": "2026-09-18T18:35:24-04:00"
 }

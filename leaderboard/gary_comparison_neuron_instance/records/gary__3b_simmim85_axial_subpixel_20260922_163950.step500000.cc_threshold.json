@@ -507,5 +507,6 @@
   },
   "schema_version": 1,
   "label": "",
-  "route": "cc_threshold"
+  "route": "cc_threshold",
+  "scored_at": "2026-09-24T10:47:08-04:00"
 }
