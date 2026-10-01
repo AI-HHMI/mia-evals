@@ -42,6 +42,7 @@ from typing import Any
 import numpy as np
 
 from .base import BasePostprocess
+from .mws import SHORT_OFFSETS, check_offsets
 from .registry import PostprocessRegistry
 from .size_filter import drop_small_components
 
@@ -97,6 +98,9 @@ class ConnectedComponentThreshold(BasePostprocess):
         # Sorted so a sweep is reported in a readable order regardless of how the config lists it.
         self.min_sizes = tuple(sorted({int(v) for v in min_sizes}))
         self.short_range_channels = int(short_range_channels)
+
+    def check_artifact(self, artifact: Any) -> None:
+        check_offsets(artifact, SHORT_OFFSETS)
 
     def reads_channels(self) -> int | None:
         return self.short_range_channels

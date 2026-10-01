@@ -238,3 +238,37 @@ def test_the_speck_the_filter_drops_is_filled_by_its_neighbours(monkeypatch):
     again = processor(affinities, repulsive_stride=1, min_size=2, fill_distance=1)
     assert 9 not in again.ravel().tolist() and len(transforms) == 1
     assert watershed.ravel().tolist() == [1, 1, 1, 3, 2, 2, 2], "the cached watershed must stay intact"
+
+
+def test_affinities_declaring_another_layout_are_refused(tmp_path):
+    """mia-train declares what each affinity channel is (`offsets`, along the store's axes). The
+    routes read channel i as one fixed offset; a different neighbourhood, or the same one in another
+    order -- what a transposed prediction would declare -- must be refused, not watershed as the
+    wrong edges. An artifact declaring nothing is read as before."""
+    from artifact import open_artifact, write_artifact
+    from postprocess.cc_threshold import ConnectedComponentThreshold
+    from postprocess.mws import MutexWatershed
+    from postprocess.mws_blockwise import BlockwiseMutexWatershed
+
+    affinities = np.zeros((6, 4, 4, 4), dtype=np.float16)
+    six = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [10, 0, 0], [0, 10, 0], [0, 0, 10]]
+
+    def stored(name, offsets):
+        attrs = {} if offsets is None else {"offsets": offsets}
+        return open_artifact(write_artifact(tmp_path / f"{name}.zarr", affinities, "affinity",
+                                            **attrs))
+
+    routes = (MutexWatershed(repulsive_strides=[1]), BlockwiseMutexWatershed(),
+              ConnectedComponentThreshold())
+    for processor in routes:
+        processor.check_artifact(stored(f"canonical_{type(processor).__name__}", six))
+        processor.check_artifact(stored(f"undeclared_{type(processor).__name__}", None))
+    swapped = [six[2], six[1], six[0], six[5], six[4], six[3]]
+    eight = six[:3] + [[8, 0, 0], [0, 8, 0], [0, 0, 8]]
+    for processor in routes:
+        with pytest.raises(ValueError, match="reads them as"):
+            processor.check_artifact(stored(f"swapped_{type(processor).__name__}", swapped))
+    for processor in routes[:2]:
+        with pytest.raises(ValueError, match="reads them as"):
+            processor.check_artifact(stored(f"eight_{type(processor).__name__}", eight))
+    routes[2].check_artifact(stored("eight_cc", eight))        # reads the short-range block only

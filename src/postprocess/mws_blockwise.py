@@ -65,7 +65,7 @@ import zarr
 from zarr.errors import ContainsArrayError
 
 from .base import BasePostprocess
-from .mws import LONG, LONG_OFFSETS, SHORT_OFFSETS, build_edges
+from .mws import LONG, LONG_OFFSETS, SHORT_OFFSETS, build_edges, check_offsets
 from .mws_kernel import EMPTY, finalize, initial_capacities, make_state, run_edges
 from .registry import PostprocessRegistry
 
@@ -99,27 +99,33 @@ class Source:
     origin: tuple[int, ...]
     shape: tuple[int, ...]
     mask: str | None = None
+    #: Where the artifact's first voxel sits when not where its own `origin` says (`BaseTask.place`
+    #: moved it): pool processes reopen the artifact by path and must place it the same way.
+    placed_at: tuple[int, ...] | None = None
 
-    def read(self, low: Sequence[int], size: Sequence[int]) -> np.ndarray:
+    def _artifact(self) -> Any:
+        from dataclasses import replace
+
         from artifact import open_artifact
 
         artifact = open_artifact(self.affinities)
-        return artifact.read(tuple(o + lo for o, lo in zip(self.origin, low, strict=True)),
-                             tuple(int(s) for s in size))
+        if self.placed_at is None:
+            return artifact
+        return replace(artifact, origin=tuple(int(o) for o in self.placed_at))
+
+    def read(self, low: Sequence[int], size: Sequence[int]) -> np.ndarray:
+        return self._artifact().read(
+            tuple(o + lo for o, lo in zip(self.origin, low, strict=True)),
+            tuple(int(s) for s in size))
 
     def read_mask(self, low: Sequence[int], size: Sequence[int]) -> np.ndarray | None:
         if self.mask is None:
             return None
-        from artifact import open_artifact
-
-        artifact = open_artifact(self.affinities)
         absolute = [o + lo for o, lo in zip(self.origin, low, strict=True)]
-        return lattice_mask(artifact, Path(self.mask), absolute, size)
+        return lattice_mask(self._artifact(), Path(self.mask), absolute, size)
 
     def describe(self) -> dict[str, Any]:
-        from artifact import open_artifact
-
-        artifact = open_artifact(self.affinities)
+        artifact = self._artifact()
         attrs = json.dumps(artifact.attrs, sort_keys=True, default=str).encode()
         return {"affinities": str(Path(self.affinities).resolve()),
                 "attrs_sha256": hashlib.sha256(attrs).hexdigest(),
@@ -715,6 +721,9 @@ class BlockwiseMutexWatershed(BasePostprocess):
         self._scratch: Path | None = None
         self._last_run: dict[str, Any] | None = None
 
+    def check_artifact(self, artifact: Any) -> None:
+        check_offsets(artifact, OFFSETS)
+
     def use_scratch(self, directory: str | Path) -> None:
         self._scratch = Path(directory)
 
@@ -742,7 +751,8 @@ class BlockwiseMutexWatershed(BasePostprocess):
             raise ValueError("mws_blockwise needs a scratch directory (the scorer's --scratch)")
         name = artifact.path.name
         name = name if name.endswith(".zarr") else f"{name}.zarr"
-        source = Source(str(artifact.path), tuple(origin), tuple(shape), self._mask_path(artifact))
+        source = Source(str(artifact.path), tuple(origin), tuple(shape), self._mask_path(artifact),
+                        placed_at=tuple(artifact.origin))
         path = self._scratch / "mws_blockwise" / f"repulsive_stride{stride}" / name
         path.parent.mkdir(parents=True, exist_ok=True)
         return BlockwiseRun(source, path, self.block, stride, like=artifact,
@@ -823,7 +833,8 @@ def main() -> None:
     for spec, volumes in splits:
         artifacts = resolve_artifacts(spec, volumes)
         for volume in volumes:
-            artifact = artifacts[volume.name]
+            artifact = task.place(artifacts[volume.name])        # as the scorer places it
+            processor.check_artifact(artifact)
             origin, shape = task.region(volume, artifact)
             for params in processor.search_space():
                 processor.blockwise(artifact, origin, shape, params["repulsive_stride"]).run(

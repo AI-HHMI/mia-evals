@@ -1,0 +1,31 @@
+# hemibrain_eb_neurite_tracing from a model's affinities, through blockwise mutex watershed.
+#
+#   mia-evals score configs/hemibrain_eb_neurite_tracing/mws_blockwise.toml --test <affinities> --scratch <dir>
+#
+# The three regions are 3.2, 20.2 and 9.3 gigavoxels, past what one process can watershed exactly for the larger two,
+# so the watershed runs in blocks (src/postprocess/mws_blockwise.py; measured against exact mutex watershed in
+# docs/neurite_tracing.md). The scorer builds each labelling under <scratch>/mws_blockwise/ the first time it is
+# needed; `python -m postprocess.mws_blockwise` runs the per-block stage on an LSF array beforehand. The
+# ellipsoid-body mask is applied inside the watershed, as the release's ground truth and FFN's reference are
+# restricted to it. Predict over each region plus a margin of at least 3/4 of a patch per side (the stores' raw
+# carries 200 voxels of context). One candidate, so nothing is fitted.
+
+task_name = "hemibrain_eb_neurite_tracing"
+
+[data]
+config_path = "data/test.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "skeleton"
+skeleton_name = "skeletons/{volume}.pkl"   # inside each volume's store (the data YAML's `path`), {volume} = its name
+
+[postprocess]
+name = "mws_blockwise"
+mask = "labels/eb_mask"         # in each volume's store
+block = [512, 512, 512]         # ~40 GB per process at most
+processes = 8                   # give the job 32 slots
+
+[metric]
+names = ["skeleton_erl"]
+rank_by = "skeleton_erl"

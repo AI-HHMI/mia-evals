@@ -119,6 +119,25 @@ def build_edges(
     )
 
 
+def check_offsets(artifact: Any, expected: tuple[tuple[int, ...], ...]) -> None:
+    """Refuse affinities whose declared per-channel offsets are not `expected`, channel by channel.
+
+    The watershed reads channel i as the edge to the voxel `OFFSETS[i]` away, along the
+    artifact's own axes. mia-train's predict.py declares what its channels are (`offsets`, along
+    the store's axes); an artifact that does not is taken at its channel order, as before.
+    """
+    declared = artifact.attrs.get("offsets")
+    if declared is None:
+        return
+    have = [tuple(int(v) for v in o) for o in declared][: len(expected)]
+    if have != [tuple(o) for o in expected]:
+        raise ValueError(
+            f"{artifact.path} declares affinity offsets {have} for its first {len(expected)} "
+            f"channels, but this post-processor reads them as {list(expected)}: a different "
+            "neighbourhood, or the same one in another order, would be watershed as the wrong edges"
+        )
+
+
 def count_edges(shape: tuple[int, ...], repulsive_stride: int) -> int:
     """How many edges `build_edges` would emit for this shape and stride, without building them."""
     total = 0
@@ -361,6 +380,9 @@ class MutexWatershed(BasePostprocess):
         self._labellings: OrderedDict[tuple, tuple[np.ndarray, dict[str, Any]]] = OrderedDict()
 
     CACHE_ENTRIES = 4                      # int64 labellings; 4 x 896^3 is ~23 GB
+
+    def check_artifact(self, artifact: Any) -> None:
+        check_offsets(artifact, SHORT_OFFSETS + LONG_OFFSETS)
 
     def use_scratch(self, directory: str | Path) -> None:
         """Where to stream edges for a block above `max_in_memory_edges`."""

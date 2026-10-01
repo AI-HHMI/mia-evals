@@ -1,0 +1,38 @@
+# zebrafinch_neurite_tracing from a model's affinities, through blockwise mutex watershed.
+#
+#   mia-evals score configs/zebrafinch_neurite_tracing/mws_blockwise.toml --test <affinities> --scratch <dir>
+#
+# The region is 478 gigavoxels, so the watershed runs in blocks (src/postprocess/mws_blockwise.py; how far that moves
+# the result from exact mutex watershed is measured in docs/neurite_tracing.md). The scorer builds the labelling
+# under <scratch>/mws_blockwise/ the first time it is needed; run the per-block stage on an LSF array beforehand to
+# make that fast:
+#
+#   python -m postprocess.mws_blockwise configs/zebrafinch_neurite_tracing/mws_blockwise.toml \
+#       --test <affinities> --scratch <dir> --worker $((LSB_JOBINDEX - 1)) --workers <N>
+#
+# The neuropil mask is applied inside the watershed, so the labelling scored is the protocol's: restricted to the
+# mask and connected inside the region. Predict over the region plus a margin of at least 3/4 of a patch per side.
+# One candidate, so nothing is fitted; [data.fit] is the task's own declaration, as in identity.toml.
+
+task_name = "zebrafinch_neurite_tracing"
+
+[data.test]
+config_path = "data/test.yaml"
+
+[data.fit]
+config_path = "data/fit.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "skeleton"
+skeleton_name = "skeletons/{volume}.pkl"   # inside each volume's store (the data YAML's `path`), {volume} = its name
+
+[postprocess]
+name = "mws_blockwise"
+mask = "labels/neuropil_mask"   # in the volume's store: the FFN neuropil mask the skeletons were masked with
+block = [256, 512, 512]         # z, y, x: about 5 x 4.6 x 4.6 um, ~20 GB per process
+processes = 8                   # pool for the parts the scorer runs itself; give the job 32 slots
+
+[metric]
+names = ["skeleton_erl"]
+rank_by = "skeleton_erl"

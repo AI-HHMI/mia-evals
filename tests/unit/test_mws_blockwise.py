@@ -16,6 +16,7 @@ import os
 import pickle
 import shutil
 import textwrap
+from dataclasses import replace
 from pathlib import Path
 
 import networkx as nx
@@ -168,6 +169,9 @@ def test_a_mask_is_placed_by_both_sides_ome_geometry(tmp_path):
     assert placed.dtype == bool and np.array_equal(placed, expected)
     with pytest.raises(ValueError, match="does not cover the region"):
         lattice_mask(artifact, tmp_path / "mask.zarr", (5, 0, 0), (6, 16, 16))
+    moved = replace(artifact, origin=(100, 200, 300))      # as `BaseTask.place` moves a prediction
+    assert np.array_equal(lattice_mask(moved, tmp_path / "mask.zarr", (101, 202, 304), (6, 10, 8)),
+                          placed)
 
 
 def _source(tmp_path, affinities, origin=(5, 6, 7)):
@@ -241,11 +245,14 @@ def test_a_partial_run_is_continued_only_by_the_same_watershed(tmp_path):
         BlockwiseRun(source, out, (12, 12, 12), 1, chunk=CHUNK).run(worker=1, workers=2)
 
 
+@pytest.mark.parametrize("placed", [False, True])
 def test_the_scorer_builds_the_labelling_once_and_reads_only_what_the_skeleton_touches(
-        tmp_path, monkeypatch):
+        tmp_path, placed):
     """`mia-evals score` with route mws_blockwise: the labelling is built under the scratch
     directory over the scored region only, the record names it, and the score is the one the same
-    labelling gets in memory."""
+    labelling gets in memory -- whether the affinities state their position as `origin` or, as
+    mia-train's predict.py writes them, as `native_box` (`BaseTask.place`), which the pool
+    processes that reopen them must honour too."""
     pytest.importorskip("funlib.evaluate")
     import evaluate
     from metrics.skeleton import SkeletonExpectedRunLength
@@ -300,8 +307,13 @@ def test_the_scorer_builds_the_labelling_once_and_reads_only_what_the_skeleton_t
         """))
     artifacts = tmp_path / "artifacts"
     artifacts.mkdir()
-    write_artifact(artifacts / f"{name}.zarr", affinities, "affinity", origin=origin,
-                   run="unit_run", step=1)
+    if placed:
+        write_artifact(artifacts / f"{name}.zarr", affinities, "affinity", run="unit_run",
+                       step=1, scale=[1.0, 1.0, 1.0], covers_full_box=False,
+                       native_box=[[o, o + s] for o, s in zip(origin, SHAPE, strict=True)])
+    else:
+        write_artifact(artifacts / f"{name}.zarr", affinities, "affinity", origin=origin,
+                       run="unit_run", step=1)
     scratch = tmp_path / "scratch"
     args = type("Args", (), {
         "config": config, "test": artifacts, "val": None, "leaderboard": tmp_path / "board",

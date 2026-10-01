@@ -10,7 +10,7 @@ segmentation that stays correct over long distances.
 |---|---|---|---|---|
 | `zebrafinch_neurite_tracing` | LSD's benchmark region of j0126 (zebra finch, SBEM 9x9x20 nm), 87.3 x 83.7 x 106 um | 478 GVox | 50 hand-traced skeletons: 3,410 pieces, 431,659 nodes, 75.95 mm | 240.66 um |
 | `zebrafinch_neurite_tracing_11um` | the 10.8 um cube at its centre | 0.78 GVox | the same skeletons inside it: 67 pieces, 3,488 nodes, 0.52 mm | 17.91 um |
-| `hemibrain_eb_neurite_tracing` | LSD's three ellipsoid-body cubes of the hemibrain (FIB-SEM 8 nm): 12, 22 and 17 um | 3.2 / 20.2 / 9.3 GVox | skeletons derived from the whitelisted proofread neurons: 364 / 921 / 734 objects, 35,616 / 160,436 / 96,585 nodes, 5.0 / 22.7 / 13.4 mm | 45.4 / 120.0 / 75.4 um |
+| `hemibrain_eb_neurite_tracing` | LSD's three ellipsoid-body cubes of the hemibrain (FIB-SEM 8 nm): 12, 22 and 17 um | 3.2 / 20.2 / 9.3 GVox | skeletons derived from the whitelisted proofread neurons: 364 / 921 / 734 objects, 35,142 / 158,338 / 95,183 nodes, 4.9 / 22.3 / 13.2 mm | 44.6 / 117.9 / 74.0 um |
 
 All three rank on nERL (ERL divided by the perfect ERL; for the hemibrain task, the unweighted mean
 over its three regions) and also report ERL in um, VOI split and merge over nodes, and merge and
@@ -61,16 +61,38 @@ The release has voxel ground truth only -- the whitelisted proofread neurons, re
 ellipsoid body, relabelled into connected components and slightly eroded (`consolidated_ids`) --
 and the paper reports voxel VOI only. The skeletons are derived here
 (`python -m truth.lsd_hemibrain`): kimimaro's TEASAR on every object of at least 1,000 voxels, in
-1024^3 blocks, thinned to ~150 nm between nodes, with every node inside its own object. The unit
-of run length is the object, not a connected piece of its skeleton: the erosion leaves many objects
-in pieces (425 pieces for roi_1's 364 objects, 1,572 and 1,173 for roi_2 and roi_3), and a
-segmentation that keeps such a neuron whole must not be scored as merging its pieces. There is no
-validation set -- the paper chose its thresholds on test -- so the task has no fit split.
+1024^3 blocks, each branch end cut back inside its object (below), thinned to ~150 nm between
+nodes, with every node inside its own object. The unit of run length is the object, not a
+connected piece of its skeleton: the erosion leaves many objects in pieces (425 pieces for roi_1's
+364 objects, 1,572 and 1,173 for roi_2 and roi_3), and a segmentation that keeps such a neuron
+whole must not be scored as merging its pieces. There is no validation set -- the paper chose its
+thresholds on test -- so the task has no fit split.
 
-Skeletonising in blocks traces a neurite lying in a shared block plane twice: roi_1 has 5.02 mm of
-cable against 4.77 mm from one unblocked run. That barely reaches the ranking number: FFN's roi_1
-nERL is 0.8792 on the production skeletons and 0.8809 on the unblocked ones, with identical merge
-and split counts.
+**Branch ends lie more than 2 voxels (16 nm) inside their object.** TEASAR runs every branch out
+to its object's surface, and those surfaces are FFN's, because the ground truth is proofread FFN.
+Where a segmentation's boundary is a voxel off FFN's, an end on the surface lands in the
+neighbouring segment, and run length scores that as a merge that voids the neighbour's whole run:
+a penalty FFN, whose boundaries these are, never pays. So each end walks back along its own
+skeleton path to the first voxel that deep, by at most one node spacing and never past a branch
+point; a neurite too thin to hold such a voxel keeps its end at its most interior one. On roi_1
+this removes 1.9% of the cable. Measured there against gary_comparison 5a's segmentation (a
+pipeline check, not a row: 5a was trained on voxels that include roi_1):
+
+| roi_1 | skeleton | nERL | nerl_5 | segments touching a second neuron by <= 5 nodes | other merging segments |
+|---|---|---|---|---|---|
+| 5a | ends on the surface | 0.417 | 0.939 | 64 | 1 |
+| 5a | ends inset | 0.828 | 0.948 | 8 | 1 |
+| FFN | ends on the surface | 0.879 | 0.879 | 0 | 3 |
+| FFN | ends inset | 0.879 | 0.879 | 0 | 3 |
+
+FFN's score does not move, and both keep every merge that reaches more than 5 nodes of a second
+neuron. The alternatives were measured on the same pair: dropping end nodes removed 8.5-10% of the
+cable, and pruning short terminal branches left most of the contacts.
+
+Skeletonising in blocks traces a neurite lying in a shared block plane twice. Measured before the
+inset, roi_1 had 5.02 mm of cable against 4.77 mm from one unblocked run. That barely reaches the
+ranking number: FFN's roi_1 nERL was 0.8792 on the production skeletons and 0.8809 on the
+unblocked ones, with identical merge and split counts.
 
 FFN's reference is the release's `FFN/roi_k/consolidated_ids` (cropped, restricted to the
 ellipsoid body, relabelled). Its voxel VOI against the ground truth is within about 1% of
@@ -101,8 +123,17 @@ manifests.
   in the store's own axis order, z, y, x (`output_axes: lczyx` in the data configs), so that
   origins, boxes and skeleton nodes agree; the scorer compares a skeleton's `axes` with an OME
   artifact's before any lookup.
-- Cover the whole region: a prediction made over a larger box is cropped by the scorer.
-- A finished segmentation (`identity` route) must already be masked and relabelled as in step 2 --
+- Predict over the region plus a margin of at least 3/4 of a patch on every side. mia-train's
+  `predict.py` centres its tile lattice inside the box it is given and stops short of the edges,
+  and voxels near the lattice's edge see little context. The scorer crops to the region, and
+  counts a prediction covering it as the whole region.
+- A `predict.py` artifact records its position as `native_box` (its `origin` is always
+  `[0, 0, 0]`), and the scorer places it there. That needs the store's own resolution -- `scale` 1,
+  which these tasks' data configs ask for: a resampled prediction is refused, since boxes and
+  skeleton nodes count the store's voxels. Any other artifact states its first voxel's position in
+  the store's level-0 voxels as `origin`.
+- Affinities are scored through the `mws_blockwise` route (below), which applies the mask itself.
+  A finished segmentation (`identity` route) must already be masked and relabelled as in step 2 --
   to the neuropil mask for zebrafinch, the ellipsoid body for hemibrain, as FFN's reference
   artifacts are -- because the scorer does not do it.
 

@@ -1,0 +1,31 @@
+# zebrafinch_neurite_tracing_11um from a model's affinities, through mutex watershed.
+#
+#   mia-evals score configs/zebrafinch_neurite_tracing_11um/mws_blockwise.toml --test <affinities> --scratch <dir>
+#
+# The route the benchmark region needs (src/postprocess/mws_blockwise.py), here with a single block spanning the
+# 0.78-gigavoxel cube, which makes it exact mutex watershed -- no block faces, nothing deferred. One process holds
+# the whole cube, ~150-230 GB: give the job 32 slots. The neuropil mask is applied inside the watershed, so the
+# labelling scored is the protocol's: restricted to the mask and connected inside the region. Predict over the
+# region plus a margin of at least 3/4 of a patch per side. One candidate, so nothing is fitted.
+
+task_name = "zebrafinch_neurite_tracing_11um"
+
+[data.test]
+config_path = "data/test.yaml"
+
+[data.fit]
+config_path = "data/fit.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "skeleton"
+skeleton_name = "skeletons/{volume}.pkl"   # inside each volume's store (the data YAML's `path`), {volume} = its name
+
+[postprocess]
+name = "mws_blockwise"
+mask = "labels/neuropil_mask"   # in the volume's store: the FFN neuropil mask the skeletons were masked with
+block = [1024, 2048, 2048]      # larger than the 540 x 1200 x 1200 region on every axis: one block, exact
+
+[metric]
+names = ["skeleton_erl"]
+rank_by = "skeleton_erl"

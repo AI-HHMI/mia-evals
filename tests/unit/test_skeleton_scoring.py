@@ -184,6 +184,100 @@ def test_scoring_a_stored_labelling_never_reads_the_region(tmp_path, monkeypatch
         hashlib.sha256(skeleton_file.read_bytes()).hexdigest()
 
 
+def _score_stored(tmp_path, write) -> dict:
+    """`mia-evals score` over one volume whose artifact `write(directory, name)` puts there."""
+    import evaluate
+
+    name = "cube_test"
+    store = tmp_path / "store.zarr"
+    (store / "skeletons").mkdir(parents=True)
+    (store / "skeletons" / f"{name}.pkl").write_bytes(pickle.dumps(_skeleton()))
+    data = _data_config(tmp_path, store, name)
+    config = tmp_path / "skeleton.toml"
+    config.write_text(textwrap.dedent(f"""\
+        task_name = "unit_tracing"
+
+        [data]
+        config_path = "{data}"
+
+        [task]
+        name = "instance_seg"
+        truth_kind = "skeleton"
+        skeleton_name = "skeletons/{{volume}}.pkl"
+
+        [postprocess]
+        name = "identity"
+
+        [metric]
+        names = ["skeleton_erl"]
+        rank_by = "skeleton_erl"
+        """))
+    artifacts = tmp_path / "artifacts"
+    artifacts.mkdir()
+    write(artifacts, name)
+    args = type("Args", (), {
+        "config": config, "test": artifacts, "val": None, "leaderboard": tmp_path / "leaderboard",
+        "run_dir": None, "scored_out": None, "no_scored": False, "scratch": tmp_path / "scratch",
+    })()
+    evaluate.cmd_score(args)
+    [written] = list((tmp_path / "leaderboard").rglob("records/*.json"))
+    return json.loads(written.read_text())
+
+
+@pytest.mark.parametrize("margin", [0, 2])
+def test_a_prediction_is_scored_where_it_was_predicted(tmp_path, margin):
+    """mia-train's predict.py writes origin [0, 0, 0] and records where it predicted as
+    `native_box`. Placed there, a perfect labelling scores perfectly, over exactly the box, and
+    counts as the whole region even though predict.py -- describing its own, larger box when there
+    is a margin -- declares `covers_full_box = false`. Taken at its word it would sit at voxel 0,
+    outside the box entirely."""
+    pytest.importorskip("funlib.evaluate")
+    low = [o - margin for o in ORIGIN]
+    shape = [s + 2 * margin for s in SHAPE]
+    labels = np.zeros(shape, dtype=np.uint32)
+    labels[tuple(slice(margin, margin + s) for s in SHAPE)] = _labelling()
+
+    def write(directory, name):
+        write_artifact(directory / f"{name}.zarr", labels, "instances", background_id=0,
+                       chunks=(2, 4, 4), run="unit_run", scale=[1.0, 1.0, 1.0],
+                       native_box=[[lo, lo + s] for lo, s in zip(low, shape, strict=True)],
+                       covers_full_box=False)
+
+    payload = _score_stored(tmp_path, write)
+    region = payload["region"]["volumes"]["cube_test"]
+    assert region["origin"] == list(ORIGIN) and region["shape"] == list(SHAPE)
+    assert region["whole_region"] is True
+    assert payload["ranking"]["value"] == pytest.approx(1.0)
+
+
+def test_only_a_prediction_on_the_stores_lattice_has_a_place_in_the_volume(tmp_path):
+    from tasks.base import Volume
+    from tasks.segmentation import InstanceSegmentation
+
+    def stored(name, **attrs):
+        return open_artifact(write_artifact(tmp_path / f"{name}.zarr",
+                                            np.zeros((4, 8, 8), dtype=np.uint32), "instances",
+                                            background_id=0, **attrs))
+
+    tracing = InstanceSegmentation(truth_kind="skeleton")
+    resampled = stored("resampled", native_box=[[0, 4], [0, 8], [0, 8]], scale=[1.25, 1.0, 1.0])
+    with pytest.raises(ValueError, match="resampled from the store's"):
+        tracing.place(resampled)
+    with pytest.raises(ValueError, match="spans"):
+        tracing.place(stored("short", native_box=[[0, 5], [0, 8], [0, 8]], scale=[1.0] * 3))
+    submitted = stored("submitted", origin=(3, 4, 5))
+    assert tracing.place(submitted) is submitted                  # no native_box: its own word
+
+    # Truth on the prediction's own lattice (gary_comparison, lmd_ssl_v1): nothing moves, and
+    # coverage is still what the producer declared.
+    own = InstanceSegmentation(truth_kind="instances_resampled")
+    declared = stored("declared", native_box=[[0, 4], [0, 8], [0, 8]], scale=[1.0] * 3,
+                      covers_full_box=False)
+    assert own.place(declared) is declared
+    volume = Volume(name="v", path=tmp_path, bounding_box=((0, 4), (0, 8), (0, 8)))
+    assert own.context(volume, declared)["whole_region"] is False
+
+
 def _funlib_array(path: Path, shape, resolution, offset=(0, 0, 0)):
     array = zarr.open_array(str(path), mode="w", shape=shape, dtype="u1", chunks=shape,
                             zarr_format=2)
@@ -255,9 +349,42 @@ def test_hemibrain_skeletons_lie_inside_their_objects_on_raw_voxels(tmp_path, mo
     for n in graph.nodes:
         z, y, x = np.asarray(graph.nodes[n]["index_position"]) - (2, 3, 4)
         assert labels[z, y, x] == graph.nodes[n]["neuron_id"]
-    # Two tubes of ~57 steps x 8 nm; unblocked kimimaro gives 942 nm. Joining on the three shared
-    # planes each tube crosses must not add track.
-    assert 880 < stats["cable_mm"] * 1e6 < 1000
+    # Each end went back from the tube's last voxel to the first more than 2 inside, 2 steps.
+    assert stats["ends_inset"] == 4
+    ball = np.argwhere(np.ones((5, 5, 5))) - 2
+    for n in (n for n in graph.nodes if graph.degree(n) == 1):
+        z, y, x = (np.asarray(graph.nodes[n]["index_position"]) - (2, 3, 4)
+                   + ball[(ball ** 2).sum(1) <= 4]).T
+        assert np.all(labels[z, y, x] == graph.nodes[n]["neuron_id"])
+    # Two tubes of ~57 steps x 8 nm, 53 once inset; unblocked kimimaro gives 942 nm uninset.
+    # Joining on the three shared planes each tube crosses must not add track.
+    assert 810 < stats["cable_mm"] * 1e6 < 940
+
+
+def test_a_branch_end_is_cut_back_to_its_first_voxel_inside_its_object():
+    """Else to its most interior voxel within reach; never past a branch point or an array face."""
+    import networkx as nx
+
+    from truth.lsd_hemibrain import inset_tips
+
+    main = [(4, 4, x) for x in range(5, 40)]
+    # Thick: the object fills the array from x = 5 on, so x = 4 is its only surface. The end at
+    # x = 5 goes back to x = 7, the first voxel more than 2 inside; the end on the array's face
+    # stays.
+    labels = np.zeros((9, 9, 40), dtype=np.uint8)
+    labels[:, :, 5:] = 1
+    tree = nx.path_graph(len(main))
+    assert inset_tips(tree, np.asarray(main), labels, 1, depth=2, limit=16) == (1, 16.0)
+    assert sorted(tree) == list(range(2, len(main)))
+    # Thin: a tube 3 voxels across holds nothing more than 2 inside, so its end goes one step, to
+    # its most interior voxel. A spur whose branch point is deeper than its tip stays whole.
+    labels[:] = 0
+    labels[3:6, 3:6, 5:] = 1
+    tree = nx.path_graph(len(main))
+    tree.add_edge(15, len(main))                                # (4, 3, 20), off main's x = 20
+    vertices = np.asarray([*main, (4, 3, 20)])
+    assert inset_tips(tree, vertices, labels, 1, depth=2, limit=16) == (1, 8.0)
+    assert sorted(tree) == list(range(1, len(main) + 1))
 
 
 def _synthetic_release(monkeypatch, component_ids):

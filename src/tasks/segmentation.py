@@ -72,6 +72,9 @@ class InstanceSegmentation(BaseTask):
         self.truth_kind = truth_kind
         self.skeleton_name = skeleton_name
 
+    def in_volume_frame(self) -> bool:
+        return self.truth_kind != "instances_resampled"
+
     def region(
         self, volume: Volume, artifact: Artifact
     ) -> tuple[tuple[int, ...], tuple[int, ...]]:

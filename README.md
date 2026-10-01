@@ -3,9 +3,9 @@
 `mia-evals` scores model predictions on volumetric instance and semantic segmentation tasks, and maintains a per-task
 leaderboard of the results.
 
-The central idea is that `mia-evals` scores model predictions and it does not have to know anything about
-the model that generated those predictions. Model predictions must be saved in a self-describing Zarr array 
-called a **prediction artifact**, and `mia-evals` simply reads that artifact and scores it. 
+The central idea is that `mia-evals` scores **model predictions** and does not have to know anything about
+the model that generated those predictions. Model predictions are saved in a self-describing Zarr array 
+called a prediction artifact, and `mia-evals` simply reads that artifact and scores it. 
 Nothing in this repository imports `torch`, loads a checkpoint, or rebuilds a network. 
 A segmentation produced by a collaborator, a published tool, or a manual proofreading pass is therefore 
 a first-class submission, on exactly the same footing as one of our own models.

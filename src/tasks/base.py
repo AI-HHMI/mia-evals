@@ -15,7 +15,7 @@ testable with two arrays and nothing else.
 from __future__ import annotations
 
 import abc
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -77,6 +77,46 @@ class BaseTask(abc.ABC):
         Whatever the task's metrics expect: an array for a voxel metric, a path for a skeleton one.
         """
 
+    def in_volume_frame(self) -> bool:
+        """Whether this task's truth and boxes count the source volume's own voxels.
+
+        True unless a task scores against truth written on the prediction's own lattice instead
+        (`instance_seg` with `truth_kind = "instances_resampled"`), where the region is simply the
+        artifact's extent and no position in the volume is needed.
+        """
+        return True
+
+    def place(self, artifact: Artifact) -> Artifact:
+        """The artifact at its position in the volume's own voxels, where boxes and truth count.
+
+        An artifact says where its first voxel sits with `origin`. mia-train's `predict.py` writes
+        `origin = [0, 0, 0]` and records the region it covered separately, as `native_box`, in the
+        store's level-0 voxels. On the store's own lattice (`scale` 1 on every axis) that box's low
+        corner *is* the first voxel's position, so the artifact is moved there: taken at its word
+        it would be scored as though it started at voxel 0, every lookup landing on a real voxel --
+        the wrong one -- and nothing raising. A prediction resampled to another lattice has no such
+        position, since its voxels are not the store's, and is refused. An artifact without
+        `native_box` (FFN's, a submitted segmentation) is taken at its word.
+        """
+        box = artifact.attrs.get("native_box")
+        if box is None or not self.in_volume_frame():
+            return artifact
+        scale = [float(s) for s in artifact.attrs.get("scale") or ()]
+        if len(scale) != len(box) or any(s != 1.0 for s in scale):
+            raise ValueError(
+                f"{artifact.path} was predicted on a lattice resampled from the store's (scale "
+                f"{scale}), but {type(self).__name__} counts the volume's own voxels: its boxes "
+                "and skeleton nodes have no position on that lattice. Predict at the store's "
+                "resolution."
+            )
+        extent = [int(high) - int(low) for low, high in box]
+        if extent != list(artifact.spatial_shape):
+            raise ValueError(
+                f"{artifact.path}: native_box {box} spans {extent} voxels, the array "
+                f"{list(artifact.spatial_shape)}"
+            )
+        return replace(artifact, origin=tuple(int(low) for low, _ in box))
+
     def region(self, volume: Volume, artifact: Artifact) -> tuple[tuple[int, ...], tuple[int, ...]]:
         """The (origin, shape) actually scored: the artifact's extent, clipped to the annotation.
 
@@ -122,15 +162,19 @@ class BaseTask(abc.ABC):
         of it), so the same bug could publish a sub-region score labelled as a whole-cube one and
         rank it against genuine whole-cube numbers.
 
-        The artifact's own extent cannot be checked against the source store either, because a
+        The artifact's own extent cannot in general be checked against the source store, because a
         data config's `bounding_box` counts native voxels while a resampled prediction lives on a
         different lattice -- see `region()`. So the producer declares it, and absent a declaration
         the answer is no: under-claiming crops a skeleton that did not need cropping (a no-op, since
         every node is inside) and labels a row as a sub-region, while over-claiming corrupts a
-        published number.
+        published number. A prediction `place` has positioned on the store's own lattice is the
+        exception: its extent is in the box's units, so the region is compared with the box, and
+        the producer's `covers_full_box` -- which describes the box it was *predicted* over, often
+        the scored one plus a margin -- is not consulted.
         """
         origin, shape = self.region(volume, artifact)
-        declared = artifact.attrs.get("covers_full_box")
+        placed = self.in_volume_frame() and "native_box" in artifact.attrs
+        declared = None if placed else artifact.attrs.get("covers_full_box")
         if declared is not None:
             whole = bool(declared)
         elif volume.bounding_box is not None:

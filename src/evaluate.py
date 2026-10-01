@@ -112,6 +112,7 @@ def check_compatible(artifact: Artifact, processor: BasePostprocess, task: BaseT
             f"{type(processor).__name__} produces a {produced!r} labelling but the task scores "
             f"{task.canonical!r}"
         )
+    processor.check_artifact(artifact)
 
 
 def check_same_volume(volume: Volume, artifact: Artifact, role: str) -> None:
@@ -311,7 +312,10 @@ def cmd_score(args: argparse.Namespace) -> None:
     task, processor, metric_objects = build(config)
     ranking_metric = metric_objects[config.rank_by]
 
-    test_artifacts = resolve_artifacts(Path(args.test), config.volumes)
+    # Placed in the volume's own voxels before anything reads them (`BaseTask.place`): a mia-train
+    # prediction records its position as `native_box`, not as `origin`.
+    test_artifacts = {name: task.place(artifact) for name, artifact in
+                      resolve_artifacts(Path(args.test), config.volumes).items()}
     for volume in config.volumes:
         check_compatible(test_artifacts[volume.name], processor, task)
         check_same_volume(volume, test_artifacts[volume.name], "--test")
@@ -337,7 +341,8 @@ def cmd_score(args: argparse.Namespace) -> None:
         # reported task's, so the two halves measure the same thing.
         assert config.fit_volumes is not None            # refused above, before any artifact
         print(f"fit volumes: {[v.name for v in config.fit_volumes]}", flush=True)
-        val_artifacts = resolve_artifacts(Path(args.val), config.fit_volumes)
+        val_artifacts = {name: task.place(artifact) for name, artifact in
+                         resolve_artifacts(Path(args.val), config.fit_volumes).items()}
         for volume in config.fit_volumes:
             check_compatible(val_artifacts[volume.name], processor, task)
             check_same_volume(volume, val_artifacts[volume.name], "--val")

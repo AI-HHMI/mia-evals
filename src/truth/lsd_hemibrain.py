@@ -25,19 +25,32 @@ their Supplementary Table 3 (roi_1 0.1297 / 0.0461 against 0.129 / 0.046); it co
 ellipsoid body, not only the ground truth's neurons, so merges stay visible; and the uncut
 `neuron_ids` score a merge VOI of 0.97 there, which is what the relabelling removes.
 
-**The skeletons are derived from `consolidated_ids`**: kimimaro's TEASAR on every object, then
-thinned to a node every `DOWNSAMPLE` path steps (about 150 nm, the spacing of the zebrafinch
-tracings; endpoints and branch points are kept, and every kept node is an original skeleton
-voxel). Every node is asserted to lie inside its own object, so a flawless labelling scores nERL 1.
+**The skeletons are derived from `consolidated_ids`**: kimimaro's TEASAR on every object, each
+branch end cut back inside it (below), then thinned to a node every `DOWNSAMPLE` path steps (about
+150 nm, the spacing of the zebrafinch tracings; endpoints and branch points are kept, and every
+kept node is an original skeleton voxel). Every node is asserted to lie inside its own object, so a
+flawless labelling scores nERL 1.
 kimimaro runs block by block, as igneous does at scale: whole-region runs allocate several arrays
 of an object's bounding box per worker, and these neurons span the region (roi_1 needed 249 GB).
 Blocks overlap by one voxel plane and `fix_borders` puts an object's endpoints on a face where both
 neighbours find them, so each object's pieces join on those shared vertices. A neurite running
-inside a shared plane is traced twice, so blocks add track. Measured on roi_1 against a single
-1536^3 block (no shared planes, 69 GB, 1.6 h serial): 4.77 mm of cable unblocked, 5.02 mm in 1024^3
-blocks, 5.38 mm in 512^3. The extra track inflates ERL and its perfect-segmentation ceiling alike,
-so it barely reaches the ranking number: FFN's roi_1 nERL is 0.8792 on the 1024^3 skeletons and
-0.8809 on the unblocked one, with identical merge and split counts. Hence `BLOCK = 1024`.
+inside a shared plane is traced twice, so blocks add track. Measured on roi_1, before branch ends
+were inset, against a single 1536^3 block (no shared planes, 69 GB, 1.6 h serial): 4.77 mm of
+cable unblocked, 5.02 mm in 1024^3 blocks, 5.38 mm in 512^3. The extra track inflates ERL and its
+perfect-segmentation ceiling alike, so it barely reaches the ranking number: FFN's roi_1 nERL was
+0.8792 on the 1024^3 skeletons and 0.8809 on the unblocked one, with identical merge and split
+counts. Hence `BLOCK = 1024`.
+
+**Branch ends are cut back to lie more than `INSET` voxels (16 nm) inside their object.** TEASAR
+runs every branch out to its object's surface, and the surfaces are FFN's: the release's neurons
+are proofread FFN. A segmentation whose boundary is a voxel off FFN's there puts the end in the
+neighbouring segment, and run length counts that as a merge voiding the neighbour's whole run, a
+penalty only FFN escapes. Measured on roi_1 (2026-10-01) on uninset skeletons: 64 of gary 5a's 65
+merging segments reached a second neuron only through such nodes -- 95% of them tips, 93% within
+a voxel of the surface -- and FFN had none. An end moves at most one node spacing along its path,
+so a neurite too thin to hold a voxel that deep keeps its end at its most interior voxel there.
+Inset, roi_1 loses 1.9% of its cable, 5a keeps 8 such segments and its one real merge, and nERL
+goes from 0.417 to 0.828 for 5a and stays 0.879 for FFN.
 
 **The unit of run length is the ground-truth object**, not a connected piece of its skeleton: every
 node's `id` is its object. LSD relabelled `consolidated_ids` into connected components before
@@ -93,6 +106,7 @@ TEASAR = {
 }
 DUST = 1000              # voxels: objects smaller than this get no skeleton
 DOWNSAMPLE = 16          # keep every 16th path voxel: ~150 nm between nodes
+INSET = 2                # voxels: branch ends are cut back to lie further than this inside
 SLAB = 128               # z slices read at a time
 BLOCK = 1024             # kimimaro block edge; neighbours share one voxel plane
 
@@ -177,6 +191,52 @@ def thin(tree: nx.Graph, step: int) -> nx.Graph:
     return thinned
 
 
+def inset_tips(tree: nx.Graph, vertices: np.ndarray, labels: np.ndarray, label: int, depth: int,
+               limit: int) -> tuple[int, float]:
+    """Cut each branch end back to its first voxel more than `depth` voxels inside the object.
+
+    In place, on the full-resolution tree -> (ends moved, path removed in nm). An end moves at most
+    `limit - 1` voxels along its path, never onto a branch point or another end, so the topology
+    is unchanged; when no voxel in that reach is so deep, it goes to the most interior one (the
+    first, on a tie). A voxel outside the array does not count as outside the object: the region's
+    faces are not membranes.
+    """
+    grid = np.stack(np.meshgrid(*[np.arange(-depth, depth + 1)] * 3, indexing="ij"), -1)
+    grid = grid.reshape(-1, 3)
+    radius = np.sqrt((grid ** 2).sum(1))
+    ball, radius = grid[radius <= depth], radius[radius <= depth]
+    shape = np.asarray(labels.shape)
+
+    def surface_distance(vertex: int) -> float:
+        around = vertices[vertex] + ball
+        within = np.all((around >= 0) & (around < shape), axis=1)
+        outside = labels[tuple(around[within].T)] != label
+        return float(radius[within][outside].min()) if outside.any() else np.inf
+
+    moved, removed = 0, 0.0
+    for tip in [n for n in tree if tree.degree(n) == 1]:
+        chain, previous = [tip], None
+        while len(chain) < limit:
+            (onward,) = (n for n in tree.neighbors(chain[-1]) if n != previous)
+            if tree.degree(onward) != 2:
+                break
+            previous = chain[-1]
+            chain.append(onward)
+        best, deepest = 0, -1.0
+        for i, vertex in enumerate(chain):
+            distance = surface_distance(vertex)
+            if distance > deepest:
+                best, deepest = i, distance
+            if distance > depth:
+                break
+        if best:
+            moved += 1
+            removed += sum(float(np.linalg.norm((vertices[a] - vertices[b]) * RESOLUTION))
+                           for a, b in zip(chain[:best], chain[1:best + 1], strict=True))
+            tree.remove_nodes_from(chain[:best])
+    return moved, removed
+
+
 def region_skeleton(
     roi: str, workers: int, block: int | None = None
 ) -> tuple[nx.Graph, dict[str, Any]]:
@@ -221,6 +281,7 @@ def region_skeleton(
     graph = nx.Graph()
     node = 0
     skeletonised = 0
+    inset_ends, inset_nm = 0, 0.0
     for label in sorted(pieces):
         if sizes[label] < DUST:
             continue
@@ -232,7 +293,11 @@ def region_skeleton(
             (int(a), int(b), float(np.linalg.norm(merged.vertices[a] - merged.vertices[b])))
             for a, b in merged.edges
         )
-        thinned = thin(nx.minimum_spanning_tree(whole), DOWNSAMPLE)
+        tree = nx.minimum_spanning_tree(whole)
+        ends, length = inset_tips(tree, np.rint(merged.vertices).astype(np.int64), labels, label,
+                                  INSET, DOWNSAMPLE)
+        inset_ends, inset_nm = inset_ends + ends, inset_nm + length
+        thinned = thin(tree, DOWNSAMPLE)
         order = sorted(thinned.nodes)
         voxels = np.rint(merged.vertices[order]).astype(np.int64)
         inside = labels[tuple(voxels.T)] == label
@@ -264,6 +329,8 @@ def region_skeleton(
         # Diagnostic only: more pieces than objects means stitching gaps (or erosion-cut necks),
         # which the object ids above bridge.
         "skeleton_pieces": nx.number_connected_components(graph),
+        "ends_inset": inset_ends,
+        "inset_path_mm": round(inset_nm / 1e6, 6),   # removed from the full-resolution paths
         "cable_mm": round(cable / 1e6, 6),
         "perfect_erl_um": round(sum(v * v for v in lengths.values()) / cable / 1e3, 4)
         if cable else 0.0,
@@ -273,7 +340,8 @@ def region_skeleton(
         format=SKELETON_FORMAT, axes="zyx", voxel_size_nm=list(RESOLUTION),
         volume=volume_name(roi), region=roi, region_box=box,
         source=f"kimimaro {TEASAR} on {GROUND_TRUTH / roi / 'consolidated_ids'} in {block}^3 "
-               f"blocks, objects under {DUST} voxels dropped, thinned by {DOWNSAMPLE}",
+               f"blocks, objects under {DUST} voxels dropped, branch ends inset {INSET} voxels, "
+               f"thinned by {DOWNSAMPLE}",
     )
     return graph, stats
 
@@ -390,7 +458,7 @@ def main() -> None:
         "public_sources": {"everything": "s3://open-neurodata/funke/hemi/ (the 'Data download' "
                                          "notebook of https://github.com/funkelab/lsd)"},
         "teasar": TEASAR, "dust_threshold_voxels": DUST, "downsample": DOWNSAMPLE,
-        "block": args.block,
+        "inset_voxels": INSET, "block": args.block,
     })
     manifest.setdefault("wrappers", {}).update(
         {roi: {"path": str(w), "linked": linked[roi]} for roi, w in wrappers.items()})

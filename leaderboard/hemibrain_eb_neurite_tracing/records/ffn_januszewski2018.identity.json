@@ -85,23 +85,23 @@
   },
   "scores": {
     "skeleton_erl": {
-      "erl": 66075.32942708333,
-      "erl_um": 66.07532942708333,
-      "max_erl": 80280.41015625,
-      "max_erl_um": 80.28041015625,
+      "erl": 64884.315104166664,
+      "erl_um": 64.88431510416667,
+      "max_erl": 78853.95442708333,
+      "max_erl_um": 78.85395442708334,
       "n_mergers": 13.666666666666666,
       "n_non0_mergers": 13.666666666666666,
-      "n_splits": 125.66666666666667,
-      "nerl": 0.8254755934079488,
-      "nerl_100": 0.8331659436225891,
-      "nerl_20": 0.8257801135381063,
-      "nerl_5": 0.8254755934079488,
-      "nerl_inf": 0.8578125834465027,
-      "skeleton_nodes": 97545.66666666667,
-      "skeleton_nodes_full": 97545.66666666667,
-      "voi_merge": 0.032847950566620376,
-      "voi_split": 0.2473141195969868,
-      "voi_sum": 0.28016207016360717,
+      "n_splits": 125.0,
+      "nerl": 0.825333853562673,
+      "nerl_100": 0.8331663807233175,
+      "nerl_20": 0.825644334157308,
+      "nerl_5": 0.8256318966547648,
+      "nerl_inf": 0.857734739780426,
+      "skeleton_nodes": 96221.0,
+      "skeleton_nodes_full": 96221.0,
+      "voi_merge": 0.03280941201854789,
+      "voi_split": 0.2474629597939364,
+      "voi_sum": 0.28027237181248427,
       "whole_region": 1.0,
       "volumes_scored": 3.0
     }
@@ -109,7 +109,7 @@
   "ranking": {
     "metric": "skeleton_erl",
     "key": "nerl",
-    "value": 0.8254755934079488,
+    "value": 0.825333853562673,
     "higher_is_better": true
   },
   "postprocess": {
@@ -211,7 +211,7 @@
             1675
           ]
         ],
-        "truth_sha256": "44bd03df5ae92e4fe00de174e409ce3f40139ab0704c360fd8b45bb003069af5"
+        "truth_sha256": "c83746b8e7d1e2ba1e4313e34f1abcd9f5466516f6a06fbe760d3d9ba1f26a49"
       },
       {
         "name": "hemibrain_eb_roi_2",
@@ -231,7 +231,7 @@
             2925
           ]
         ],
-        "truth_sha256": "41204cbe14b081bd2596e39279bb2847f75313c0c0ac479d3aeef2a47e2362e4"
+        "truth_sha256": "8766a6649e6ff99adb5c15f71a1c7c283b69d7462a4cccdf923db082ea7d734c"
       },
       {
         "name": "hemibrain_eb_roi_3",
@@ -251,7 +251,7 @@
             2300
           ]
         ],
-        "truth_sha256": "2b7274bb2ab3329cc9ae1e6ea60e988bb403bbb74e261928944274d15805d977"
+        "truth_sha256": "a8b98a769ce98317d7aabe8af75b619762a89fb806fded4cc3bac03ffb1320ac"
       }
     ],
     "fit_data_config_path": null,
@@ -262,73 +262,73 @@
   "per_volume": {
     "hemibrain_eb_roi_1": {
       "skeleton_erl": {
-        "voi_sum": 0.17219071585801515,
-        "voi_split": 0.12362536567200255,
-        "voi_merge": 0.0485653501860126,
-        "erl": 39951.86328125,
-        "max_erl": 45443.14453125,
-        "nerl": 0.8791614770889282,
+        "voi_sum": 0.17244058414036978,
+        "voi_split": 0.12400684839872778,
+        "voi_merge": 0.048433735741642,
+        "erl": 39258.3203125,
+        "max_erl": 44647.91015625,
+        "nerl": 0.8792868256568909,
         "n_mergers": 8.0,
         "n_splits": 17.0,
         "n_non0_mergers": 8.0,
-        "nerl_5": 0.8791614770889282,
-        "nerl_20": 0.8791614770889282,
-        "nerl_100": 0.8793104887008667,
-        "nerl_inf": 0.9237700700759888,
-        "erl_um": 39.95186328125,
-        "max_erl_um": 45.44314453125,
-        "skeleton_nodes": 35616.0,
-        "skeleton_nodes_full": 35616.0,
+        "nerl_5": 0.8792868256568909,
+        "nerl_20": 0.8793198466300964,
+        "nerl_100": 0.8794282078742981,
+        "nerl_inf": 0.9235103130340576,
+        "erl_um": 39.2583203125,
+        "max_erl_um": 44.64791015625,
+        "skeleton_nodes": 35142.0,
+        "skeleton_nodes_full": 35142.0,
         "whole_region": 1.0
       }
     },
     "hemibrain_eb_roi_2": {
       "skeleton_erl": {
-        "voi_sum": 0.284176975287437,
-        "voi_split": 0.2550050448859782,
-        "voi_merge": 0.029171930401458823,
-        "erl": 101820.9609375,
-        "max_erl": 120007.90625,
-        "nerl": 0.848452091217041,
+        "voi_sum": 0.28428353683197827,
+        "voi_split": 0.25509353223493747,
+        "voi_merge": 0.029190004597040797,
+        "erl": 99987.8125,
+        "max_erl": 117914.421875,
+        "nerl": 0.8479692935943604,
         "n_mergers": 16.0,
-        "n_splits": 217.0,
+        "n_splits": 216.0,
         "n_non0_mergers": 16.0,
-        "nerl_5": 0.848452091217041,
-        "nerl_20": 0.8493614196777344,
-        "nerl_100": 0.8652526140213013,
-        "nerl_inf": 0.8891884088516235,
-        "erl_um": 101.8209609375,
-        "max_erl_um": 120.00790625,
-        "skeleton_nodes": 160436.0,
-        "skeleton_nodes_full": 160436.0,
+        "nerl_5": 0.848863422870636,
+        "nerl_20": 0.848863422870636,
+        "nerl_100": 0.8651138544082642,
+        "nerl_inf": 0.8890913724899292,
+        "erl_um": 99.9878125,
+        "max_erl_um": 117.914421875,
+        "skeleton_nodes": 158338.0,
+        "skeleton_nodes_full": 158338.0,
         "whole_region": 1.0
       }
     },
     "hemibrain_eb_roi_3": {
       "skeleton_erl": {
-        "voi_sum": 0.38411851934536934,
-        "voi_split": 0.36331194823297963,
-        "voi_merge": 0.020806571112389705,
-        "erl": 56453.1640625,
-        "max_erl": 75390.1796875,
-        "nerl": 0.7488132119178772,
+        "voi_sum": 0.3840929944651048,
+        "voi_split": 0.36328849874814395,
+        "voi_merge": 0.020804495716960858,
+        "erl": 55406.8125,
+        "max_erl": 73999.53125,
+        "nerl": 0.7487454414367676,
         "n_mergers": 17.0,
-        "n_splits": 143.0,
+        "n_splits": 142.0,
         "n_non0_mergers": 17.0,
-        "nerl_5": 0.7488132119178772,
-        "nerl_20": 0.7488174438476562,
-        "nerl_100": 0.7549347281455994,
-        "nerl_inf": 0.7604792714118958,
-        "erl_um": 56.4531640625,
-        "max_erl_um": 75.3901796875,
-        "skeleton_nodes": 96585.0,
-        "skeleton_nodes_full": 96585.0,
+        "nerl_5": 0.7487454414367676,
+        "nerl_20": 0.7487497329711914,
+        "nerl_100": 0.7549570798873901,
+        "nerl_inf": 0.7606025338172913,
+        "erl_um": 55.4068125,
+        "max_erl_um": 73.99953125,
+        "skeleton_nodes": 95183.0,
+        "skeleton_nodes_full": 95183.0,
         "whole_region": 1.0
       }
     }
   },
   "provenance": {
-    "mia_evals_commit": "74b969f4534e659cbff271d7a444dabdb74127c0 (dirty)"
+    "mia_evals_commit": "29612decb0e47f1cf3785e75d52c2fcedf1a0811 (dirty)"
   },
   "views": {},
   "versions": {

@@ -85,6 +85,13 @@ class BasePostprocess(abc.ABC):
         """
         return [{}]
 
+    def check_artifact(self, artifact: Any) -> None:
+        """Refuse an artifact whose declared layout differs from what this post-processor reads.
+
+        Nothing to check by default. The affinity routes compare the artifact's declared `offsets`
+        with the ones they assume, rather than trusting channel order.
+        """
+
     def use_scratch(self, directory: Any) -> None:
         """Where this postprocessor may write large intermediates; the runner passes its --scratch.
 
