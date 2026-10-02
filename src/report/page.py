@@ -76,6 +76,10 @@ PAGE = """<!doctype html>
  svg text { fill: var(--muted); font-size: 11px; } svg .grid { stroke: var(--line); }
  svg .frontier { fill: none; stroke: var(--accent); stroke-width: 2; }
  svg .dot { fill: var(--card); stroke: var(--muted); stroke-width: 1.5; opacity: .85; }
+ svg .dot { cursor: pointer; } svg .dot.hl { stroke: var(--accent); stroke-width: 3; opacity: 1; }
+ tr.hl td, tr.sel td { background: var(--accent-soft) !important; }
+ #tip { position: fixed; z-index: 10; display: none; pointer-events: none; max-width: 420px; padding: 6px 10px;
+  border-radius: 8px; background: var(--ink); color: var(--bg); font-size: 12px; white-space: pre-line; }
  svg .dot.front { fill: var(--accent); stroke: var(--card); stroke-width: 2; opacity: 1; }
  dl.legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px 32px;
   margin: 0; padding: 20px; }
@@ -98,6 +102,7 @@ __BODY__
 <span class="mono">mia-evals leaderboard</span>. Tables are per scored region and are not comparable
 with one another. Fileglancer and neuroglancer links only work on the Janelia network.</p>
 </main>
+<div id="tip"></div>
 <script>
 const sections = [...document.querySelectorAll("section")];
 function show() {                                          // one benchmark at a time, chosen by #hash
@@ -116,6 +121,32 @@ for (const th of document.querySelectorAll("th")) th.onclick = () => {
   rows.sort((a, b) => { const x = key(a), y = key(b); return dir * (x < y ? -1 : x > y ? 1 : 0); });
   rows.forEach(r => table.tBodies[0].append(r));
 };
+// Plot <-> table: hovering a point (or a row) highlights its partner; clicking a point selects its row.
+const tip = document.getElementById("tip");
+const partner = el => {
+  const scope = el.closest("section"), id = CSS.escape(el.dataset.id);
+  return el.matches("tr") ? scope.querySelector(`.dot[data-id="${id}"]`) : scope.querySelector(`tr[data-id="${id}"]`);
+};
+const mark = (el, on) => { el.classList.toggle("hl", on); const o = partner(el); if (o) o.classList.toggle("hl", on); };
+document.addEventListener("mouseover", e => {
+  const el = e.target.closest(".dot, tbody tr"); if (!el) return;
+  mark(el, true);
+  if (el.matches(".dot")) { tip.textContent = el.dataset.tip; tip.style.display = "block"; }
+});
+document.addEventListener("mousemove", e => {
+  tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8) + "px";
+  tip.style.top = (e.clientY + 14) + "px";
+});
+document.addEventListener("mouseout", e => {
+  const el = e.target.closest(".dot, tbody tr"); if (!el) return;
+  mark(el, false); tip.style.display = "none";
+});
+document.addEventListener("click", e => {
+  const dot = e.target.closest(".dot"); if (!dot) return;
+  const row = partner(dot);
+  for (const r of row.closest("tbody").querySelectorAll(".sel")) r.classList.remove("sel");
+  row.classList.add("sel"); row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+});
 </script>
 </body></html>
 """
@@ -179,7 +210,8 @@ def _plot(group: list[Submission], label: str, higher: bool) -> str:
     path.append(f"{x(t1):.1f},{y(best):.1f}")
     dots = "".join(
         f'<circle class="dot{" front" if i in frontier else ""}" cx="{x(t):.1f}" cy="{y(v):.1f}" '
-        f'r="{5 if i in frontier else 4}"><title>{escape(name)}: {v:.4f} ({t:%Y-%m-%d})</title></circle>'
+        f'r="{5 if i in frontier else 4}" data-id="{escape(name)}" '
+        f'data-tip="{escape(name)}&#10;{escape(label)} {v:.4f} &middot; {t:%Y-%m-%d}"></circle>'
         for i, (t, v, name) in enumerate(points)
     )
     return (
@@ -272,7 +304,7 @@ def _group_table(group: list[Submission], shares: dict[str, str] | None, show_tr
             *([f"<td>{escape(_truth_kind(submission))}</td>"] if show_truth else []),
             f"<td>{_links(submission, shares)}</td>",
         ]
-        rows.append("<tr>" + "".join(cells) + "</tr>")
+        rows.append(f'<tr data-id="{escape(submission.identifier())}">' + "".join(cells) + "</tr>")
     header = "".join(f'<th class="{c}">{escape(h)}</th>' for c, h in cols)
     table = (f'<div class="card"><div class="scroll"><table><thead><tr>{header}</tr></thead>'
              f"<tbody>{''.join(rows)}</tbody></table></div></div>")
