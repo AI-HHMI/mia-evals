@@ -26,6 +26,8 @@ PAGE = """<!doctype html>
  text-align: left; white-space: nowrap; }} td.n {{ text-align: right; font-variant-numeric: tabular-nums; }}
  th {{ cursor: pointer; user-select: none; background: #f4f4f4; }} th.asc::after {{ content: " ▲"; }}
  th.desc::after {{ content: " ▼"; }} a {{ color: #1a5fb4; }} .note {{ color: #555; }}
+ dl.legend {{ display: grid; grid-template-columns: max-content 1fr; gap: .2em 1em; margin-top: 1.5em; }}
+ dl.legend dt {{ font-family: ui-monospace, monospace; }} dl.legend dd {{ margin: 0; }}
  nav {{ display: flex; flex-wrap: wrap; gap: .4em 1.2em; font-family: ui-monospace, monospace; }}
  nav a.on {{ font-weight: 700; color: inherit; text-decoration: none; }}
  svg.plot {{ max-width: 100%; margin-top: 1em; }} svg.plot text {{ fill: currentColor; font-size: 11px; }}
@@ -64,6 +66,27 @@ for (const th of document.querySelectorAll("th")) th.onclick = () => {{
 """
 
 
+#: Per metric column, keyed by name without its metric prefix: (↑ higher / ↓ lower is better, short
+#: description).
+METRICS = {
+    "pq": ("↑", "Panoptic quality, sq * rq: how well predicted objects match true ones at IoU > 0.5."),
+    "sq": ("↑", "Segmentation quality: mean IoU of the matched object pairs."),
+    "rq": ("↑", "Recognition quality: F1 of object matching, balancing missed and spurious objects."),
+    "voi_split": ("↓", "Variation of information, split term H(prediction | truth): over-segmentation."),
+    "voi_merge": ("↓", "Variation of information, merge term H(truth | prediction): under-segmentation."),
+    "voi_sum": ("↓", "voi_split + voi_merge."),
+    "adapted_rand_error": ("↓", "Adapted Rand error, 1 - Rand F-score of the voxel pairing."),
+    "nerl": ("↑", "Normalised expected run length: ERL along the traced skeletons divided by the maximum possible."),
+    "erl_um": ("↑", "Expected run length in micrometres."),
+    "n_non0_mergers": ("↓", "Number of nodes where the segmentation merges distinct skeletons."),
+    "n_splits": ("↓", "Number of skeleton edges the segmentation cuts."),
+    "mean_iou": ("↑", "Mean intersection-over-union over the classes present."),
+    "mean_dice": ("↑", "Mean Dice coefficient over the classes present."),
+    "pixel_accuracy": ("↑", "Fraction of voxels given the correct class."),
+    "classes_present": ("", "Number of classes present in the ground truth."),
+}
+
+
 def _scored_time(submission: Submission) -> datetime | None:
     """When the record was scored, or None if unknown."""
     return datetime.fromisoformat(submission.scored_at) if submission.scored_at else None
@@ -94,6 +117,12 @@ def _plot(group: list[Submission], label: str) -> str:
         f'<text x="{(left + width - right) / 2}" y="{height - 6}" text-anchor="middle">'
         f'scoring date vs {escape(label)}</text>{dots}</svg>'
     )
+
+
+def _legend(labels: list[str]) -> str:
+    items = [f"<dt>{METRICS[k][0]} {escape(k)}</dt><dd>{escape(METRICS[k][1])}</dd>"
+             for k in dict.fromkeys(label.rpartition(".")[2] for label in labels) if k in METRICS]
+    return f'<dl class="legend">{"".join(items)}</dl>' if items else ""
 
 
 def _link(name: str, path: Path | None, shares: dict[str, str] | None) -> str | None:
@@ -133,7 +162,10 @@ def _group_table(group: list[Submission], shares: dict[str, str] | None, show_tr
                 if column not in columns and inner in submission.scores[name]:
                     columns.append(column)
 
-    head = ["scored", f"{ranked} ({'higher' if higher else 'lower'} is better)", *columns[1:],
+    bare = [c.partition(".")[2] for c in columns]
+    labels = [b if bare.count(b) == 1 else c for b, c in zip(bare, columns, strict=True)]
+    arrows = [METRICS.get(label.rpartition(".")[2], ("",))[0] for label in labels]
+    head = ["scored", *(f"{a} {label}".strip() for a, label in zip(arrows, labels, strict=True)),
             "model", "postprocess", *(["truth"] if show_truth else []), "links"]
     rows = []
     for submission in group:
@@ -152,7 +184,8 @@ def _group_table(group: list[Submission], shares: dict[str, str] | None, show_tr
         rows.append("<tr>" + "".join(cells) + "</tr>")
     header = "".join(f"<th>{escape(h)}</th>" for h in head)
     table = f"<table><thead><tr>{header}</tr></thead><tbody>{''.join(rows)}</tbody></table>"
-    return table + (_plot(group, ranked) if len(group) > 10 else "")
+    plot = _plot(group, labels[0]) if len(group) > 10 else ""
+    return table + plot + _legend(labels)
 
 
 def render_page(root: Path) -> str:
