@@ -362,7 +362,7 @@ name.
 | `src/metrics/` | the metrics, each declaring its own primary key and direction |
 | `src/report/` | the record format, the leaderboard renderer, and the fileglancer / neuroglancer links |
 | `src/viz/` | the two figure commands |
-| `src/truth/` | builds a task's benchmark data from a public release (`python -m truth.<dataset>`); never run by scoring |
+| `src/truth/` | builds a task's benchmark data from a public release (`python -m truth.<dataset>`) |
 | `src/utils/` | two modules recycled verbatim from BANIS; see `ACKNOWLEDGEMENTS.md` |
 | `configs/<task_name>/` | one directory per task: `<route>.toml` scoring configs (task + splits + post-processing route) and `data/{test,fit}.yaml`, the `miao` data configs of that task |
 | `docs/controls.md` | control experiments: baseline task metric scores without a model |
