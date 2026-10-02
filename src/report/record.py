@@ -110,6 +110,8 @@ class Submission:
     label: str = ""
     #: The scoring route (`ScoringConfig.route`), third part of the identifier.
     route: str = ""
+    #: When `mia-evals score` wrote this record, ISO 8601 with offset. Empty only if unknown.
+    scored_at: str = ""
 
     def identity(self) -> dict[str, Any]:
         """What this record claims to be a row of; see `task_identity`."""

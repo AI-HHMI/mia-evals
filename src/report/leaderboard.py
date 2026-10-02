@@ -370,10 +370,14 @@ def write(root: Path, task_name: str | None = None) -> list[Path]:
     directory the index does not yet list, and a stale index is the one drift `--check` on a single
     task cannot see.
     """
+    from .page import render_page
+
     written = [write_task(root, task_name)] if task_name else [
         write_task(root, name) for name in task_names(root)
     ]
-    return [*written, write_index(root)]
+    page = root / "index.html"
+    page.write_text(render_page(root))
+    return [*written, write_index(root), page]
 
 
 def check(root: Path, task_name: str | None = None) -> list[Path]:
@@ -388,4 +392,9 @@ def check(root: Path, task_name: str | None = None) -> list[Path]:
     index = root / "README.md"
     if not index.is_file() or index.read_text() != render_index(root):
         stale.append(index)
+    from .page import render_page
+
+    page = root / "index.html"
+    if not page.is_file() or page.read_text() != render_page(root):
+        stale.append(page)
     return stale
