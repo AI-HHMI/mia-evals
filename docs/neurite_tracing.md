@@ -1,20 +1,22 @@
 # Neurite tracing benchmark
 
-Expected run length (ERL) over hand-traced skeletons, on the volumes of the LSD paper (Sheridan et
-al. 2023, *Local shape descriptors for neuron segmentation*, Nat Methods 20:295), scored by their
-own protocol. ERL is the expected length of error-free neurite a tracer would follow from a random
-point, and a segment that merges two neurites makes all of its cable wrong, so these tasks reward a
-segmentation that stays correct over long distances.
+Expected run length (ERL) over skeletons, on the volumes of the LSD paper (Sheridan et al. 2023,
+*Local shape descriptors for neuron segmentation*, Nat Methods 20:295), scored by their own
+protocol, and on NISB's synthetic cubes. ERL is the expected length of error-free neurite a tracer
+would follow from a random point, and a segment that merges two neurites makes all of its cable
+wrong, so these tasks reward a segmentation that stays correct over long distances.
 
 | task | region | size | test ground truth | perfect ERL |
 |---|---|---|---|---|
 | `zebrafinch_neurite_tracing` | LSD's benchmark region of j0126 (zebra finch, SBEM 9x9x20 nm), 87.3 x 83.7 x 106 um | 478 GVox | 50 hand-traced skeletons: 3,410 pieces, 431,659 nodes, 75.95 mm | 240.66 um |
 | `zebrafinch_neurite_tracing_11um` | the 10.8 um cube at its centre | 0.78 GVox | the same skeletons inside it: 67 pieces, 3,488 nodes, 0.52 mm | 17.91 um |
 | `hemibrain_eb_neurite_tracing` | LSD's three ellipsoid-body cubes of the hemibrain (FIB-SEM 8 nm): 12, 22 and 17 um | 3.2 / 20.2 / 9.3 GVox | skeletons derived from the whitelisted proofread neurons: 364 / 921 / 734 objects, 35,142 / 158,338 / 95,183 nodes, 4.9 / 22.3 / 13.2 mm | 44.6 / 117.9 / 74.0 um |
+| `nisb_base_neurite_tracing` | NISB's base test cube, seed101 (synthetic, 9x9x20 nm), 27 x 27 x 27 um | 12.2 GVox | the generator's own skeleton: 791,035 nodes | 256.57 um |
 
-All three rank on nERL (ERL divided by the perfect ERL; for the hemibrain task, the unweighted mean
-over its three regions) and also report ERL in um, VOI split and merge over nodes, and merge and
-split counts.
+All four rank on nERL (ERL divided by the perfect ERL; for the hemibrain task, the unweighted mean
+over its three regions) and also report ERL in um, VOI split and merge over nodes, merge and split
+counts, and nerl_5 / 20 / 100 / inf, which ignore merges where a neuron has at most that many nodes
+in the segment.
 
 ## Protocol
 
@@ -58,8 +60,11 @@ methods are not, since they ship as fragments and region graphs of 121-392 GB ea
 ## Hemibrain
 
 The release has voxel ground truth only -- the whitelisted proofread neurons, restricted to the
-ellipsoid body, relabelled into connected components and slightly eroded (`consolidated_ids`) --
-and the paper reports voxel VOI only. The skeletons are derived here
+ellipsoid body, relabelled into connected components and eroded (`consolidated_ids`) -- and the
+paper reports voxel VOI only. The erosion removes every voxel within one voxel, in 3D, of a label
+boundary: 2 voxels (16 nm) come off every surface, and touching neurons end up 4 voxels apart
+(measured on roi_1 against LSD's own pre-erosion labels; 99.97% of voxels follow that rule). The
+skeletons are derived here
 (`python -m truth.lsd_hemibrain`): kimimaro's TEASAR on every object of at least 1,000 voxels, in
 1024^3 blocks, each branch end cut back inside its object (below), thinned to ~150 nm between
 nodes, with every node inside its own object. The unit of run length is the object, not a
@@ -69,10 +74,12 @@ whole must not be scored as merging its pieces. There is no validation set -- th
 thresholds on test -- so the task has no fit split.
 
 **Branch ends lie more than 2 voxels (16 nm) inside their object.** TEASAR runs every branch out
-to its object's surface, and those surfaces are FFN's, because the ground truth is proofread FFN.
-Where a segmentation's boundary is a voxel off FFN's, an end on the surface lands in the
-neighbouring segment, and run length scores that as a merge that voids the neighbour's whole run:
-a penalty FFN, whose boundaries these are, never pays. So each end walks back along its own
+to its object's surface, and those surfaces are FFN's moved inward by the erosion, because the
+ground truth is proofread FFN. The erosion trims less at a branch's tip than on a flat face, so
+the ends sit only about 2 voxels inside FFN's boundary. Where a segmentation's boundary is that
+far off FFN's, an end on the surface lands in the neighbouring segment, and run length scores that
+as a merge that voids the neighbour's whole run: a penalty FFN, whose boundaries these are, never
+pays. So each end walks back along its own
 skeleton path to the first voxel that deep, by at most one node spacing and never past a branch
 point; a neurite too thin to hold such a voxel keeps its end at its most interior one. On roi_1
 this removes 1.9% of the cable. Measured there against gary_comparison 5a's segmentation (a
@@ -109,6 +116,19 @@ made by proofreading an FFN segmentation (Scheffer et al. 2020), so the ground t
 boundaries, and every error left in FFN is one the proofreaders fixed. Its nERL -- 0.879 / 0.848 /
 0.749 for roi_1 / roi_2 / roi_3 -- is a reference point, not a bar a model clears on equal terms.
 
+## NISB (base)
+
+NISB, the Neuron Instance Segmentation Benchmark, is synthetic: one fixed procedure generates every
+cube, at 9 x 9 x 20 nm and 3000 x 3000 x 1350 voxels, from
+`/groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base`. The ground truth is each cube's own
+`skeleton.pkl`, written by the generator, so no segmenter's boundaries are built into it. The task
+scores whole cubes, as the benchmark's own evaluation does: the val cube (seed100; 784,783 nodes,
+perfect ERL 259.24 um) is the fit split and the test cube (seed101) the reported one, which the
+benchmark's rules score once. Each cube's own labels score nERL 1 and VOI 0 on it (checked
+2026-10-02). A prediction has to cover the whole cube, which there is no context beyond: predict
+with mia-train's `predict.py --cover-box`. A table's rows must all score the same region, so a
+first row predicted without it would lock the table to a smaller one.
+
 ## Data
 
 `/groups/miaai/miaai/mia-evals-data/zebrafinch_j0126/` and `.../hemibrain_eb_lsd/`, built by
@@ -124,9 +144,11 @@ manifests.
   origins, boxes and skeleton nodes agree; the scorer compares a skeleton's `axes` with an OME
   artifact's before any lookup.
 - Predict over the region plus a margin of at least 3/4 of a patch on every side. mia-train's
-  `predict.py` centres its tile lattice inside the box it is given and stops short of the edges,
-  and voxels near the lattice's edge see little context. The scorer crops to the region, and
-  counts a prediction covering it as the whole region.
+  `predict.py` centres the largest whole-tile lattice in the box it is given and leaves the faces
+  out, unless `--cover-box` asks it to cover the box exactly (at the store's own resolution), and
+  voxels near the edge of what it covers see little context. The scorer crops to the region, and
+  counts a prediction covering it as the whole region. NISB has no raw beyond its cubes, so there
+  the box is the cube itself and every prediction needs `--cover-box`.
 - A `predict.py` artifact records its position as `native_box` (its `origin` is always
   `[0, 0, 0]`), and the scorer places it there. That needs the store's own resolution -- `scale` 1,
   which these tasks' data configs ask for: a resampled prediction is refused, since boxes and

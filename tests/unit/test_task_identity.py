@@ -96,6 +96,29 @@ def test_a_directory_whose_records_disagree_cannot_be_loaded_or_checked(tmp_path
         leaderboard.check(root, "unit_task")
 
 
+def test_a_row_scored_on_more_of_a_volume_cannot_join_the_table(tmp_path):
+    """Same volumes and truth, a different scored region: refused on writing and on loading.
+
+    The gary_comparison case: rows scored on the central 896^3 of a 1000^3 box, then a model
+    predicted with predict.py's --cover-box, which covers the whole box.
+    """
+    old = _submission([ALPHA], label="old")
+    new = _submission([ALPHA], label="new")
+    new.region["volumes"]["alpha"]["shape"] = [5, 4, 4]
+    assert record.region_differences(old, new) == [
+        "alpha: origin [0, 0, 0], shape [5, 4, 4] vs origin [0, 0, 0], shape [4, 4, 4]"
+    ]
+    assert record.region_differences(old, _submission([ALPHA], label="same")) == []
+    with pytest.raises(ValueError, match="scored on a different region"):
+        record.assert_same_task("unit_task", old, new, "old.json", "new.json")
+
+    root = tmp_path / "board"
+    old.write(root)
+    new.write(root)
+    with pytest.raises(ValueError, match="scored on a different region"):
+        record.load_task(root, "unit_task")
+
+
 def test_the_truth_route_becomes_a_column_only_when_it_varies():
     rows = [_submission([ALPHA], truth_kind="instances", label="a"),
             _submission([ALPHA], truth_kind="instances", label="b", value=0.4)]

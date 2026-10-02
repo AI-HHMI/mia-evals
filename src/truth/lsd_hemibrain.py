@@ -5,8 +5,8 @@
 Sheridan et al. 2023 (Nat Methods 20:295) scored hemibrain segmentations on three cubes in the
 ellipsoid body -- 12, 22 and 17 um, the release's roi_1, roi_2 and roi_3 -- against voxel ground
 truth: the whitelisted proofread neurons, constrained to the ellipsoid body, relabelled into
-connected components and slightly eroded (`consolidated_ids`). The release has no skeletons, and
-the paper reports VOI only. This builds, beside the release (read-only, nothing copied):
+connected components and eroded (`consolidated_ids`). The release has no skeletons, and the paper
+reports VOI only. This builds, beside the release (read-only, nothing copied):
 
     roi_<k>.zarr/                      OME-Zarr 0.4 wrapper over the region's arrays, z, y, x, 8 nm
         raw/s0                         -> roi_<k>/raw: the core and a context margin around it
@@ -25,6 +25,14 @@ their Supplementary Table 3 (roi_1 0.1297 / 0.0461 against 0.129 / 0.046); it co
 ellipsoid body, not only the ground truth's neurons, so merges stay visible; and the uncut
 `neuron_ids` score a merge VOI of 0.97 there, which is what the relabelling removes.
 
+**The erosion takes 2 voxels (16 nm) off every surface.** `consolidated_ids` is LSD's own
+`eroded_ids` (their hemibrain evaluation configs' ground truth; same shape, offset and chunks, the
+sampled chunks byte-identical). Against their pre-erosion `relabelled_ids`, measured on roi_1
+(2026-10-01): every voxel within one voxel, in 3D, of a label boundary (background included) is
+removed -- the boundary voxel and the next one in -- and nothing else; 99.97% of the 1.22 billion
+object voxels follow that rule, and no id changes. It removes 11.7% of the voxels and leaves
+touching neurons 4 voxels apart.
+
 **The skeletons are derived from `consolidated_ids`**: kimimaro's TEASAR on every object, each
 branch end cut back inside it (below), then thinned to a node every `DOWNSAMPLE` path steps (about
 150 nm, the spacing of the zebrafinch tracings; endpoints and branch points are kept, and every
@@ -42,12 +50,15 @@ perfect-segmentation ceiling alike, so it barely reaches the ranking number: FFN
 counts. Hence `BLOCK = 1024`.
 
 **Branch ends are cut back to lie more than `INSET` voxels (16 nm) inside their object.** TEASAR
-runs every branch out to its object's surface, and the surfaces are FFN's: the release's neurons
-are proofread FFN. A segmentation whose boundary is a voxel off FFN's there puts the end in the
+runs every branch out to its object's surface, and the surfaces are FFN's moved inward by the
+erosion: the release's neurons are proofread FFN. The erosion trims less at a branch's tip than on
+a flat face, so the ends sit only about 2 voxels inside FFN's boundary (1.0-2.2, median 2.2, for 24
+of the ends below); a segmentation whose boundary is that far off FFN's there puts the end in the
 neighbouring segment, and run length counts that as a merge voiding the neighbour's whole run, a
-penalty only FFN escapes. Measured on roi_1 (2026-10-01) on uninset skeletons: 64 of gary 5a's 65
-merging segments reached a second neuron only through such nodes -- 95% of them tips, 93% within
-a voxel of the surface -- and FFN had none. An end moves at most one node spacing along its path,
+penalty only FFN escapes. Measured on roi_1
+(2026-10-01) on uninset skeletons: 64 of gary 5a's 65 merging segments reached a second neuron only
+through such nodes -- 95% of them tips, 93% within a voxel of the eroded surface -- and FFN had
+none. An end moves at most one node spacing along its path,
 so a neurite too thin to hold a voxel that deep keeps its end at its most interior voxel there.
 Inset, roi_1 loses 1.9% of its cable, 5a keeps 8 such segments and its one real merge, and nERL
 goes from 0.417 to 0.828 for 5a and stays 0.879 for FFN.

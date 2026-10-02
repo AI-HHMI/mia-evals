@@ -216,9 +216,29 @@ def identity_differences(reference: dict[str, Any], other: dict[str, Any]) -> li
     return out
 
 
+def region_differences(reference: Submission, other: Submission) -> list[str]:
+    """Per volume both records scored, how their scored regions differ; empty when they agree."""
+    mine = (other.region or {}).get("volumes") or {}
+    theirs = (reference.region or {}).get("volumes") or {}
+    out: list[str] = []
+    for name in sorted(set(mine) & set(theirs)):
+        a, b = ([list(v[name].get(k) or []) for k in ("origin", "shape")] for v in (theirs, mine))
+        if a != b:
+            out.append(f"{name}: origin {b[0]}, shape {b[1]} vs origin {a[0]}, shape {a[1]}")
+    return out
+
+
 def assert_same_task(task_name: str, reference: Submission, other: Submission,
                      reference_path: Path | str, other_path: Path | str) -> None:
-    """Refuse two records under one task name that were scored on different things."""
+    """Refuse two records under one task name that were scored on different things.
+
+    The same volumes and ground truth are not enough: each volume must also have been scored over
+    the same region. A prediction covers what its tiling covered, and that varies with how it was
+    made: mia-train's predict.py centres the largest whole-tile lattice in the box by default and
+    reaches the faces with `--cover-box` (gary_comparison's test box: the central 896^3, or all of
+    1000^3), and the patch size and window step move it too. So a new row can score more or less of
+    a volume than the rows it would be ranked against -- with the same task identity, and silently.
+    """
     differences = identity_differences(reference.identity(), other.identity())
     if differences:
         listing = "\n".join(f"    {d}" for d in differences)
@@ -228,6 +248,16 @@ def assert_same_task(task_name: str, reference: Submission, other: Submission,
             "truth) and its ranking metric; anything scored on a different set or ranked "
             "differently needs its own task_name. Post-processor, truth route and fit split may "
             "differ and are shown in the table."
+        )
+    regions = region_differences(reference, other)
+    if regions:
+        listing = "\n".join(f"    {d}" for d in regions)
+        raise ValueError(
+            f"task {task_name!r}: {other_path} was scored on a different region than "
+            f"{reference_path}:\n{listing}\nRows of one table must score the same region of each "
+            "volume, or their numbers do not compare: nERL and pq both depend on the extent. "
+            "Predict over the region the existing rows cover (each record's region), or "
+            "re-predict and re-score those rows on the new one."
         )
 
 

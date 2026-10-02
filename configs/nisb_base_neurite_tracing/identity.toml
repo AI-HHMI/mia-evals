@@ -1,0 +1,26 @@
+# nisb_base_neurite_tracing from a finished segmentation of each cube.
+#
+# The cube's skeleton nodes are looked up in the labelling, funlib's expected run length is computed over its
+# neurons (a segment touching two makes all its edges wrong), nERL divides by what a perfect segmentation scores,
+# and VOI is over nodes -- the protocol of the benchmark's own evaluation code, which mia-evals' skeleton metric
+# runs unchanged. The labelling must cover the whole cube.
+
+task_name = "nisb_base_neurite_tracing"
+
+[data.test]
+config_path = "data/test.yaml"
+
+[data.fit]
+config_path = "data/fit.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "skeleton"
+skeleton_name = "skeleton.pkl"   # inside each volume's store (the data YAML's `path`), as NISB ships it
+
+[postprocess]
+name = "identity"
+
+[metric]
+names = ["skeleton_erl"]
+rank_by = "skeleton_erl"

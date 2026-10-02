@@ -1,0 +1,20 @@
+# nisb_base_neurite_tracing -- the FIT split: NISB's base val cube (seed100), as [data.fit].
+#
+# The benchmark's val cube: a different cube from the same generator, so a fit split in mia-evals' sense (a different
+# region, different neurons). Post-processing is chosen here and applied once to the test cube (test.yaml), which
+# has the details. Ground truth: the cube's skeleton.pkl (412 neurons, 784,783 nodes; perfect ERL 259.2 um).
+
+resolutions: [[9.0, 9.0, 20.0]]
+patch_size: [256, 256, 256]   # read by mia-train's predict.py, which requires the model's own: set it first
+output_axes: lcxyz
+samples_per_epoch: 1000
+defer_image_ops: true   # irrelevant for scoring; kept so the rule holds for every miao config
+
+volumes:
+  - name: nisb_base_seed100
+    path: /groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/val/seed100.zarr
+    image_key: raw
+    zarr_version: zarr3
+    bounding_box: [[0, 3000], [0, 3000], [0, 1350]]
+    weight: 1.0
+    normalize: true
