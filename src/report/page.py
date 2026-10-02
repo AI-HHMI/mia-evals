@@ -36,15 +36,16 @@ PAGE = """<!doctype html>
  header .wrap { padding-top: 28px; }
  h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
  .lede { margin: 6px 0 36px; color: var(--muted); max-width: 70ch; }
- nav { display: flex; flex-wrap: wrap; gap: 0 4px; margin-bottom: -1px; }
- nav a { padding: 10px 14px; border-bottom: 2px solid transparent; color: var(--muted);
-  font-weight: 500; white-space: nowrap; }
- nav a:hover { color: var(--ink); text-decoration: none; }
- nav a.on { color: var(--accent); border-color: var(--accent); }
- nav a small { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--head);
-  color: var(--muted); font-size: 11px; font-weight: 600; }
- nav a.on small { background: var(--accent-soft); color: var(--accent); }
- main { padding-top: 28px; padding-bottom: 56px; }
+ nav { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; padding-bottom: 20px; }
+ nav a { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border: 1px solid var(--line);
+  border-radius: 10px; background: var(--card); color: var(--ink); }
+ nav a:hover { border-color: var(--accent); text-decoration: none; }
+ nav a.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent); }
+ nav b { font: 600 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+ nav small { color: var(--muted); font-size: 12px; }
+ nav a.on b { color: var(--accent); }
+ main.wrap { padding-bottom: 56px; }
+ section { padding-top: 32px; }
  h2 { margin: 0 0 4px; font-size: 20px; font-weight: 650; letter-spacing: -.01em; }
  .meta { margin: 0 0 20px; color: var(--muted); }
  .about { margin: 0 0 10px; max-width: 90ch; color: var(--muted); }
@@ -83,8 +84,7 @@ PAGE = """<!doctype html>
  svg .dot.front { fill: var(--accent); stroke: var(--card); stroke-width: 2; opacity: 1; }
  dl.legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px 32px;
   margin: 0; padding: 20px; }
- dl.legend div { display: grid; grid-template-columns: 7.5em 1fr; gap: 0 12px; }
- dl.legend dt { font-size: 12.5px; font-weight: 600; } dl.legend dd { margin: 0; color: var(--muted); }
+ dl.legend dt { margin-bottom: 2px; font-size: 12.5px; font-weight: 600; overflow-wrap: anywhere; } dl.legend dd { margin: 0; color: var(--muted); }
  .arrow { color: var(--accent); }
  .foot { margin-top: 32px; color: var(--muted); font-size: 12.5px; }
  @media (max-width: 640px) { .wrap { padding: 0 14px; } h1 { font-size: 22px; }
@@ -318,7 +318,9 @@ def render_page(root: Path) -> str:
     for task in task_names(root):
         submissions = load_task(root, task)
         name = escape(task)
-        nav.append(f'<a href="#{name}">{name}<small>{len(submissions)}</small></a>')
+        key = escape(str(submissions[0].ranking.get("key", "?"))) if submissions else "—"
+        nav.append(f'<a href="#{name}"><b>{name}</b>'
+                   f'<small>{len(submissions)} submissions &middot; ranked by {key}</small></a>')
         parts.append(f'<section id="{name}"><h2 class="mono">{name}</h2>')
         if not submissions:
             parts.append('<p class="meta">No records yet.</p></section>')
