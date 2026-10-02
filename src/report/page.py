@@ -35,8 +35,8 @@ PAGE = """<!doctype html>
  .wrap { max-width: 1400px; margin: 0 auto; padding: 0 24px; }
  header .wrap { padding-top: 28px; }
  h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
- .lede { margin: 6px 0 20px; color: var(--muted); max-width: 70ch; }
- nav { display: flex; gap: 4px; overflow-x: auto; margin-bottom: -1px; }
+ .lede { margin: 6px 0 36px; color: var(--muted); max-width: 70ch; }
+ nav { display: flex; flex-wrap: wrap; gap: 0 4px; margin-bottom: -1px; }
  nav a { padding: 10px 14px; border-bottom: 2px solid transparent; color: var(--muted);
   font-weight: 500; white-space: nowrap; }
  nav a:hover { color: var(--ink); text-decoration: none; }
@@ -47,6 +47,7 @@ PAGE = """<!doctype html>
  main { padding-top: 28px; padding-bottom: 56px; }
  h2 { margin: 0 0 4px; font-size: 20px; font-weight: 650; letter-spacing: -.01em; }
  .meta { margin: 0 0 20px; color: var(--muted); }
+ .about { margin: 0 0 10px; max-width: 90ch; color: var(--muted); }
  .region { margin: 28px 0 10px; color: var(--muted); font-size: 13px; }
  .region b { color: var(--ink); font-weight: 600; }
  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
@@ -291,6 +292,8 @@ def render_page(root: Path) -> str:
             parts.append('<p class="meta">No records yet.</p></section>')
             continue
         ranking = submissions[0].ranking
+        notes = str(submissions[0].config.get("notes") or "").strip()
+        parts.extend(f'<p class="about">{escape(" ".join(p.split()))}</p>' for p in notes.split("\n\n") if p.strip())
         parts.append(f'<p class="meta">{len(submissions)} submissions &middot; ranked by '
                      f'<b>{escape(str(ranking.get("key", "?")))}</b> '
                      f'({escape(str(ranking.get("metric", "?")))})</p>')
