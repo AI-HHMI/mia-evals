@@ -50,7 +50,7 @@ PAGE = """<!doctype html>
  .meta { margin: 0 0 20px; color: var(--muted); }
  .about { margin: 0 0 10px; max-width: 90ch; color: var(--muted); }
  .region { margin: 28px 0 10px; color: var(--muted); font-size: 13px; }
- .region b { color: var(--ink); font-weight: 600; }
+ .region ul { margin: 4px 0 0; padding-left: 20px; color: var(--ink); }
  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
   box-shadow: var(--shadow); }
  .scroll { overflow: auto; max-height: 75vh; border-radius: 12px; }
@@ -336,7 +336,8 @@ def render_page(root: Path) -> str:
             by_region.setdefault(_region_key(submission), []).append(submission)
         show_truth = len({_truth_kind(s) for s in submissions}) > 1
         for region in sorted(by_region):
-            parts.append(f'<p class="region">Scored region: <b>{escape(region)}</b></p>')
+            items = "".join(f"<li>{escape(v)}</li>" for v in region.split("; "))
+            parts.append(f'<div class="region">Scored region:<ul>{items}</ul></div>')
             parts.append(_group_table(by_region[region], shares, show_truth))
         parts.append("</section>")
     return PAGE.replace("__NAV__", "".join(nav)).replace("__BODY__", "\n".join(parts))
