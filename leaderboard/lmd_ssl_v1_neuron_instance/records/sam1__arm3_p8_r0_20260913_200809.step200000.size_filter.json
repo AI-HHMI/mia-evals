@@ -939,6 +939,5 @@
   },
   "schema_version": 1,
   "label": "",
-  "route": "size_filter",
-  "scored_at": "2026-09-22T14:55:57-04:00"
+  "route": "size_filter"
 }

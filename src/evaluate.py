@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -382,7 +381,6 @@ def cmd_score(args: argparse.Namespace) -> None:
 
     submission = Submission(
         task_name=config.task_name,
-        scored_at=datetime.now().astimezone().isoformat(timespec="seconds"),
         producer={
             "artifacts": {n: str(a.path) for n, a in sorted(test_artifacts.items())},
             "run": representative.attrs.get("run"),
