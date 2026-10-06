@@ -40,8 +40,9 @@ def read_labels(
             f"volume {volume.name!r} has no label_key, so there is no voxel ground truth to score "
             "against. Give it one, or use a task whose truth lives elsewhere (e.g. a skeleton)."
         )
-    store = zarr.open(str(volume.path), mode="r")
-    array = store[f"{volume.label_key}/{level}"]
+    # Open the array itself, not the store's root group: a store may carry keys in its root
+    # zarr.json that zarr's group metadata rejects (the hemibrain crops have a top-level `_source`).
+    array = zarr.open_array(f"{volume.path}/{volume.label_key}/{level}", mode="r")
     window = tuple(slice(o, o + s) for o, s in zip(origin, shape, strict=True))
     return np.asarray(array[window]).astype(np.int64)
 
