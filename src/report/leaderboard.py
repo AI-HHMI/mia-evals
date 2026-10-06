@@ -24,13 +24,11 @@ generators' drift check: a stale committed table is caught by CI instead of by a
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
-
 import json
-import re
 from dataclasses import asdict
+from pathlib import Path
 
+from .common import cell, region_key, report_keys, truth_kind, views_link
 from .links import (
     SHARE_KEYS,
     artifact_directory,
@@ -42,6 +40,7 @@ from .links import (
     share_url,
     views_directory,
 )
+from .page import render_page
 from .record import (
     Submission,
     load_record,
@@ -95,79 +94,6 @@ INDEX_HEADER = """<!-- GENERATED FILE -- do not edit by hand.
 # Leaderboards"""
 
 
-def _report_keys(metric_name: str) -> tuple[str, ...]:
-    """The secondary columns a metric asks for, or none if it is not registered here.
-
-    Looked up rather than stored in the record so that adding a column to a metric changes every
-    table on the next render, without rewriting records that were correct when written.
-    """
-    try:
-        import components  # noqa: F401  (populates the registry)
-        from metrics.registry import MetricRegistry
-
-        return tuple(MetricRegistry.get(metric_name).report_keys)
-    except (ImportError, KeyError):
-        return ()
-
-
-def _region_key(submission: Submission) -> str:
-    """A short label for the extent scored, used to group rows that may be compared."""
-    volumes = submission.region.get("volumes") or {}
-    if not volumes:
-        return "unspecified"
-    parts = []
-    for name in sorted(volumes):
-        entry = volumes[name]
-        shape = entry.get("shape")
-        whole = entry.get("whole_region")
-        extent = "x".join(str(int(s)) for s in shape) if shape else "?"
-        parts.append(f"{name} {extent}{'' if whole else ' (sub-region)'}")
-    return "; ".join(parts)
-
-
-#: The truth kinds as they were named before the 2026-09-14 rename, so records written under the
-#: old names read as the same route and do not force a column that shows a spelling difference.
-LEGACY_TRUTH_KINDS = {"labels": "instances", "sibling_artifact": "instances_resampled"}
-
-
-def _truth_kind(submission: Submission) -> str:
-    """How the record's task read its ground truth; `—` for a task with no such setting."""
-    kwargs = (submission.config.get("task") or {}).get("kwargs") or {}
-    kind = str(kwargs.get("truth_kind", "—"))
-    return LEGACY_TRUTH_KINDS.get(kind, kind)
-
-
-def _cell(value: Any) -> str:
-    if isinstance(value, float):
-        return f"{value:.4f}"
-    return "—" if value is None else str(value)
-
-
-_VIEWS_LINE_URL = re.compile(r"^\*\*Views:\*\* \[[^\]]*\]\((\S+)\)", re.MULTILINE)
-
-
-def views_link(root: Path, task_name: str) -> str | None:
-    """The data-link URL of this task's HTML views page, or None if there is none.
-
-    The URL carries the share's key, and the table it goes into is committed. That is accepted:
-    the links only resolve for people with Janelia access, and a table that names its views is
-    worth more than one that hides them. The key *file* stays untracked all the same -- so on a
-    machine without it, the link already in the committed table is kept rather than dropped,
-    which is what lets anyone re-render or `--check` the table and get the same text.
-    """
-    target = views_directory(root / SHARE_KEYS)
-    if target is not None:
-        page = Path(str(target).replace("{task}", task_name)) / f"{task_name}.html"
-        if page.is_file():
-            return share_url(page, load_share_keys(root / SHARE_KEYS))
-    existing = readme_path(root, task_name)
-    if existing.is_file():
-        match = _VIEWS_LINE_URL.search(existing.read_text())
-        if match:
-            return match.group(1)
-    return None
-
-
 def render_task(task_name: str, submissions: list[Submission],
                 views: str | None = None) -> str:
     """One task's page: a table per region it was scored over, linking its views page if any."""
@@ -179,11 +105,11 @@ def render_task(task_name: str, submissions: list[Submission],
     if views:
         out.append(VIEWS_LINE.format(url=views))
     shares = default_shares()
-    truths = {_truth_kind(s) for s in submissions}
+    truths = {truth_kind(s) for s in submissions}
     show_truth = len(truths) > 1
     by_region: dict[str, list[Submission]] = {}
     for submission in submissions:
-        by_region.setdefault(_region_key(submission), []).append(submission)
+        by_region.setdefault(region_key(submission), []).append(submission)
 
     if len(by_region) > 1:
         out.append(
@@ -207,7 +133,7 @@ def render_task(task_name: str, submissions: list[Submission],
         extra: list[str] = []
         for submission in group:
             for name in sorted(submission.scores):
-                for inner in _report_keys(name):
+                for inner in report_keys(name):
                     column = f"{name}.{inner}"
                     if (column != f"{metric}.{key}"
                             and column not in extra
@@ -230,13 +156,13 @@ def render_task(task_name: str, submissions: list[Submission],
                       checkpoint_directory(submission.producer, submission.provenance))],
                     shares,
                 ),
-                _cell(submission.ranking.get("value")),
+                cell(submission.ranking.get("value")),
                 str(submission.postprocess.get("describe", "—")),
-                *([_truth_kind(submission)] if show_truth else []),
+                *([truth_kind(submission)] if show_truth else []),
             ]
             for column in extra[:6]:
                 name, _, inner = column.partition(".")
-                cells.append(_cell(submission.scores.get(name, {}).get(inner)))
+                cells.append(cell(submission.scores.get(name, {}).get(inner)))
             out.append("| " + " | ".join(cells) + " |")
         out.append("")
     return "\n".join(out).rstrip() + "\n"
@@ -373,7 +299,9 @@ def write(root: Path, task_name: str | None = None) -> list[Path]:
     written = [write_task(root, task_name)] if task_name else [
         write_task(root, name) for name in task_names(root)
     ]
-    return [*written, write_index(root)]
+    page = root / "index.html"
+    page.write_text(render_page(root))
+    return [*written, write_index(root), page]
 
 
 def check(root: Path, task_name: str | None = None) -> list[Path]:
@@ -388,4 +316,7 @@ def check(root: Path, task_name: str | None = None) -> list[Path]:
     index = root / "README.md"
     if not index.is_file() or index.read_text() != render_index(root):
         stale.append(index)
+    page = root / "index.html"
+    if not page.is_file() or page.read_text() != render_page(root):
+        stale.append(page)
     return stale
