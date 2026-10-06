@@ -1,0 +1,61 @@
+# lm_zebrafish_Betzig_mosaic_4D -- cell instance segmentation on timepoint 10 of the Betzig zebrafish
+# light-sheet DSR timeseries (example_annotations_Thayer, crop-001), scored from a finished
+# labelling as submitted.
+#
+#   mia-evals score configs/lm_zebrafish_Betzig_mosaic_4D/identity.toml \
+#       --test <artifacts>/test --scored-out <artifacts>/scored
+#
+# <artifacts>/test must hold, for the one volume:
+#   betzig_thayer_t10.zarr      the prediction at t = 10, 3D (x, y, z), kind = "instances", background_id = 0
+#   betzig_thayer_t10.gt.zarr   labels/manual_gt-cell-t10_postproofread at t = 10, same grid, same native_box
+# See data/test.yaml for why the producer slices both out of the TCZYX store itself.
+#
+# No [data.fit]: the route is `identity`, which has one candidate and so nothing to fit. Training
+# data is a property of a submission, not of this task -- rows may come from the same model trained
+# on different timepoint combinations, and each records its own in the artifact's attributes
+# (`train_timepoints`, a list of 0-based t; [] for a model used as downloaded). The one constraint
+# is that t = 10 is in none of them.
+#
+# Hackathon 2026-10 rows (producer: mia-cellpose, export_mia_evals.py), all Cellpose-SAM (cpsam):
+#   hk_cpsam_zeroshot   train_timepoints []        the downloaded model, no fine-tuning
+#   hk_ft_t01           train_timepoints [1]
+#   hk_ft_t01-25        train_timepoints [1, 25]
+# A model fine-tuned on t1 + t10 + t25 was also trained, but it has seen t = 10 and is not a row here.
+
+task_name = "lm_zebrafish_Betzig_mosaic_4D"
+route = "identity"
+
+notes = """
+Light-sheet microscopy, not EM: membrane channel, DSR, 108 x 108 x 200 nm (x, y, z). Not comparable
+with any EM task in this repository.
+
+One volume, one timepoint: t = 10 (0-based index into the store's 48), the whole crop, 152 x 508 x
+1466 voxels (z, y, x). Truth is manual_gt-cell-t10_postproofread, 293 cell instances over 83.8 M
+voxels, proofread in Paintera by Diana Ramirez.
+
+That truth was proofread from a Cellpose prediction (cellpose_t10_denseEX_pp, binary-foreground IoU
+0.910 against it), so it is not independent of Cellpose: a Cellpose-family model may score higher
+here partly for sharing that starting point.
+
+Submissions are scored as given (`identity`); a submission that wants a size filter applies it
+before writing its labelling. Training timepoints are recorded per row, from the artifact's
+attributes, and must not include t = 10.
+
+Training GT available in the same store: t = 1 (postprocessed_labels_t01, Thayer Alshaabi, 317
+instances; used as stored -- the data team confirmed it is aligned to this crop) and t = 25
+(manual_gt-cell-t25_postproofread, Alannah Post, 296 instances). t = 40 is being proofread.
+"""
+
+[data]
+config_path = "data/test.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "instances_resampled"   # <volume>.gt.zarr beside each labelling, sliced at t = 10 by the producer
+
+[postprocess]
+name = "identity"
+
+[metric]
+names = ["voxel_instance"]
+rank_by = "voxel_instance"        # primary key: pq

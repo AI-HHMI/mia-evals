@@ -1,0 +1,185 @@
+{
+  "task_name": "lm_zebrafish_Betzig_mosaic_4D",
+  "producer": {
+    "artifacts": {
+      "betzig_thayer_t10": "/groups/scicompsoft/home/fengtongd/project_mia/mia-cellpose/outputs/hackathon_crop001/mia_evals/hk_cpsam_zeroshot/test/betzig_thayer_t10.zarr"
+    },
+    "run": "hk_cpsam_zeroshot",
+    "step": 0,
+    "kind": "instances",
+    "convention": "",
+    "artifact_attrs": {
+      "kind": "instances",
+      "background_id": 0,
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "convention": "",
+      "native_box": [
+        [
+          0,
+          1466
+        ],
+        [
+          0,
+          508
+        ],
+        [
+          0,
+          152
+        ]
+      ],
+      "covers_full_box": true,
+      "source_path": "/groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr",
+      "timepoint_index": 10,
+      "run": "hk_cpsam_zeroshot",
+      "step": 0,
+      "model": "cpsam",
+      "tool": "cellpose",
+      "train_timepoints": [],
+      "predict_params": {
+        "timepoints": "all",
+        "flow3D_smooth": 1,
+        "batch_size": 32,
+        "min_size": 2000,
+        "cellprob_threshold": 0.0,
+        "flow_threshold": 0.4
+      },
+      "source_layer": "predictions.zarr/labels/hk_cpsam_zeroshot"
+    }
+  },
+  "scores": {
+    "voxel_instance": {
+      "adapted_rand_error": 0.43420948418523575,
+      "false_negative": 104.0,
+      "false_positive": 313.0,
+      "instances_predicted": 502.0,
+      "instances_truth": 293.0,
+      "iou_threshold": 0.5,
+      "pq": 0.36876288492931025,
+      "rq": 0.47547169811320755,
+      "sq": 0.7755727341767239,
+      "true_positive": 189.0,
+      "voi_merge": 1.0068769480606754,
+      "voi_split": 0.9687403705851132,
+      "voi_sum": 1.9756173186457886,
+      "volumes_scored": 1.0
+    }
+  },
+  "ranking": {
+    "metric": "voxel_instance",
+    "key": "pq",
+    "value": 0.36876288492931025,
+    "higher_is_better": true
+  },
+  "postprocess": {
+    "name": "identity",
+    "params": {},
+    "describe": "Identity",
+    "fitted_on": null,
+    "fitted_on_data_config": null,
+    "validation_scores": {},
+    "scored_artifacts": {
+      "betzig_thayer_t10": "/groups/scicompsoft/home/fengtongd/project_mia/mia-cellpose/outputs/hackathon_crop001/mia_evals/hk_cpsam_zeroshot/scored_repo/betzig_thayer_t10.zarr"
+    }
+  },
+  "region": {
+    "volumes": {
+      "betzig_thayer_t10": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          1466,
+          508,
+          152
+        ],
+        "whole_region": true,
+        "artifact": "/groups/scicompsoft/home/fengtongd/project_mia/mia-cellpose/outputs/hackathon_crop001/mia_evals/hk_cpsam_zeroshot/test/betzig_thayer_t10.zarr",
+        "scored_artifact": "/groups/scicompsoft/home/fengtongd/project_mia/mia-cellpose/outputs/hackathon_crop001/mia_evals/hk_cpsam_zeroshot/scored_repo/betzig_thayer_t10.zarr"
+      }
+    }
+  },
+  "config": {
+    "task_name": "lm_zebrafish_Betzig_mosaic_4D",
+    "task": {
+      "name": "instance_seg",
+      "kwargs": {
+        "truth_kind": "instances_resampled"
+      }
+    },
+    "postprocess": {
+      "name": "identity",
+      "kwargs": {}
+    },
+    "metrics": [
+      "voxel_instance"
+    ],
+    "rank_by": "voxel_instance",
+    "data_config_path": "/groups/scicompsoft/home/fengtongd/project_mia/mia-evals/configs/lm_zebrafish_Betzig_mosaic_4D/data/test.yaml",
+    "volumes": [
+      {
+        "name": "betzig_thayer_t10",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr",
+        "label_key": "labels/manual_gt-cell-t10_postproofread",
+        "bounding_box": [
+          [
+            0,
+            1466
+          ],
+          [
+            0,
+            508
+          ],
+          [
+            0,
+            152
+          ]
+        ]
+      }
+    ],
+    "fit_data_config_path": null,
+    "fit_volumes": null,
+    "notes": "Light-sheet microscopy, not EM: membrane channel, DSR, 108 x 108 x 200 nm (x, y, z). Not comparable\nwith any EM task in this repository.\n\nOne volume, one timepoint: t = 10 (0-based index into the store's 48), the whole crop, 152 x 508 x\n1466 voxels (z, y, x). Truth is manual_gt-cell-t10_postproofread, 293 cell instances over 83.8 M\nvoxels, proofread in Paintera by Diana Ramirez.\n\nThat truth was proofread from a Cellpose prediction (cellpose_t10_denseEX_pp, binary-foreground IoU\n0.910 against it), so it is not independent of Cellpose: a Cellpose-family model may score higher\nhere partly for sharing that starting point.\n\nSubmissions are scored as given (`identity`); a submission that wants a size filter applies it\nbefore writing its labelling. Training timepoints are recorded per row, from the artifact's\nattributes, and must not include t = 10.\n\nTraining GT available in the same store: t = 1 (postprocessed_labels_t01, Thayer Alshaabi, 317\ninstances; used as stored -- the data team confirmed it is aligned to this crop) and t = 25\n(manual_gt-cell-t25_postproofread, Alannah Post, 296 instances). t = 40 is being proofread.\n",
+    "route": "identity"
+  },
+  "per_volume": {
+    "betzig_thayer_t10": {
+      "voxel_instance": {
+        "pq": 0.36876288492931025,
+        "sq": 0.7755727341767239,
+        "rq": 0.47547169811320755,
+        "true_positive": 189.0,
+        "false_positive": 313.0,
+        "false_negative": 104.0,
+        "instances_truth": 293.0,
+        "instances_predicted": 502.0,
+        "voi_split": 0.9687403705851132,
+        "voi_merge": 1.0068769480606754,
+        "voi_sum": 1.9756173186457886,
+        "adapted_rand_error": 0.43420948418523575,
+        "iou_threshold": 0.5
+      }
+    }
+  },
+  "provenance": {
+    "mia_evals_commit": "d6356c09e64bb73592f26633e47bb4c42d3bb7b3 (dirty)"
+  },
+  "views": {},
+  "versions": {
+    "python": "3.11.16",
+    "numpy": "2.4.6",
+    "zarr": "3.1.6",
+    "miao": "present",
+    "numba": "0.67.0",
+    "networkx": "3.6.1",
+    "funlib.evaluate": "absent"
+  },
+  "schema_version": 1,
+  "label": "",
+  "route": "identity"
+}

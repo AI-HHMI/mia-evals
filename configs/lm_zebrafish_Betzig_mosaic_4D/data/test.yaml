@@ -1,0 +1,39 @@
+# lm_zebrafish_Betzig_mosaic_4D -- the TEST split: timepoint 10 of the Betzig zebrafish DSR timeseries.
+#
+# The store is TCZYX (48, 1, 152, 508, 1466), and every label layer in it spans all 48 timepoints
+# with only its own one filled: manual_gt-cell-t10_postproofread holds chunks at t index 10
+# (0-based, matching its `bbox.timepoint_index`) and none elsewhere. miao cannot open a store with
+# a `t` axis (`miao.axes.SPATIAL_CHARS` is set("xyzt"), so t is taken for a fourth spatial axis, and
+# VolumeConfig has no axes or timepoint field), and so nothing here selects the timepoint. mia-evals
+# only parses this file -- it never opens the store through miao -- and the scoring config reads its
+# truth as `instances_resampled`, from the 3D `<name>.gt.zarr` the producer slices out of
+# `label_key` at t = 10 and writes beside its prediction. One entry per timepoint, all with the same
+# path; the entry's `name` and `label_key` are what say which timepoint it is.
+#
+# Not trainable through mia-train for the same reason: its dataset opens the store through miao.
+
+resolutions:
+- - 108.0
+  - 108.0
+  - 200.0
+patch_size:
+- 256
+- 256
+- 64
+output_axes: lcxyz
+
+volumes:
+- name: betzig_thayer_t10
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr
+  image_key: raw
+  label_key: labels/manual_gt-cell-t10_postproofread
+  zarr_version: zarr3
+  # The whole crop, in output_axes spatial order (x, y, z): the layer's own bbox is offset 0,
+  # size ZYX (152, 508, 1466), coverage dense_volume.
+  bounding_box:
+  - - 0
+    - 1466
+  - - 0
+    - 508
+  - - 0
+    - 152
