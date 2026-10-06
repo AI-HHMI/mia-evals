@@ -52,17 +52,16 @@ PAGE = """<!doctype html>
  header .wrap { padding-top: 28px; }
  h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
  .lede { margin: 6px 0 36px; color: var(--muted); max-width: 70ch; }
- nav { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px;
-  padding-bottom: 20px; }
+ nav { display: flex; flex-wrap: wrap; gap: 10px; padding-bottom: 20px; }
  nav a { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border: 1px solid
   var(--line);
   border-radius: 10px; background: var(--card); color: var(--ink); }
  nav a:hover { border-color: var(--accent); text-decoration: none; }
  nav a.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px
   var(--accent); }
- nav b { font: 600 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap:
-  anywhere; }
- nav small { color: var(--muted); font-size: 12px; }
+ nav b { font: 600 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: nowrap; }
+ nav small { white-space: nowrap; color: var(--muted); font-size: 12px; }
  nav a.on b { color: var(--accent); }
  main.wrap { padding-bottom: 56px; }
  section { padding-top: 32px; }
