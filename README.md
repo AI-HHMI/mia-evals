@@ -1,7 +1,7 @@
 # mia-evals
 
 `mia-evals` scores model predictions on volumetric instance and semantic segmentation tasks, and maintains a per-task
-leaderboard of the results.
+leaderboard of the results, published at [ai-hhmi.github.io/mia-evals](https://ai-hhmi.github.io/mia-evals/).
 
 The central idea is that `mia-evals` scores **model predictions** and does not have to know anything about
 the model that generated those predictions. Model predictions are saved in a self-describing Zarr array 
@@ -313,6 +313,7 @@ one subdirectory per task:
 ```
 leaderboard/
   README.md                        index: which tasks exist, and how many entries. No scores.
+  index.html                       every task's table on one sortable page; GitHub Pages serves it
   fileglancer_shares.json          untracked: this machine's fileglancer data-link keys (see below)
   <task_name>/
     README.md                      that task's table, rendered from ./records/

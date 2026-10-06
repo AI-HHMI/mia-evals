@@ -3,6 +3,8 @@
 
 # Leaderboards
 
+Every task's table on one sortable page: [https://ai-hhmi.github.io/mia-evals/](https://ai-hhmi.github.io/mia-evals/)
+
 | task | entries | table |
 | --- | --- | --- |
 | `gary_comparison_neuron_instance` | 23 | [gary_comparison_neuron_instance/README.md](gary_comparison_neuron_instance/README.md) |

@@ -99,10 +99,15 @@ in its record: score it on a machine whose keys cover its artifacts, or run
 </body></html>
 """
 
-INDEX_HEADER = """<!-- GENERATED FILE -- do not edit by hand.
+#: Where .github/workflows/pages.yml publishes leaderboard/index.html.
+PAGE_URL = "https://ai-hhmi.github.io/mia-evals/"
+
+INDEX_HEADER = f"""<!-- GENERATED FILE -- do not edit by hand.
      Regenerate with `mia-evals leaderboard`, or verify with `--check`. -->
 
-# Leaderboards"""
+# Leaderboards
+
+Every task's table on one sortable page: [{PAGE_URL}]({PAGE_URL})"""
 
 
 def render_task(task_name: str, submissions: list[Submission],
