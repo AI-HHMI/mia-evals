@@ -1,0 +1,38 @@
+# Publishes leaderboard/ to GitHub Pages, so leaderboard/index.html is the site's front page:
+# https://ai-hhmi.github.io/mia-evals/
+#
+# The page is committed and kept current by `mia-evals leaderboard` (and `--check`); this only
+# copies the directory, it does not render anything. Requires Settings -> Pages -> Source:
+# "GitHub Actions". The fileglancer key file is untracked, so it is never in the checkout.
+name: Publish leaderboard
+
+on:
+  push:
+    branches: [main]
+    paths: ["leaderboard/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a queued run waits rather than cancelling the one in progress.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: leaderboard
+      - id: deployment
+        uses: actions/deploy-pages@v5
