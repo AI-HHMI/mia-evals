@@ -198,6 +198,53 @@ def test_workers_share_the_blocks_and_one_finisher_completes(tmp_path):
     assert run() == out                                   # complete: left alone
 
 
+def test_a_worker_that_loses_the_race_to_make_the_partial_joins_the_winners(tmp_path, monkeypatch):
+    """Workers started together all find no partial, and each makes one (2026-10-05, NISB: one of
+    nine lost zarr's look-then-create race and crashed; in a stress test, a second creator found
+    the other workers' segmented blocks and deleted the partial they were writing into). Replays
+    the worst order: another worker publishes its partial, and segments its share into it, while
+    this one is still building its own. This one's copy must be discarded and the other's used,
+    and the labelling must be the one a single worker makes."""
+    affinities = _affinities(seed=2)
+    source = _source(tmp_path, affinities)
+    out = tmp_path / "out" / "v.zarr"
+    out.parent.mkdir()
+
+    def run(**kwargs):
+        return BlockwiseRun(source, out, (12, 12, 12), 1, chunk=CHUNK).run(**kwargs)
+
+    real = BlockwiseRun._make_partial
+    built = []
+
+    def make(self, where):
+        built.append(where)
+        if len(built) == 1:                     # the worker started alongside gets there first
+            assert run(worker=1, workers=2) is None
+        real(self, where)
+
+    monkeypatch.setattr(BlockwiseRun, "_make_partial", make)
+    assert run(worker=0, workers=2) is None
+    assert len(built) == 2 and not any(where.exists() for where in built)
+    assert not list(out.parent.glob(".v.zarr.partial.*"))
+    assert run() == out
+    expected, _ = _blockwise(tmp_path / "memory", affinities, (12, 12, 12))
+    assert np.array_equal(np.asarray(zarr.open_array(str(out / "s0"), mode="r")[:]), expected)
+
+
+def test_the_plan_is_written_once_and_never_replaced(tmp_path):
+    """Every worker that finds no plan writes one. Replacing a plan that is there would swap the
+    file under a worker on another node reading it, which NFS answers with ESTALE (seen in the
+    stress test, 2026-10-05): the first plan stays, the same file, and no temporary is left."""
+    from postprocess.mws_blockwise import _write_json_once
+
+    path = tmp_path / "plan.json"
+    _write_json_once(path, {"plan": 1})
+    inode = path.stat().st_ino
+    _write_json_once(path, {"plan": 2})
+    assert json.loads(path.read_text()) == {"plan": 1} and path.stat().st_ino == inode
+    assert [p.name for p in tmp_path.iterdir()] == ["plan.json"]
+
+
 def _held(root) -> list[str]:
     """Files under `root` this process holds open or memory-mapped."""
     held = []
@@ -241,8 +288,10 @@ def test_a_partial_run_is_continued_only_by_the_same_watershed(tmp_path):
     with pytest.raises(SystemExit, match="different watershed"):
         BlockwiseRun(source, out, (16, 12, 12), 1, chunk=CHUNK).run(worker=1, workers=2)
     shutil.rmtree(out.with_name("v.zarr.partial"))           # the labels gone, the markers left
-    with pytest.raises(SystemExit, match="no fragments"):
+    with pytest.raises(SystemExit, match="was missing"):
         BlockwiseRun(source, out, (12, 12, 12), 1, chunk=CHUNK).run(worker=1, workers=2)
+    assert not out.with_name("v.zarr.partial").exists()      # the partial made to find out: gone
+    assert not list(tmp_path.glob(".v.zarr.partial.*"))
 
 
 @pytest.mark.parametrize("placed", [False, True])

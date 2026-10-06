@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .links import SHARE_KEYS, load_share_keys, share_url, views_directory
 from .record import Submission, readme_path
+
+if TYPE_CHECKING:
+    from metrics.base import KeyInfo
 
 
 def report_keys(metric_name: str) -> tuple[str, ...]:
@@ -23,6 +26,18 @@ def report_keys(metric_name: str) -> tuple[str, ...]:
         return tuple(MetricRegistry.get(metric_name).report_keys)
     except (ImportError, KeyError):
         return ()
+
+
+def key_info(metric_name: str) -> dict[str, KeyInfo]:
+    """Direction and description of each of a metric's leaderboard keys, as the metric declares
+    them (`BaseMetric.key_info`), or nothing if it is not registered here."""
+    try:
+        import components  # noqa: F401  (populates the registry)
+        from metrics.registry import MetricRegistry
+
+        return dict(MetricRegistry.get(metric_name).key_info)
+    except (ImportError, KeyError):
+        return {}
 
 
 def region_key(submission: Submission) -> str:

@@ -40,7 +40,7 @@ from typing import Any
 
 import numpy as np
 
-from .base import BaseMetric
+from .base import BaseMetric, KeyInfo
 from .registry import MetricRegistry
 
 NUMERIC = (int, float, np.integer, np.floating)
@@ -112,6 +112,19 @@ class SkeletonExpectedRunLength(BaseMetric):
     higher_is_better = True
     primary = "nerl"
     report_keys = ("erl_um", "voi_sum", "voi_split", "voi_merge", "n_non0_mergers", "n_splits")
+    key_info = {
+        "nerl": KeyInfo(True, "Normalised expected run length: ERL along the traced skeletons "
+                              "divided by the maximum possible."),
+        "erl_um": KeyInfo(True, "Expected run length in micrometres."),
+        "voi_sum": KeyInfo(False, "voi_split + voi_merge."),
+        "voi_split": KeyInfo(False, "Variation of information on the skeleton nodes, split term "
+                                    "H(prediction | truth): over-segmentation."),
+        "voi_merge": KeyInfo(False, "Variation of information on the skeleton nodes, merge term "
+                                    "H(truth | prediction): under-segmentation."),
+        "n_non0_mergers": KeyInfo(False, "Number of (merging segment, skeleton) pairs where one "
+                                         "segment spans several skeletons."),
+        "n_splits": KeyInfo(False, "Number of skeleton edges the segmentation cuts."),
+    }
     point_lookups = True
 
     def __call__(self, prediction: Any, truth: Any, **context: Any) -> dict[str, float]:

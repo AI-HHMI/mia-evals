@@ -9,5 +9,6 @@
 | `hemibrain_eb_neurite_tracing` | 1 | [hemibrain_eb_neurite_tracing/README.md](hemibrain_eb_neurite_tracing/README.md) |
 | `lmd_ssl_v1_neuron_instance` | 13 | [lmd_ssl_v1_neuron_instance/README.md](lmd_ssl_v1_neuron_instance/README.md) |
 | `lmd_ssl_v1_zebrafish_instance` | 3 | [lmd_ssl_v1_zebrafish_instance/README.md](lmd_ssl_v1_zebrafish_instance/README.md) |
+| `nisb_base_neurite_tracing` | 8 | [nisb_base_neurite_tracing/README.md](nisb_base_neurite_tracing/README.md) |
 | `zebrafinch_neurite_tracing` | 1 | [zebrafinch_neurite_tracing/README.md](zebrafinch_neurite_tracing/README.md) |
 | `zebrafinch_neurite_tracing_11um` | 1 | [zebrafinch_neurite_tracing_11um/README.md](zebrafinch_neurite_tracing_11um/README.md) |

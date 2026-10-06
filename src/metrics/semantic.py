@@ -21,7 +21,7 @@ from typing import Any
 
 import numpy as np
 
-from .base import BaseMetric
+from .base import BaseMetric, KeyInfo
 from .registry import MetricRegistry
 
 
@@ -97,6 +97,12 @@ class Semantic(BaseMetric):
     accumulates = True          # one confusion matrix over every volume; see BaseMetric
     primary = "mean_iou"
     report_keys = ("mean_dice", "pixel_accuracy", "classes_present")
+    key_info = {
+        "mean_iou": KeyInfo(True, "Mean intersection-over-union over the classes present."),
+        "mean_dice": KeyInfo(True, "Mean Dice coefficient over the classes present."),
+        "pixel_accuracy": KeyInfo(True, "Fraction of voxels given the correct class."),
+        "classes_present": KeyInfo(None, "Number of classes present in the ground truth."),
+    }
 
     def __init__(
         self,

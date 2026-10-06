@@ -1,0 +1,37 @@
+# nisb_base_neurite_tracing from a model's affinities, through blockwise mutex watershed in 1024 x 1024 x 1350 blocks.
+#
+#   python -m postprocess.mws_blockwise configs/nisb_base_neurite_tracing/mws_blockwise_1024.toml --test <affinities> \
+#       --val <affinities> --scratch <dir> --worker $((LSB_JOBINDEX - 1)) --workers 9   # 9 elements, 36 slots each
+#   mia-evals score configs/nisb_base_neurite_tracing/mws_blockwise_1024.toml --test <affinities> --val <affinities> \
+#       --scratch <dir>
+#
+# The same route as mws_blockwise.toml with the blocks enlarged (added 2026-10-05): 3 x 3 x 1 blocks per cube, so
+# four face planes (x and y at 1024 and 2048, none in z) against fifteen, about 5x less face area. A block holds
+# 1.4 G voxels at ~300 bytes a voxel, ~425 GB, so each runs alone in its own process: run the per-block stage first,
+# as a 9-element LSF array (each element segments one block of each cube), then the scorer, given the same
+# --scratch, stitches and relabels. Larger blocks move the result less from exact mutex watershed
+# (docs/neurite_tracing.md), and scoring the same affinities both ways measures how much the block size moves the
+# score. The rest is mws_blockwise.toml's: whole cubes predicted with --cover-box, no mask, one candidate.
+
+task_name = "nisb_base_neurite_tracing"
+route = "mws_blockwise_1024"     # records <run>.step<N>.mws_blockwise_1024, beside mws_blockwise.toml's
+
+[data.test]
+config_path = "data/test.yaml"
+
+[data.fit]
+config_path = "data/fit.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "skeleton"
+skeleton_name = "skeleton.pkl"   # inside each volume's store (the data YAML's `path`), as NISB ships it
+
+[postprocess]
+name = "mws_blockwise"
+block = [1024, 1024, 1350]      # x, y, z: about 9.2 x 9.2 x 27 um; z spans the cube, ~425 GB per process
+processes = 1                   # one block at a time: the scorer's own stages, and any block the array left
+
+[metric]
+names = ["skeleton_erl"]
+rank_by = "skeleton_erl"

@@ -27,7 +27,7 @@ from typing import Any
 
 import numpy as np
 
-from .base import BaseMetric
+from .base import BaseMetric, KeyInfo
 from .registry import MetricRegistry
 
 #: Largest joint code table counted densely, in cells. Above this the joint is sorted instead.
@@ -309,6 +309,19 @@ class VoxelInstance(BaseMetric):
     # is dominated by dust (median component size measured at 2 voxels on a real prediction) and
     # reads as over-segmentation when the actual failure was the opposite.
     report_keys = ("voi_merge", "voi_split", "sq", "rq", "adapted_rand_error")
+    key_info = {
+        "pq": KeyInfo(True, "Panoptic quality, sq * rq: how well predicted objects match true "
+                            "ones at IoU > 0.5."),
+        "voi_merge": KeyInfo(False, "Variation of information, merge term H(truth | prediction): "
+                                    "under-segmentation."),
+        "voi_split": KeyInfo(False, "Variation of information, split term H(prediction | truth): "
+                                    "over-segmentation."),
+        "sq": KeyInfo(True, "Segmentation quality: mean IoU of the matched object pairs."),
+        "rq": KeyInfo(True, "Recognition quality: F1 of object matching, balancing missed and "
+                            "spurious objects."),
+        "adapted_rand_error": KeyInfo(False, "Adapted Rand error, 1 - Rand F-score of the voxel "
+                                             "pairing."),
+    }
 
     def __init__(self, iou_threshold: float = 0.5, **settings: Any) -> None:
         super().__init__(iou_threshold=iou_threshold, **settings)

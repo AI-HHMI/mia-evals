@@ -21,11 +21,21 @@ though more were better. Every leaderboard ordering derives from this.
 from __future__ import annotations
 
 import abc
-from typing import Any
+from typing import Any, NamedTuple
 
 import numpy as np
 
 CONSUMES = ("labels", "scores")
+
+
+class KeyInfo(NamedTuple):
+    """What the leaderboard says about one key of a metric's result."""
+
+    #: True if a larger value is better, False if a smaller one is, None if neither (a count of
+    #: classes, say).
+    higher_is_better: bool | None
+    #: One line on what the key measures, for the leaderboard page's glossary.
+    description: str
 
 
 class BaseMetric(abc.ABC):
@@ -57,6 +67,11 @@ class BaseMetric(abc.ABC):
     #: two-voxel fragments, while the split/merge terms that say HOW a segmentation failed were
     #: dropped. Empty means "no secondary columns".
     report_keys: tuple[str, ...] = ()
+    #: For `primary` and each of `report_keys`: which direction is better, and one line on what
+    #: it measures. The leaderboard page takes its arrows, best-value highlight and glossary from
+    #: here, so a key cannot reach the tables without them; tests/unit/test_leaderboard_sync.py
+    #: holds every registered metric to that.
+    key_info: dict[str, KeyInfo] = {}
     #: Whether this metric needs the labelling only at a set of points -- a skeleton's nodes. When
     #: every metric of a scoring config says so and the post-processor can hand the stored labelling
     #: over unread (`BasePostprocess.lazy`), the region is never loaded: the metric receives an

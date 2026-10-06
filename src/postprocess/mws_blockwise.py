@@ -35,8 +35,11 @@ labelling LSD's protocol scores, with nothing joined through the margin outside 
 
 **Parallel and resumable.** Stage 1 is the bulk of the work and has no dependencies: blocks are
 dealt round-robin to `--workers` processes (an LSF job array), and a finished block leaves a
-marker that a rerun skips. Stages 2 and 3 belong to a single finisher -- `--workers 1`, or the
-scorer itself, which runs whatever is left -- with a pool of `--processes`. The labelling appears
+marker that a rerun skips. What the workers share is made once, whichever starts first: the
+plan is created and never replaced (`_write_json_once`), and the partial is built under a
+private name and renamed into place (`_publish`). Stages 2 and 3 belong to a single finisher
+-- `--workers 1`, or the scorer itself, which runs whatever is left -- with a pool of
+`--processes`. The labelling appears
 under its final name only after the last block is relabelled: work happens in `<name>.partial`,
 renamed into place at the end.
 
@@ -47,6 +50,7 @@ Memory: a block peaks at about `PEAK_BYTES_PER_VOXEL` bytes a voxel in stage 1, 
 from __future__ import annotations
 
 import argparse
+import errno
 import hashlib
 import itertools
 import json
@@ -54,7 +58,8 @@ import os
 import shutil
 import socket
 import time
-from collections.abc import Sequence
+import uuid
+from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -486,6 +491,52 @@ def _write_json(path: Path, record: dict[str, Any]) -> None:
     os.replace(temporary, path)
 
 
+def _write_json_once(path: Path, record: dict[str, Any]) -> None:
+    """Create `path` holding `record` unless it exists; a file already there is never replaced.
+
+    A hard link to a finished file either creates `path` or fails because it is there. Replacing
+    it instead, as `_write_json` does, would swap the file under a worker on another node that is
+    reading it, and NFS answers that read with ESTALE -- which workers started together, all
+    writing the plan, did (2026-10-05).
+    """
+    temporary = path.with_name(f".{path.name}.{socket.gethostname()}.{os.getpid()}."
+                               f"{uuid.uuid4().hex[:8]}")
+    temporary.write_text(json.dumps(record, indent=1))
+    try:
+        os.link(temporary, path)
+    except FileExistsError:
+        pass
+    finally:
+        temporary.unlink()
+
+
+def _publish(final: Path, build: Callable[[Path], Any]) -> bool:
+    """Build directory `final` under a name of this call's own and rename it into place, unless
+    another worker has published it first. True if this call did.
+
+    Workers started together all find no partial, and making it in place would race: zarr's
+    open-or-create looks, then creates, so a worker between the two raised ContainsGroupError (one
+    of nine on NISB, 2026-10-05), and two that both looked first both create the group and the
+    fragments array -- so both believe the partial was theirs to make, and either one, finding
+    another's segmented blocks, deletes the partial everyone is writing into. A rename onto a
+    directory that exists and is not empty fails, so exactly one worker's copy lands, whole, and
+    every other worker discards its own and uses that one.
+    """
+    temporary = final.with_name(f".{final.name}.{socket.gethostname()}.{os.getpid()}."
+                                f"{uuid.uuid4().hex[:8]}")
+    try:
+        build(temporary)
+        try:
+            os.rename(temporary, final)
+        except OSError as error:
+            if error.errno not in (errno.EEXIST, errno.ENOTEMPTY):
+                raise
+            return False
+        return True
+    finally:
+        shutil.rmtree(temporary, ignore_errors=True)
+
+
 def _face(data: Any, kind: str, axis: int) -> dict[str, np.ndarray]:
     if kind == "source":
         return {"labels": data[f"source_labels_{axis}"], "short": data[f"short_{axis}"],
@@ -523,7 +574,7 @@ class BlockwiseRun:
         self.work.mkdir(parents=True, exist_ok=True)
         plan_path = self.work / "plan.json"
         if not plan_path.exists():
-            _write_json(plan_path, self.plan)
+            _write_json_once(plan_path, self.plan)
         found = json.loads(plan_path.read_text())
         if found != json.loads(json.dumps(self.plan)):
             raise SystemExit(
@@ -531,19 +582,22 @@ class BlockwiseRun:
                 f"this one's {self.plan}). Rerun with the settings that made it, or delete "
                 f"{self.partial} and {self.work} to start over."
             )
-        group = zarr.open_group(str(self.partial), mode="a", zarr_format=3)
-        try:
-            group.create_array(name="fragments", shape=self.region, dtype=np.uint32,
-                               chunks=self.block)
-            stale = sorted(self.work.glob("seg_*.npz"))
-            if stale:
-                shutil.rmtree(self.partial)
-                raise SystemExit(
-                    f"{self.work} holds {len(stale)} segmented block(s) but {self.partial} had "
-                    f"no fragments; delete {self.work} too, then rerun."
-                )
-        except ContainsArrayError:
-            pass
+        # Every worker tries to publish, even when the partial is there already. Asking first
+        # (`self.partial.exists()`) is what NFS remembers: a worker told "missing" that then loses
+        # the race still cannot open the partial the rename found -- every worker on one node failed
+        # that way in a stress test (2026-10-05). Seen before publishing, these blocks cannot be for
+        # a partial this worker makes.
+        stale = sorted(self.work.glob("seg_*.npz"))
+        if _publish(self.partial, self._make_partial) and stale:
+            shutil.rmtree(self.partial)
+            raise SystemExit(
+                f"{self.work} holds {len(stale)} segmented block(s) but {self.partial} was "
+                f"missing; delete {self.work} too, then rerun."
+            )
+
+    def _make_partial(self, where: Path) -> None:
+        group = zarr.open_group(str(where), mode="w", zarr_format=3)
+        group.create_array(name="fragments", shape=self.region, dtype=np.uint32, chunks=self.block)
 
     def segmented(self, index: int) -> Path:
         return self.work / f"seg_{index}.npz"

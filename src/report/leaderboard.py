@@ -20,6 +20,10 @@ scored over, and a group with more than one region is split rather than sorted t
 
 `--check` renders into memory and compares, writing nothing. Same idea as the data-config
 generators' drift check: a stale committed table is caught by CI instead of by a reader.
+
+**One table, two renderings.** What a task's table shows -- rows, columns, cell text, links,
+preamble -- is decided once, by `table.build`; this module writes it as markdown and `page` as
+HTML, so the README and leaderboard/index.html cannot disagree.
 """
 
 from __future__ import annotations
@@ -28,14 +32,12 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
-from .common import cell, region_key, report_keys, truth_kind, views_link
+from .common import views_link
 from .links import (
     SHARE_KEYS,
-    artifact_directory,
-    checkpoint_directory,
     default_shares,
-    link_cell,
     load_share_keys,
+    markdown_links,
     record_views,
     share_url,
     views_directory,
@@ -49,6 +51,15 @@ from .record import (
     records_dir,
     task_names,
 )
+from .table import (
+    LINKS_NOTE,
+    MIXED_REGIONS,
+    NO_RECORDS,
+    REGION_LABEL,
+    VIEWS_TEXT,
+    TaskTable,
+    build,
+)
 
 # `..` from `leaderboard/<task>/README.md` is `leaderboard/`, so docs are two levels up -- one more
 # than the old single table at `leaderboard/README.md` needed.
@@ -58,9 +69,9 @@ TASK_HEADER = """<!-- GENERATED FILE -- do not edit by hand.
 
 # {task}
 
-The artifact/checkpoint/view links below point to locations on the Janelia cluster and will only work on the Janelia network."""
+""" + LINKS_NOTE
 
-VIEWS_LINE = "\n**Views:** [neuroglancer views for every row below]({url})"
+VIEWS_LINE = "\n**Views:** [" + VIEWS_TEXT + "]({url})"
 
 VIEWS_HTML = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>{task}: views</title>
@@ -97,72 +108,27 @@ INDEX_HEADER = """<!-- GENERATED FILE -- do not edit by hand.
 def render_task(task_name: str, submissions: list[Submission],
                 views: str | None = None) -> str:
     """One task's page: a table per region it was scored over, linking its views page if any."""
-    header = TASK_HEADER.format(task=task_name)
-    if not submissions:
-        return header + "\n\nNo records yet.\n"
+    return markdown(build(task_name, submissions, views, default_shares()))
+
+
+def markdown(table: TaskTable) -> str:
+    """`table` as the task's README.md; `page.section` writes the same content as HTML."""
+    header = TASK_HEADER.format(task=table.name)
+    if not table.groups:
+        return header + f"\n\n{NO_RECORDS}\n"
 
     out = [header]
-    if views:
-        out.append(VIEWS_LINE.format(url=views))
-    shares = default_shares()
-    truths = {truth_kind(s) for s in submissions}
-    show_truth = len(truths) > 1
-    by_region: dict[str, list[Submission]] = {}
-    for submission in submissions:
-        by_region.setdefault(region_key(submission), []).append(submission)
-
-    if len(by_region) > 1:
-        out.append(
-            "> Scored over different regions, so the groups below are **not** comparable with "
-            "one another. Several of these metrics change with extent.\n"
-        )
-
-    for region in sorted(by_region):
-        group = by_region[region]
-        ranking = group[0].ranking
-        metric, key = ranking.get("metric", "?"), ranking.get("key", "?")
-        higher = bool(ranking.get("higher_is_better", True))
-        group.sort(key=lambda s: s.ranking.get("value", 0.0), reverse=higher)
-
-        # Columns in the order the *metrics* declare, not discovery order. A union over
-        # sorted keys gave the alphabetically-first six, which for an instance task meant a
-        # constant setting and a misleading count while the diagnostic split/merge terms were
-        # dropped. `report_keys` lives on the metric because it knows which of its outputs are
-        # diagnostic; anything a metric does not name stays out of the table and remains in
-        # the record.
-        extra: list[str] = []
-        for submission in group:
-            for name in sorted(submission.scores):
-                for inner in report_keys(name):
-                    column = f"{name}.{inner}"
-                    if (column != f"{metric}.{key}"
-                            and column not in extra
-                            and inner in submission.scores[name]):
-                        extra.append(column)
-
-        out.append(f"\n**Region:** {region}\n")
-        direction = "higher is better" if higher else "lower is better"
-        columns = ["#", "model", "links", f"{metric}.{key} ({direction})", "postprocess",
-                   *(["truth"] if show_truth else []), *extra[:6]]
-        out.append("| " + " | ".join(columns) + " |")
-        out.append("|" + "|".join(["---"] * len(columns)) + "|")
-        for position, submission in enumerate(group, start=1):
-            cells = [
-                str(position),
-                submission.identifier(),
-                link_cell(
-                    [("artifacts", artifact_directory(submission.producer)),
-                     ("checkpoint",
-                      checkpoint_directory(submission.producer, submission.provenance))],
-                    shares,
-                ),
-                cell(submission.ranking.get("value")),
-                str(submission.postprocess.get("describe", "—")),
-                *([truth_kind(submission)] if show_truth else []),
-            ]
-            for column in extra[:6]:
-                name, _, inner = column.partition(".")
-                cells.append(cell(submission.scores.get(name, {}).get(inner)))
+    if table.views:
+        out.append(VIEWS_LINE.format(url=table.views))
+    if table.mixed_regions:
+        out.append(f"> {MIXED_REGIONS}\n")
+    for group in table.groups:
+        out.append(f"\n**{REGION_LABEL}** {group.region}\n")
+        out.append("| " + " | ".join(column.header for column in group.columns) + " |")
+        out.append("|" + "|".join(["---"] * len(group.columns)) + "|")
+        for row in group.rows:
+            cells = [markdown_links(list(c.links)) if column.kind == "links" else c.text
+                     for column, c in zip(group.columns, row.cells, strict=True)]
             out.append("| " + " | ".join(cells) + " |")
         out.append("")
     return "\n".join(out).rstrip() + "\n"

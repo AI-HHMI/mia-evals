@@ -31,6 +31,7 @@ import os
 import re
 import urllib.parse
 import urllib.request
+from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -150,22 +151,52 @@ def known_missing(path: str | os.PathLike[str]) -> bool:
     return mount_root(path).is_dir() and not os.path.exists(path)
 
 
+@dataclass(frozen=True)
+class Link:
+    """One entry of a row's links cell, as both the README table and the HTML page show it."""
+
+    name: str
+    path: str
+    #: The fileglancer page, or None when no share covers the path.
+    url: str | None
+    #: Deleted from storage this machine mounts; see `known_missing`.
+    missing: bool
+
+    @property
+    def label(self) -> str:
+        """The entry as text: its name, `name (missing)`, or `name: path` when nothing serves it."""
+        if self.missing:
+            return f"{self.name} ({MISSING})"
+        if self.url is None:
+            return f"{self.name}: {self.path}"
+        return self.name
+
+
+def link_entries(entries: list[tuple[str, Path | None]], shares: dict[str, str] | None,
+                 missing: Any = known_missing) -> list[Link]:
+    """The links cell's entries, in order; a target the record never named gets none."""
+    return [Link(name, str(path), fileglancer_url(path, shares), bool(missing(path)))
+            for name, path in entries if path is not None]
+
+
+def markdown_links(links: list[Link]) -> str:
+    """The links cell as markdown: `[artifacts](url) · [checkpoint](url)`, `—` when empty."""
+    parts = []
+    for link in links:
+        if link.missing:
+            parts.append(link.label)
+        elif link.url is None:
+            parts.append(f"{link.name}: `{link.path}`")
+        else:
+            parts.append(f"[{link.name}]({link.url})")
+    return " · ".join(parts) if parts else "—"
+
+
 def link_cell(entries: list[tuple[str, Path | None]], shares: dict[str, str] | None,
               missing: Any = known_missing) -> str:
     """One table cell: `[artifacts](url) · [checkpoint](url)`, `name (missing)` for a deleted
     target, nothing for a record that never named one."""
-    parts = []
-    for name, path in entries:
-        if path is None:
-            continue
-        url = fileglancer_url(path, shares)
-        if missing(path):
-            parts.append(f"{name} ({MISSING})")
-        elif url is None:
-            parts.append(f"{name}: `{path}`")
-        else:
-            parts.append(f"[{name}]({url})")
-    return " · ".join(parts) if parts else "—"
+    return markdown_links(link_entries(entries, shares, missing))
 
 
 # ------------------------------------------------------------------------------ viewer links

@@ -338,8 +338,8 @@ def test_the_task_page_links_its_views_page_and_check_agrees(tmp_path):
 
 @pytest.mark.unit
 def test_html_page_is_written_checked_and_notices_staleness(tmp_path):
-    """`write` then `check` agree; a changed page or a new record makes the page stale; the task
-    the page has a model column and falls back to the first task on an unknown #hash."""
+    """`write` then `check` agree; a changed page or a new record makes the page stale; the page
+    has a model column and falls back to the first task on an unknown #hash."""
     from report import leaderboard
     from report.record import Submission
 
@@ -354,7 +354,7 @@ def test_html_page_is_written_checked_and_notices_staleness(tmp_path):
     leaderboard.write(tmp_path)
     page = tmp_path / "index.html"
     assert "<td" in page.read_text()
-    assert "<th class=\"\">model</th>" in page.read_text()
+    assert "<th>model</th>" in page.read_text()
     assert "sections[0].id" in page.read_text()
     assert leaderboard.check(tmp_path) == []
 

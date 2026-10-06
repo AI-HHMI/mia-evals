@@ -1,0 +1,35 @@
+# nisb_base_neurite_tracing from a model's affinities, through THRESHOLDED CONNECTED COMPONENTS: the published NISB
+# baseline's post-processing (BANIS), the way data_scaling and every NISB number before 2026-10 were scored.
+#
+#   mia-evals score configs/nisb_base_neurite_tracing/cc_threshold.toml --test <affinities> --val <affinities> \
+#       --scratch <dir>
+#
+# The three short-range channels only, thresholded at sigmoid(0.2 * L) over logits 3-11, no size filter, fitted on
+# the val cube (seed100) and applied once to the test cube (seed101). BANIS' own sweep is 3-7; it was widened
+# (2026-10-06) after both large_inputs_nisb arms chose 7, its edge. The August data_scaling numbers took the best
+# logit on seed100 itself: this record's validation scores are their counterpart, its test score the benchmark's.
+# A whole cube is labelled in memory, ~170 GB at the peak: give the job 32 slots.
+# Affinities as for mws_blockwise.toml: whole cubes, predicted with mia-train's predict.py --cover-box.
+
+task_name = "nisb_base_neurite_tracing"
+route = "cc_threshold"
+
+[data.test]
+config_path = "data/test.yaml"
+
+[data.fit]
+config_path = "data/fit.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "skeleton"
+skeleton_name = "skeleton.pkl"   # inside each volume's store (the data YAML's `path`), as NISB ships it
+
+[postprocess]
+name = "cc_threshold"
+logits = [3, 4, 5, 6, 7, 8, 9, 10, 11]   # thresholds 0.646-0.900; BANIS' eval_ranges are 3-7
+min_sizes = [0]                 # no size filter, as the baseline
+
+[metric]
+names = ["skeleton_erl"]
+rank_by = "skeleton_erl"
