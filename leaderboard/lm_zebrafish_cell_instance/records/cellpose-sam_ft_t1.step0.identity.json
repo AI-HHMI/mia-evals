@@ -1,0 +1,200 @@
+{
+  "task_name": "lm_zebrafish_cell_instance",
+  "producer": {
+    "artifacts": {
+      "lm_zebrafish_t10": "/groups/scicompsoft/home/fengtongd/project_mia/mia-cellpose/outputs/hackathon_crop001/mia_evals/cell_instance/cellpose-sam_ft_t1/test/lm_zebrafish_t10.zarr"
+    },
+    "run": "cellpose-sam_ft_t1",
+    "step": 0,
+    "kind": "instances",
+    "convention": "",
+    "artifact_attrs": {
+      "kind": "instances",
+      "background_id": 0,
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "convention": "",
+      "native_box": [
+        [
+          0,
+          152
+        ],
+        [
+          0,
+          508
+        ],
+        [
+          0,
+          1466
+        ]
+      ],
+      "covers_full_box": true,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "source_path": "/groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr",
+      "timepoint_index": 10,
+      "source_fixed_axes": {
+        "t": 10
+      },
+      "run": "cellpose-sam_ft_t1",
+      "step": 0,
+      "model": "/groups/scicompsoft/home/fengtongd/project_mia/mia-cellpose/outputs/hackathon_crop001/models/hk4_ft_t01",
+      "tool": "cellpose",
+      "train_timepoints": [
+        1
+      ],
+      "min_size": 41889,
+      "min_size_selection": "best mean PQ on t1+t25, 26-value grid, >= GT cell count (mia-cellpose select_min_size)",
+      "predict_params": {
+        "timepoints": "all",
+        "flow3D_smooth": 1,
+        "batch_size": 32,
+        "min_size": 2000,
+        "cellprob_threshold": 0.0,
+        "flow_threshold": 0.4
+      },
+      "source_layer": "predictions.zarr/labels/hk4_ft_t01"
+    }
+  },
+  "scores": {
+    "voxel_instance": {
+      "adapted_rand_error": 0.267087014516206,
+      "false_negative": 76.0,
+      "false_positive": 96.0,
+      "instances_predicted": 313.0,
+      "instances_truth": 293.0,
+      "iou_threshold": 0.5,
+      "pq": 0.6011986784510162,
+      "rq": 0.7161716171617162,
+      "sq": 0.8394617491735387,
+      "true_positive": 217.0,
+      "voi_merge": 0.5785677802264946,
+      "voi_split": 0.6360532378826456,
+      "voi_sum": 1.2146210181091401,
+      "volumes_scored": 1.0
+    }
+  },
+  "ranking": {
+    "metric": "voxel_instance",
+    "key": "pq",
+    "value": 0.6011986784510162,
+    "higher_is_better": true
+  },
+  "postprocess": {
+    "name": "identity",
+    "params": {},
+    "describe": "Identity",
+    "fitted_on": null,
+    "fitted_on_data_config": null,
+    "validation_scores": {},
+    "scored_artifacts": {
+      "lm_zebrafish_t10": "/groups/scicompsoft/home/fengtongd/project_mia/mia-cellpose/outputs/hackathon_crop001/mia_evals/cell_instance/cellpose-sam_ft_t1/scored/lm_zebrafish_t10.zarr"
+    }
+  },
+  "region": {
+    "volumes": {
+      "lm_zebrafish_t10": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          152,
+          508,
+          1466
+        ],
+        "whole_region": true,
+        "artifact": "/groups/scicompsoft/home/fengtongd/project_mia/mia-cellpose/outputs/hackathon_crop001/mia_evals/cell_instance/cellpose-sam_ft_t1/test/lm_zebrafish_t10.zarr",
+        "scored_artifact": "/groups/scicompsoft/home/fengtongd/project_mia/mia-cellpose/outputs/hackathon_crop001/mia_evals/cell_instance/cellpose-sam_ft_t1/scored/lm_zebrafish_t10.zarr"
+      }
+    }
+  },
+  "config": {
+    "task_name": "lm_zebrafish_cell_instance",
+    "task": {
+      "name": "instance_seg",
+      "kwargs": {
+        "truth_kind": "instances"
+      }
+    },
+    "postprocess": {
+      "name": "identity",
+      "kwargs": {}
+    },
+    "metrics": [
+      "voxel_instance"
+    ],
+    "rank_by": "voxel_instance",
+    "data_config_path": "/groups/scicompsoft/home/fengtongd/project_mia/mia-evals/configs/lm_zebrafish_cell_instance/data/test.yaml",
+    "volumes": [
+      {
+        "name": "lm_zebrafish_t10",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr",
+        "label_key": "labels/manual_gt-cell-t10_postproofread",
+        "bounding_box": [
+          [
+            0,
+            152
+          ],
+          [
+            0,
+            508
+          ],
+          [
+            0,
+            1466
+          ]
+        ],
+        "fixed_axes": {
+          "t": 10
+        }
+      }
+    ],
+    "fit_data_config_path": null,
+    "fit_volumes": null,
+    "notes": "",
+    "route": "identity"
+  },
+  "per_volume": {
+    "lm_zebrafish_t10": {
+      "voxel_instance": {
+        "pq": 0.6011986784510162,
+        "sq": 0.8394617491735387,
+        "rq": 0.7161716171617162,
+        "true_positive": 217.0,
+        "false_positive": 96.0,
+        "false_negative": 76.0,
+        "instances_truth": 293.0,
+        "instances_predicted": 313.0,
+        "voi_split": 0.6360532378826456,
+        "voi_merge": 0.5785677802264946,
+        "voi_sum": 1.2146210181091401,
+        "adapted_rand_error": 0.267087014516206,
+        "iou_threshold": 0.5
+      }
+    }
+  },
+  "provenance": {
+    "mia_evals_commit": "67e942478a57327c54602854693217c3c534e060 (dirty)"
+  },
+  "views": {},
+  "versions": {
+    "python": "3.11.16",
+    "numpy": "2.4.6",
+    "zarr": "3.1.6",
+    "miao": "present",
+    "numba": "0.67.0",
+    "networkx": "3.6.1",
+    "funlib.evaluate": "absent"
+  },
+  "schema_version": 1,
+  "label": "",
+  "route": "identity"
+}
