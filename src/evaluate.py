@@ -28,7 +28,7 @@ from typing import Any
 
 import numpy as np
 
-from artifact import Artifact, open_artifact, write_scored
+from artifact import Artifact, open_artifact, store_ome, write_scored
 from config import ScoringConfig, load_scoring_config
 from metrics.base import BaseMetric
 from postprocess.base import BasePostprocess
@@ -266,8 +266,15 @@ def score_once(
         if keep is not None and task.canonical == "instances":
             if isinstance(prediction, np.ndarray):
                 keep.mkdir(parents=True, exist_ok=True)
+                # A plain-array artifact carries no geometry for a viewer to place the copy with;
+                # on a task counting the store's own voxels it lies on the store's grid, so the
+                # copy takes the store's.
+                geometry = (
+                    store_ome(volume.path, volume.image_key, volume.zarr_version, origin)
+                    if artifact.array_path is None and task.in_volume_frame() else None
+                )
                 regions[volume.name]["scored_artifact"] = str(write_scored(
-                    keep / f"{volume.name}.zarr", prediction, artifact, origin,
+                    keep / f"{volume.name}.zarr", prediction, artifact, origin, geometry=geometry,
                     convention=processor.describe(params),
                     postprocess={"name": type(processor).__name__, "params": params},
                 ))

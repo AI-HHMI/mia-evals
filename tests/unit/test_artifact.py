@@ -224,6 +224,42 @@ def test_float_is_still_fine_for_the_score_kinds(tmp_path, kind):
     assert artifact.kind == kind
 
 
+def test_a_plain_labelling_is_kept_with_the_stores_geometry(tmp_path):
+    """A plain-array submission lies on the store's grid, so its scored copy takes the store's.
+
+    The store here is a time series (t, c, z, y, x): only its spatial axes describe the labelling,
+    translated to the scored region's first voxel. A store without an OME image group has nothing
+    to give, and the copy stays a plain array.
+    """
+    import zarr
+
+    from artifact import store_ome, write_scored
+
+    raw = zarr.open_group(str(tmp_path / "ts.zarr"), mode="w", zarr_format=3).create_group("raw")
+    axes = [{"name": "t", "type": "time", "unit": "millisecond"}, {"name": "c", "type": "channel"}]
+    axes += [{"name": a, "type": "space", "unit": "nanometer"} for a in "zyx"]
+    raw.attrs["ome"] = {"version": "0.5", "multiscales": [{"axes": axes, "datasets": [{
+        "path": "s0", "coordinateTransformations": [
+            {"type": "scale", "scale": [1.0, 1.0, 200.0, 108.0, 108.0]},
+            {"type": "translation", "translation": [0.0, 0.0, 10.0, 20.0, 30.0]}]}]}]}
+    raw.create_array("s0", shape=(3, 1, 4, 6, 8), dtype="uint16")
+    geometry = store_ome(tmp_path / "ts.zarr", "raw", "zarr3", (1, 5, 5))
+    assert geometry is not None
+    assert [axis["name"] for axis in geometry["multiscales"][0]["axes"]] == ["z", "y", "x"]
+
+    labels = np.arange(4 * 6 * 8, dtype=np.int64).reshape(4, 6, 8) % 7
+    plain = open_artifact(write_artifact(tmp_path / "sub.zarr", labels, "instances",
+                                         background_id=0))
+    path = write_scored(tmp_path / "scored.zarr", labels, plain, (1, 5, 5), geometry=geometry)
+    (dataset,) = dict(zarr.open_group(str(path), mode="r").attrs)["ome"]["multiscales"][0][
+        "datasets"]
+    scale, shift = dataset["coordinateTransformations"]
+    assert scale["scale"] == [200.0, 108.0, 108.0]
+    assert shift["translation"] == [10.0 + 200.0, 20.0 + 5 * 108.0, 30.0 + 5 * 108.0]
+    assert np.array_equal(open_artifact(path).load(), labels)
+    assert store_ome(tmp_path / "plain.zarr", "raw", "zarr3", (0, 0, 0)) is None
+
+
 def test_a_scored_labelling_keeps_the_source_geometry_and_shifts_to_its_region(tmp_path):
     """The voxels a row was scored on, written so a viewer places them where the artifact was."""
     from artifact import open_artifact, write_scored

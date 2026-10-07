@@ -203,6 +203,34 @@ def test_view_entries_need_a_share_over_both_the_raw_store_and_the_artifact(tmp_
 
 
 @pytest.mark.unit
+def test_without_a_truth_artifact_a_task_shows_the_stores_label_array():
+    """Truth read from the store is what the row was scored against, so the view shows that array.
+
+    A `<volume>.gt.zarr` beside the artifact still wins, and a task that scored resampled truth
+    (`instances_resampled`) shows none without it: the store's array is not what it scored.
+    """
+    import json
+    import urllib.parse
+
+    artifacts = {"vol": "/nrs/scicompsoft/orhane/mia-train-scratch/x/test/vol.zarr"}
+    volume = {"name": "vol", "path": "/groups/miaai/miaai/lmd-v0.0.1/data/s.zarr",
+              "label_key": "labels/seg"}
+    producer = {"artifacts": artifacts, "kind": "instances"}
+
+    def layers(truth_kind: str, truth_artifact: bool) -> dict:
+        config = {"volumes": [volume],
+                  "task": {"name": "instance_seg", "kwargs": {"truth_kind": truth_kind}}}
+        (entry,) = view_entries(producer, {}, config, KEYS, "arm",
+                                exists=lambda p: truth_artifact or not str(p).endswith(".gt.zarr"))
+        state = json.loads(urllib.parse.unquote(entry[1][len(NEUROGLANCER):]))
+        return {layer["name"]: layer for layer in state["layers"]}
+
+    assert "s.zarr/labels/seg/" in layers("instances", truth_artifact=False)["truth"]["source"]
+    assert "vol.gt.zarr" in layers("instances", truth_artifact=True)["truth"]["source"]
+    assert "truth" not in layers("instances_resampled", truth_artifact=False)
+
+
+@pytest.mark.unit
 def test_a_pinned_frame_opens_on_that_frame(tmp_path):
     """One frame of a time series: both views declare the store's time axis and sit on the frame.
 
@@ -265,6 +293,10 @@ def test_views_show_the_scored_labelling_when_the_record_names_one():
     (entry,) = view_entries({**producer, "kind": "affinity"}, {"scored_artifacts": scored},
                             config, KEYS, "arm", exists=lambda p: True)
     assert "unfiltered" not in entry[1]
+    # Nor for identity rows: their scored copy is the submitted labelling itself.
+    (entry,) = view_entries(producer, {"name": "identity", "scored_artifacts": scored},
+                            config, KEYS, "arm", exists=lambda p: True)
+    assert "unfiltered" not in entry[1] and "x/scored/vol.zarr" in entry[1]
     # A scored copy that was deleted falls back to the producer's output.
     (entry,) = view_entries(producer, {"scored_artifacts": scored}, config, KEYS, "arm",
                             exists=lambda p: "scored" not in str(p))

@@ -358,6 +358,8 @@ def write_scored(
     labels: np.ndarray,
     like: Artifact,
     origin: tuple[int, ...],
+    *,
+    geometry: dict[str, Any] | None = None,
     **attrs: Any,
 ) -> Path:
     """Persist a post-processed labelling of `like` -- the exact voxels a row was scored on.
@@ -366,7 +368,9 @@ def write_scored(
     is the producer's output before the size filter, and a viewer shows something other than
     what the number was computed on. This writes the labelling as a single-level OME-Zarr group
     with `like`'s geometry (the same voxel size; the translation shifted when the scored region
-    starts inside the artifact), as the narrowest unsigned type that holds its ids.
+    starts inside the artifact), as the narrowest unsigned type that holds its ids. A `like` that
+    carries no geometry (a plain array) takes `geometry` instead, the OME of the grid the caller
+    knows it lies on (`store_ome`); with neither, the copy is a plain array too.
     """
     path = Path(path)
     if labels.ndim != len(like.spatial_shape):
@@ -383,9 +387,9 @@ def write_scored(
         "source_artifact": str(like.path), **attrs,
     }
     chunks = tuple(min(256, s) for s in labels.shape)
-    ome = _shifted_ome(like, origin) if like.array_path is not None else None
+    ome = _shifted_ome(like, origin) if like.array_path is not None else geometry
     if ome is None:
-        # The source carries no geometry to inherit: a bare array, like the source itself.
+        # No geometry to inherit or to be given: a bare array, like the source itself.
         store = zarr.open(str(path), mode="w", shape=labels.shape, dtype=labels.dtype,
                           chunks=chunks)
         store[:] = labels
@@ -434,6 +438,39 @@ def _shifted_ome(like: Artifact, origin: tuple[int, ...]) -> dict[str, Any] | No
         for t, o, v in zip(shift["translation"], offset, scale["scale"], strict=True)
     ]
     return ome
+
+
+def store_ome(
+    path: str | Path, image_key: str, zarr_version: str, origin: tuple[int, ...]
+) -> dict[str, Any] | None:
+    """OME multiscales placing a labelling on a store's own level-0 grid, first voxel at `origin`.
+
+    For a plain-array labelling scored on a task that counts the store's own voxels: the scorer
+    compares it with the truth at the store's level-0 indices, so it lies on that grid whenever the
+    score means anything, and the image's level-0 voxel size and translation are its geometry.
+    Only the spatial axes are kept (a time series' frame and a channel are not the labelling's).
+    None when the image group has no OME metadata to read, or its spatial axes do not match.
+    """
+    from miao.zarr_meta import read_ome_metadata
+
+    try:
+        meta = read_ome_metadata(path, image_key, zarr_version, [0])
+    except (FileNotFoundError, KeyError, ValueError):
+        return None
+    spatial = [i for i, axis in enumerate(meta.axes) if axis.get("type") not in ("time", "channel")]
+    if len(spatial) != len(origin):
+        return None
+    level = meta.scales[0]
+    shift = level.translation_or_zeros()
+    voxel = [float(level.scale_factors[i]) for i in spatial]
+    first = [float(shift[i]) + float(o) * v for i, o, v in zip(spatial, origin, voxel, strict=True)]
+    return {"version": "0.5", "multiscales": [{
+        "axes": [dict(meta.axes[i]) for i in spatial],
+        "datasets": [{"path": "s0", "coordinateTransformations": [
+            {"type": "scale", "scale": voxel},
+            {"type": "translation", "translation": first},
+        ]}],
+    }]}
 
 
 def single_level(group: Any) -> str | None:
