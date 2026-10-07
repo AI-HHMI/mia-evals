@@ -1,0 +1,36 @@
+# lm_zebrafish_cell_instance -- the FIT split: frames 1 and 25 of the Betzig light-sheet zebrafish time
+# series, the same store and field of view as the reported frame 10 (test.yaml, which explains the
+# geometry and the pinned frame). The size filter is fitted here and applied once to frame 10.
+#
+# Frame 25's label is a proofread Cellpose segmentation (Alannah Post, Paintera; 296 cells). Frame 1's is
+# the `postprocessed_labels` stage of a separate annotation of that frame, before its final proofread
+# (317 cells), re-registered onto this store's grid by a (1, 5, 5) voxel shift on 2026-10-06. That shift
+# leaves it empty at z = 0, y < 5 and x < 5 (2.2 M voxels, 2% of the frame) where the raw shows cells, so
+# frame 1's box starts past that strip: [[1, 152], [5, 508], [5, 1466]]. A training config on frame 1
+# should use the same box, or the cells in the strip are learned as background.
+
+resolutions: [[200.0, 108.0, 108.0]]   # z, y, x in nm (output_axes order)
+patch_size: [128, 128, 128]
+output_axes: lczyx
+samples_per_epoch: 1000   # the run config's [data] / [val_data] section overrides this
+defer_image_ops: true   # irrelevant for scoring; kept identical to a training-side file
+
+volumes:
+  - name: lm_zebrafish_t01
+    path: /groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr
+    image_key: raw
+    label_key: labels/postprocessed_labels_t01
+    zarr_version: zarr3
+    fixed_axes: {t: 1}
+    normalize_min: 715
+    normalize_max: 16923
+    bounding_box: [[1, 152], [5, 508], [5, 1466]]   # past the strip the re-registration left unlabelled
+  - name: lm_zebrafish_t25
+    path: /groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr
+    image_key: raw
+    label_key: labels/manual_gt-cell-t25_postproofread
+    zarr_version: zarr3
+    fixed_axes: {t: 25}
+    normalize_min: 715
+    normalize_max: 16923
+    bounding_box: [[0, 152], [0, 508], [0, 1466]]

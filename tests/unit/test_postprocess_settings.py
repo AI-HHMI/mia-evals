@@ -32,9 +32,16 @@ def test_a_postprocessor_without_settings_refuses_any():
 @pytest.mark.unit
 @pytest.mark.parametrize("path", SCORING, ids=lambda p: str(Path(p).relative_to(ROOT / "configs")))
 def test_every_scoring_config_builds_its_postprocessor(path):
+    from conftest import needs_newer_miao
+
     import components  # noqa: F401
     from config import load_scoring_config
     from postprocess.registry import PostprocessRegistry
 
-    config = load_scoring_config(Path(path))
+    try:
+        config = load_scoring_config(Path(path))
+    except ValueError as error:
+        if needs_newer_miao(error):
+            pytest.skip("its data pins a frame with fixed_axes; the installed miao predates it")
+        raise
     PostprocessRegistry.build(config.postprocess.name, **config.postprocess.kwargs)

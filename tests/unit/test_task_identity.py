@@ -36,11 +36,18 @@ def _config_identity(config):
 
 def test_task_files_sharing_a_name_agree_on_what_the_task_is():
     """Two scoring configs may share a task_name only as two routes to the same table."""
+    from conftest import needs_newer_miao
+
     from config import load_scoring_config
 
     by_name: dict[str, list[tuple[str, dict]]] = {}
     for path in sorted(glob.glob(str(ROOT / "configs" / "*" / "*.toml"))):
-        config = load_scoring_config(path)
+        try:
+            config = load_scoring_config(path)
+        except ValueError as error:
+            if needs_newer_miao(error):
+                continue  # checked once the installed miao knows fixed_axes
+            raise
         by_name.setdefault(config.task_name, []).append((path, _config_identity(config)))
     assert by_name, "no scoring configs found"
     for name, entries in by_name.items():

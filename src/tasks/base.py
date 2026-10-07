@@ -34,6 +34,9 @@ class Volume:
     and hippocampus have 0% ground-truth foreground in their own central 256^3 block. Scoring
     without the box counts unannotated space as background and returns a plausible number that
     means nothing.
+
+    `fixed_axes` pins stored axes to one index each, `{"t": 10}` for one frame of a time series
+    (miao's setting of the same name). The volume is then that frame, spatial like any other.
     """
 
     name: str
@@ -42,6 +45,7 @@ class Volume:
     image_key: str = "raw"
     bounding_box: tuple[tuple[int, int], ...] | None = None
     zarr_version: str = "zarr3"
+    fixed_axes: dict[str, int] | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 
     @property

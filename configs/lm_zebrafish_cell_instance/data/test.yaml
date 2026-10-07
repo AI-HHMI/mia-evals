@@ -1,0 +1,29 @@
+# lm_zebrafish_cell_instance -- the TEST split: frame 10 of the Betzig light-sheet zebrafish time series.
+#
+# The store holds 48 frames as t, c, z, y, x (one membrane channel); `fixed_axes` pins one frame, which
+# miao (AI-HHMI/miao#39), mia-train's predict.py and the scorer then read as an ordinary 3D volume. The
+# label is that frame's proofread Cellpose segmentation (Diana Ramirez, Paintera; 293 cells). The fit
+# split, frames 1 and 25 of the same store, is fit.yaml.
+#
+# Native resolution and the store's own z, y, x order, so prediction neither resamples nor transposes.
+# The box is the whole frame. z is 152 voxels and miao needs the box to exceed the window by a voxel,
+# so a window is at most 151 in z; patch_size is what predict.py tiles with, and a model trained at
+# another window predicts with a copy of this file that changes only patch_size. normalize_min/max are
+# lmd-configs' window for this store (corpus/windows.yaml).
+
+resolutions: [[200.0, 108.0, 108.0]]   # z, y, x in nm (output_axes order)
+patch_size: [128, 128, 128]
+output_axes: lczyx
+samples_per_epoch: 1000   # the run config's [data] / [val_data] section overrides this
+defer_image_ops: true   # irrelevant for scoring; kept identical to a training-side file
+
+volumes:
+  - name: lm_zebrafish_t10
+    path: /groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr
+    image_key: raw
+    label_key: labels/manual_gt-cell-t10_postproofread
+    zarr_version: zarr3
+    fixed_axes: {t: 10}
+    normalize_min: 715
+    normalize_max: 16923
+    bounding_box: [[0, 152], [0, 508], [0, 1466]]

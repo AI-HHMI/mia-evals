@@ -262,6 +262,58 @@ def ome_transform(artifact: Path) -> tuple[list[str], list[float], list[float], 
     return axes, scale, shift or [0.0] * len(axes), shape
 
 
+#: OME-NGFF units as (factor, SI unit), the form neuroglancer converts a store's units to; a
+#: dimension the view declares must match the one neuroglancer derives from the source.
+SI_UNITS = {
+    "nanometer": (1e-9, "m"), "micrometer": (1e-6, "m"),
+    "nanosecond": (1e-9, "s"), "microsecond": (1e-6, "s"), "millisecond": (1e-3, "s"),
+    "second": (1.0, "s"), "minute": (60.0, "s"), "hour": (3600.0, "s"), "day": (86400.0, "s"),
+}
+
+
+def pinned_axes(image: Path, fixed: dict[str, int] | None) -> dict[str, tuple[list[Any], float]]:
+    """Neuroglancer dimension and position of each axis a volume pins, from its image group.
+
+    A volume pinned with `fixed_axes` is one frame of a time series, but the raw layer shows the
+    whole series, and a view placed only in z, y and x opens on whatever frame neuroglancer picks.
+    Placing it on the frame needs that axis declared as the store declares it. The position is the
+    frame's index (plus any translation), which lies inside the frame whether a viewer takes
+    integer coordinates as voxel corners or centres. Empty when nothing is pinned, or when the
+    image's metadata does not say what a pinned axis is.
+    """
+    if not fixed:
+        return {}
+    if (image / "zarr.json").is_file():
+        attrs = json.loads((image / "zarr.json").read_text()).get("attributes") or {}
+        attrs = attrs.get("ome") or attrs
+    elif (image / ".zattrs").is_file():
+        attrs = json.loads((image / ".zattrs").read_text())
+    else:
+        return {}
+    scales = attrs.get("multiscales") or []
+    if not scales or not scales[0].get("datasets"):
+        return {}
+    axes = [a if isinstance(a, dict) else {"name": a} for a in scales[0].get("axes") or []]
+    names = [a.get("name") for a in axes]
+    scale, shift = [1.0] * len(axes), [0.0] * len(axes)
+    for t in scales[0]["datasets"][0].get("coordinateTransformations") or []:
+        if t.get("type") == "scale":
+            scale = [float(v) for v in t["scale"]]
+        elif t.get("type") == "translation":
+            shift = [float(v) for v in t["translation"]]
+    out: dict[str, tuple[list[Any], float]] = {}
+    for axis, index in fixed.items():
+        if axis not in names:
+            return {}
+        i = names.index(axis)
+        unit = axes[i].get("unit")
+        if unit and unit not in SI_UNITS:
+            return {}
+        factor, si = SI_UNITS[unit] if unit else (1.0, "")
+        out[axis] = ([scale[i] * factor, si], shift[i] / scale[i] + float(index))
+    return out
+
+
 def intensity_window(config: dict[str, Any], volume: str) -> tuple[float, float] | None:
     """The data config's `normalize_min/max` for a volume, when the config is at hand.
 
@@ -289,7 +341,8 @@ def neuroglancer_state(raw: str, prediction: str, truth: str | None,
                        transform: tuple[list[str], list[float], list[float], list[int]] | None,
                        name: str, mode: str = "overlay",
                        window: tuple[float, float] | None = None,
-                       unfiltered: str | None = None) -> str:
+                       unfiltered: str | None = None,
+                       pinned: dict[str, tuple[list[Any], float]] | None = None) -> str:
     """A viewer URL over three layers: the raw image, the prediction, the ground truth.
 
     `overlay`: one viewer, the prediction drawn over the raw, the truth present but hidden until
@@ -326,6 +379,11 @@ def neuroglancer_state(raw: str, prediction: str, truth: str | None,
         axes, scale, shift, shape = transform
         state["dimensions"] = {a: [v * 1e-9, "m"] for a, v in zip(axes, scale, strict=True)}
         state["position"] = [t / v + n / 2 for t, v, n in zip(shift, scale, shape, strict=True)]
+        # Axes the raw image has and the prediction lacks (the frame of a time series), placed
+        # where the prediction was made; see `pinned_axes`.
+        for axis, (dimension, position) in (pinned or {}).items():
+            state["dimensions"][axis] = dimension
+            state["position"].append(position)
     return NEUROGLANCER + urllib.parse.quote(json.dumps(state, separators=(",", ":")))
 
 
@@ -358,12 +416,13 @@ def view_entries(producer: dict[str, Any], postprocess: dict[str, Any], config: 
         truth = share_url(truth_path, keys) if exists(truth_path) else None
         transform = ome_transform(Path(shown))
         window = intensity_window(config, volume)
+        pinned = pinned_axes(Path(store) / image_key, (volumes.get(volume) or {}).get("fixed_axes"))
         out.append((
             volume,
             neuroglancer_state(raw, prediction, truth, transform, label, "overlay", window,
-                               unfiltered),
+                               unfiltered, pinned),
             neuroglancer_state(raw, prediction, truth, transform, label, "side_by_side", window,
-                               unfiltered),
+                               unfiltered, pinned),
             shown != artifact,
         ))
     return out

@@ -203,6 +203,48 @@ def test_view_entries_need_a_share_over_both_the_raw_store_and_the_artifact(tmp_
 
 
 @pytest.mark.unit
+def test_a_pinned_frame_opens_on_that_frame(tmp_path):
+    """One frame of a time series: both views declare the store's time axis and sit on the frame.
+
+    The raw layer is the whole series (t, c, z, y, x) while the prediction is the frame alone, so a
+    view placed only in z, y and x would open on whatever frame the viewer picks.
+    """
+    import json
+    import urllib.parse
+
+    store = tmp_path / "ts.zarr"
+    (store / "raw").mkdir(parents=True)
+    axes = [{"name": "t", "type": "time", "unit": "millisecond"}, {"name": "c", "type": "channel"}]
+    axes += [{"name": a, "type": "space", "unit": "nanometer"} for a in "zyx"]
+    raw_scale = {"type": "scale", "scale": [1.0, 1.0, 200.0, 108.0, 108.0]}
+    (store / "raw" / "zarr.json").write_text(json.dumps({"attributes": {"ome": {"multiscales": [
+        {"axes": axes, "datasets": [{"path": "s0", "coordinateTransformations": [raw_scale]}]}]}}}))
+    prediction = tmp_path / "artifacts" / "frame.zarr"
+    (prediction / "s0").mkdir(parents=True)
+    (prediction / "zarr.json").write_text(json.dumps({"attributes": {"ome": {"multiscales": [{
+        "axes": [{"name": a, "type": "space"} for a in "zyx"],
+        "datasets": [{"path": "s0", "coordinateTransformations": [
+            {"type": "scale", "scale": [200.0, 108.0, 108.0]},
+            {"type": "translation", "translation": [0.0, 0.0, 0.0]}]}]}]}}}))
+    (prediction / "s0" / "zarr.json").write_text(json.dumps({"shape": [152, 508, 1466]}))
+    producer = {"artifacts": {"frame": str(prediction)}, "kind": "instances"}
+    keys = {str(tmp_path.resolve()): "KEY"}
+
+    pinned = {"volumes": [{"name": "frame", "path": str(store), "fixed_axes": {"t": 10}}]}
+    (entry,) = view_entries(producer, {}, pinned, keys, "arm")
+    for url in entry[1:3]:
+        state = json.loads(urllib.parse.unquote(url[len(NEUROGLANCER):]))
+        assert list(state["dimensions"]) == ["z", "y", "x", "t"]
+        assert state["dimensions"]["t"] == [0.001, "s"]       # 1 ms per frame, as the store says
+        assert state["position"][3] == 10.0
+    # An ordinary volume is placed in z, y and x only, as before.
+    plain = {"volumes": [{"name": "frame", "path": str(store)}]}
+    (entry,) = view_entries(producer, {}, plain, keys, "arm")
+    state = json.loads(urllib.parse.unquote(entry[1][len(NEUROGLANCER):]))
+    assert list(state["dimensions"]) == ["z", "y", "x"] and len(state["position"]) == 3
+
+
+@pytest.mark.unit
 def test_views_show_the_scored_labelling_when_the_record_names_one():
     import json
     import urllib.parse

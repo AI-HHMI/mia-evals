@@ -34,7 +34,9 @@ from tasks.base import Volume
 #: Fields of a miao volume entry that a score cares about. Anything else in the entry -- weights,
 #: resolutions, normalisation windows -- describes how to *sample* the volume for training and has
 #: no bearing on scoring a prediction over it, so it is carried in `extra` rather than dropped.
-VOLUME_FIELDS = ("name", "path", "image_key", "label_key", "bounding_box", "zarr_version")
+VOLUME_FIELDS = (
+    "name", "path", "image_key", "label_key", "bounding_box", "zarr_version", "fixed_axes",
+)
 
 
 @dataclass(frozen=True)
@@ -97,7 +99,27 @@ def _volume_record(v: Volume) -> dict[str, Any]:
         "label_key": v.label_key,
         "bounding_box": None if v.bounding_box is None
         else [list(pair) for pair in v.bounding_box],
+        # Only when pinned, so an ordinary volume's record reads exactly as it always has.
+        **({"fixed_axes": dict(v.fixed_axes)} if v.fixed_axes else {}),
     }
+
+
+def _fixed_axes(entry: Any, path: Path) -> dict[str, int] | None:
+    """The one index per axis a volume entry pins with miao's `fixed_axes`, or None.
+
+    A scored volume is one labelling, so an entry pinning several indices -- which miao expands into
+    one volume per frame -- is refused: each frame needs an entry of its own, named for its
+    prediction. A miao that predates the setting cannot have it, hence the `getattr`.
+    """
+    if not getattr(entry, "fixed_axes", None):
+        return None
+    frames = entry.expand_fixed_axes()
+    if len(frames) != 1:
+        raise ValueError(
+            f"{path}: volume {entry.name!r} pins {entry.fixed_axes}, which miao expands into "
+            f"{len(frames)} volumes; a scored volume is one frame, so give each its own entry"
+        )
+    return {str(axis): int(index) for axis, index in frames[0].fixed_axes.items()}
 
 
 def load_data_config(path: str | Path) -> tuple[Volume, ...]:
@@ -142,6 +164,7 @@ def load_data_config(path: str | Path) -> tuple[Volume, ...]:
                 (int(pair[0]), int(pair[1])) for pair in box
             ),
             zarr_version=str(entry.zarr_version),
+            fixed_axes=_fixed_axes(entry, path),
             # What remains describes how to *sample* the volume for training -- weights,
             # resolutions, normalisation windows -- and has no bearing on scoring a prediction over
             # it. Carried rather than dropped so a record can show the data config in full.

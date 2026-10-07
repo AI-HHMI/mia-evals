@@ -14,10 +14,17 @@ SCORING = sorted(glob.glob(str(ROOT / "configs" / "*" / "*.toml")))
 @pytest.mark.unit
 @pytest.mark.parametrize("path", SCORING, ids=lambda p: str(Path(p).relative_to(ROOT / "configs")))
 def test_scoring_config_lives_in_its_task_directory_under_its_route_name(path):
+    from conftest import needs_newer_miao
+
     import components  # noqa: F401
     from config import load_scoring_config
 
-    config = load_scoring_config(Path(path))
+    try:
+        config = load_scoring_config(Path(path))
+    except ValueError as error:
+        if needs_newer_miao(error):
+            pytest.skip("its data pins a frame with fixed_axes; the installed miao predates it")
+        raise
     assert Path(path).parent.name == config.task_name, "directory name must be the task name"
     assert Path(path).stem == config.route, "file stem must be the route (the record name's last part)"
     for data in (config.data_config_path, config.fit_data_config_path):

@@ -42,8 +42,52 @@ def read_labels(
         )
     store = zarr.open(str(volume.path), mode="r")
     array = store[f"{volume.label_key}/{level}"]
-    window = tuple(slice(o, o + s) for o, s in zip(origin, shape, strict=True))
+    window: tuple[Any, ...] = tuple(slice(o, o + s) for o, s in zip(origin, shape, strict=True))
+    if volume.fixed_axes:
+        window = pinned_window(volume, level, window)
     return np.asarray(array[window]).astype(np.int64)
+
+
+def pinned_window(volume: Volume, level: str, window: tuple[Any, ...]) -> tuple[Any, ...]:
+    """`window` (spatial, storage order) as an index into a label array with pinned axes.
+
+    A time series scored one frame at a time keeps its labels as t, c, z, y, x, so the spatial
+    window alone would land on t, c and z. Where each pinned axis sits and which index it takes at
+    this level come from miao's `fix_axes`, the resolution its sampler uses; a channel axis left
+    over must hold one channel and is taken too, so the read is spatial like any other.
+    """
+    from miao.zarr_meta import fix_axes, read_ome_metadata
+
+    assert volume.label_key is not None and volume.fixed_axes is not None  # checked by the caller
+    meta = fix_axes(
+        read_ome_metadata(volume.path, volume.label_key, volume.zarr_version),
+        volume.fixed_axes, f"volume {volume.name!r}: ",
+    )
+    scale = next(s for s in meta.scales.values() if s.path == level)
+    spatial = [name for name in meta.axis_names if name != "c"]
+    if len(spatial) != len(window):
+        raise ValueError(
+            f"volume {volume.name!r}: pinning {volume.fixed_axes} leaves {volume.label_key} with "
+            f"axes {''.join(spatial)!r}, but the region scored is {len(window)}-D"
+        )
+    remaining = iter(zip(meta.axis_names, scale.shape, strict=True))
+    region = iter(window)
+    index: list[Any] = []
+    for dim in range(len(scale.fixed_index) + len(meta.axis_names)):
+        if dim in scale.fixed_index:
+            index.append(scale.fixed_index[dim])
+            continue
+        name, size = next(remaining)
+        if name != "c":
+            index.append(next(region))
+        elif size == 1:
+            index.append(0)
+        else:
+            raise ValueError(
+                f"volume {volume.name!r}: {volume.label_key} holds {size} label channels; a score "
+                "reads one labelling, so pin the channel with fixed_axes"
+            )
+    return tuple(index)
 
 
 @TaskRegistry.register("instance_seg")

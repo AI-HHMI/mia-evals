@@ -136,6 +136,15 @@ def check_same_volume(volume: Volume, artifact: Artifact, role: str) -> None:
             "which split the artifact belongs to: the task's [data.test] volumes go to --test and "
             "its [data.fit] volumes to --val."
         )
+    # Every frame of a time series shares the store path, so the frame is the rest of the check.
+    frame = artifact.attrs.get("source_fixed_axes") or None
+    if frame != (volume.fixed_axes or None):
+        raise SystemExit(
+            f"{role} artifact {artifact.path} was predicted with fixed_axes {frame}, but volume "
+            f"{volume.name!r} pins {volume.fixed_axes or None}. Every frame of a time series "
+            "shares one store path, so this would score one frame's prediction against another "
+            "frame's ground truth without an error."
+        )
 
 
 def resolve_artifacts(spec: Path, volumes: tuple[Volume, ...]) -> dict[str, Artifact]:
