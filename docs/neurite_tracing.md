@@ -127,7 +127,10 @@ perfect ERL 259.24 um) is the fit split and the test cube (seed101) the reported
 benchmark's rules score once. Each cube's own labels score nERL 1 and VOI 0 on it (checked
 2026-10-02). A prediction has to cover the whole cube, which there is no context beyond: predict
 with mia-train's `predict.py --cover-box`. A table's rows must all score the same region, so a
-first row predicted without it would lock the table to a smaller one.
+first row predicted without it would lock the table to a smaller one. On NISB, `mws_blockwise` does
+not reproduce exact mutex watershed at either block size tried (the gate under "Segmenting affinities
+at this scale"), so its NISB numbers compare models scored with the same blocks rather than
+measure `mws`; `cc_threshold`, the benchmark's own post-processing, has no blocks.
 
 ## Data
 
@@ -188,6 +191,30 @@ Both are inside the pre-registered bounds (pq within 2% relative, VOI sum within
 crossing edges last blocks a few merges across faces: VOI split rises by 0.010-0.015 and VOI merge
 falls by 0.004-0.006. Larger blocks move it less. 97-99% of voxels lie in segments that match
 exact `mws` one to one.
+
+**On NISB the change of order is not small.** Measured the same way on 2026-10-06
+(`/nrs/scicompsoft/orhane/mia-train-experiments/large_inputs_nisb/probes/mws_exactness/gate.py`):
+large_inputs_nisb's w512_1cube at step 100k, on the val cube (seed100) over x, y in [0, 2048) and
+all of z, which is 5.66 G voxels and 373,445 skeleton nodes, the largest region exact `mws` holds on a
+1.9 TB node. Scored by the task's skeleton metric on the skeleton cut to the region, which is
+pessimistic but alike for all three:
+
+| segmenter | VOI split | VOI merge | splits | mergers | nERL | nERL, merges of <= 5 nodes ignored | nERL, all merges ignored | VOI to exact | voxels matching exact one to one |
+|---|---|---|---|---|---|---|---|---|---|
+| `mws` | 1.320 | 0.101 | 11,531 | 2,083 | 0.016 | 0.503 | 0.715 | -- | -- |
+| `mws_blockwise`, 1024 x 1024 x 1350 (4) | 1.436 | 0.105 | 11,931 | 2,117 | 0.024 | 0.461 | 0.679 | 0.068 / 0.019 | 97.4% |
+| `mws_blockwise`, 512 x 512 x 256 (96) | 1.826 | 0.110 | 13,725 | 2,186 | 0.019 | 0.375 | 0.565 | 0.292 / 0.075 | 90.2% |
+
+Neither is inside the bound (skeleton VOI sum within 0.02 of exact's): +0.119 and +0.514. All three
+labellings have the same number of segments (2.96 M); blockwise splits neurites at block faces. Larger
+blocks move it less, but even the 1024 x 1024 x 1350 blocks, with three faces per cube, cost 0.04 of
+the merge-tolerant nERLs. So on NISB `mws_blockwise`'s absolute numbers are biased low at both block
+sizes; models scored with the same blocks still compare (both large_inputs_nisb 1-cube arms moved
+alike between the two sizes). The near-zero strict nERL is not the blocks: exact `mws` scores 0.016 too.
+`mws` assigns every voxel, so a skeleton node near a membrane lands in the neighbour's segment and
+merges it, where thresholded components leave it in background, whose edges the metric drops.
+Exact `mws` on this region peaked at 1.05 TB (185 bytes a voxel; 1.76 mutex pair insertions a voxel)
+and took 5.3 h, so a whole NISB cube, 12.15 G voxels, would need about 2.25 TB.
 
 - **Masking.** `[postprocess] mask = "labels/neuropil_mask"` (zebrafinch) or `"labels/eb_mask"`
   (hemibrain), a key in the volume's store, drops every edge touching a masked voxel. Masked voxels

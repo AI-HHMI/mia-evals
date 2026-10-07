@@ -1,0 +1,621 @@
+{
+  "task_name": "nisb_base_neurite_tracing",
+  "producer": {
+    "artifacts": {
+      "nisb_base_seed101": "/nrs/scicompsoft/orhane/mia-train-experiments/large_inputs_nisb/eval/w256_5cube/step200000/test/nisb_base_seed101.zarr"
+    },
+    "run": "large_inputs_nisb__w256_5cube_20261003_141051",
+    "step": 200000,
+    "kind": "affinity",
+    "convention": "sigmoid(0.2 * logit), blended in that space",
+    "artifact_attrs": {
+      "kind": "affinity",
+      "convention": "sigmoid(0.2 * logit), blended in that space",
+      "channels": 6,
+      "model_axes": "xyz",
+      "offsets": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          10,
+          0,
+          0
+        ],
+        [
+          0,
+          10,
+          0
+        ],
+        [
+          0,
+          0,
+          10
+        ]
+      ],
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "axes": "xyz",
+      "source_path": "/groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/test/seed101.zarr",
+      "source_image_key": "raw",
+      "source_label_key": null,
+      "image_level": 0,
+      "label_level": null,
+      "native_box": [
+        [
+          0,
+          3000
+        ],
+        [
+          0,
+          3000
+        ],
+        [
+          0,
+          1350
+        ]
+      ],
+      "annotated_box": [
+        [
+          0,
+          3000
+        ],
+        [
+          0,
+          3000
+        ],
+        [
+          0,
+          1350
+        ]
+      ],
+      "read_shape": [
+        256,
+        256,
+        256
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "effective_voxel_nm": [
+        9.0,
+        9.0,
+        20.0
+      ],
+      "covers_full_box": true,
+      "box_coverage": 1.0,
+      "cover_box": true,
+      "patch": [
+        256,
+        256,
+        256
+      ],
+      "stride": [
+        128,
+        128,
+        128
+      ],
+      "run": "large_inputs_nisb__w256_5cube_20261003_141051",
+      "run_dir": "/nrs/scicompsoft/orhane/mia-train-experiments/large_inputs_nisb/runs/large_inputs_nisb__w256_5cube_20261003_141051",
+      "step": 200000,
+      "data_config": "/nrs/scicompsoft/orhane/mia-train-experiments/large_inputs_nisb/eval/w256_5cube/step200000/data/test.yaml",
+      "volume": "nisb_base_seed101",
+      "blockwise": {
+        "block": [
+          1536,
+          1536,
+          1536
+        ],
+        "blocks": 4,
+        "device": "NVIDIA B300 SXM6 AC",
+        "tiles": 5760,
+        "seconds": 4908.1
+      }
+    }
+  },
+  "scores": {
+    "skeleton_erl": {
+      "erl": 94240.4921875,
+      "erl_um": 94.2404921875,
+      "max_erl": 256572.40625,
+      "max_erl_um": 256.57240625,
+      "n_mergers": 577.0,
+      "n_non0_mergers": 161.0,
+      "n_splits": 3594.0,
+      "nerl": 0.3673056364059448,
+      "nerl_100": 0.4372043311595917,
+      "nerl_20": 0.43218883872032166,
+      "nerl_5": 0.4244648218154907,
+      "nerl_inf": 0.47102242708206177,
+      "skeleton_nodes": 791035.0,
+      "skeleton_nodes_full": 791035.0,
+      "voi_merge": 1.383252326693178,
+      "voi_split": 1.7116562330068295,
+      "voi_sum": 3.0949085597000074,
+      "whole_region": 1.0,
+      "volumes_scored": 1.0
+    }
+  },
+  "ranking": {
+    "metric": "skeleton_erl",
+    "key": "nerl",
+    "value": 0.3673056364059448,
+    "higher_is_better": true
+  },
+  "postprocess": {
+    "name": "cc_threshold",
+    "params": {
+      "logit": 6.0,
+      "min_size": 0
+    },
+    "describe": "cc_threshold(logit=+6, thr=0.7685)",
+    "fitted_on": "/nrs/scicompsoft/orhane/mia-train-experiments/large_inputs_nisb/eval/w256_5cube/step200000/fit",
+    "fitted_on_data_config": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/nisb_base_neurite_tracing/data/fit.yaml",
+    "validation_scores": {
+      "skeleton_erl": {
+        "erl": 88107.59375,
+        "erl_um": 88.10759375,
+        "max_erl": 259241.15625,
+        "max_erl_um": 259.24115625,
+        "n_mergers": 604.0,
+        "n_non0_mergers": 193.0,
+        "n_splits": 3523.0,
+        "nerl": 0.3398672938346863,
+        "nerl_100": 0.39530232548713684,
+        "nerl_20": 0.39477628469467163,
+        "nerl_5": 0.3926231861114502,
+        "nerl_inf": 0.4636634886264801,
+        "skeleton_nodes": 784783.0,
+        "skeleton_nodes_full": 784783.0,
+        "voi_merge": 1.4424967003698157,
+        "voi_split": 1.7222604688208172,
+        "voi_sum": 3.164757169190633,
+        "whole_region": 1.0,
+        "volumes_scored": 1.0
+      }
+    },
+    "scored_artifacts": {
+      "nisb_base_seed101": "/nrs/scicompsoft/orhane/mia-evals/nisb_base_neurite_tracing/scored/large_inputs_nisb__w256_5cube_20261003_141051.step200000.cc_threshold/nisb_base_seed101.zarr"
+    }
+  },
+  "region": {
+    "volumes": {
+      "nisb_base_seed101": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          3000,
+          3000,
+          1350
+        ],
+        "whole_region": true,
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/large_inputs_nisb/eval/w256_5cube/step200000/test/nisb_base_seed101.zarr",
+        "scored_artifact": "/nrs/scicompsoft/orhane/mia-evals/nisb_base_neurite_tracing/scored/large_inputs_nisb__w256_5cube_20261003_141051.step200000.cc_threshold/nisb_base_seed101.zarr"
+      }
+    }
+  },
+  "config": {
+    "task_name": "nisb_base_neurite_tracing",
+    "task": {
+      "name": "instance_seg",
+      "kwargs": {
+        "truth_kind": "skeleton",
+        "skeleton_name": "skeleton.pkl"
+      }
+    },
+    "postprocess": {
+      "name": "cc_threshold",
+      "kwargs": {
+        "logits": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "min_sizes": [
+          0
+        ]
+      }
+    },
+    "metrics": [
+      "skeleton_erl"
+    ],
+    "rank_by": "skeleton_erl",
+    "data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/nisb_base_neurite_tracing/data/test.yaml",
+    "volumes": [
+      {
+        "name": "nisb_base_seed101",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/test/seed101.zarr",
+        "label_key": null,
+        "bounding_box": [
+          [
+            0,
+            3000
+          ],
+          [
+            0,
+            3000
+          ],
+          [
+            0,
+            1350
+          ]
+        ],
+        "truth_sha256": "8037e9bdd4a409b72249a785ba92620c7216c3a47716aace0f919cbaef76b581"
+      }
+    ],
+    "fit_data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/nisb_base_neurite_tracing/data/fit.yaml",
+    "fit_volumes": [
+      {
+        "name": "nisb_base_seed100",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/val/seed100.zarr",
+        "label_key": null,
+        "bounding_box": [
+          [
+            0,
+            3000
+          ],
+          [
+            0,
+            3000
+          ],
+          [
+            0,
+            1350
+          ]
+        ]
+      }
+    ],
+    "notes": "",
+    "route": "cc_threshold"
+  },
+  "per_volume": {
+    "nisb_base_seed101": {
+      "skeleton_erl": {
+        "voi_sum": 3.0949085597000074,
+        "voi_split": 1.7116562330068295,
+        "voi_merge": 1.383252326693178,
+        "erl": 94240.4921875,
+        "max_erl": 256572.40625,
+        "nerl": 0.3673056364059448,
+        "n_mergers": 577.0,
+        "n_splits": 3594.0,
+        "n_non0_mergers": 161.0,
+        "nerl_5": 0.4244648218154907,
+        "nerl_20": 0.43218883872032166,
+        "nerl_100": 0.4372043311595917,
+        "nerl_inf": 0.47102242708206177,
+        "erl_um": 94.2404921875,
+        "max_erl_um": 256.57240625,
+        "skeleton_nodes": 791035.0,
+        "skeleton_nodes_full": 791035.0,
+        "whole_region": 1.0
+      }
+    }
+  },
+  "provenance": {
+    "mia_evals_commit": "d6356c09e64bb73592f26633e47bb4c42d3bb7b3 (dirty)",
+    "run_dir": "/nrs/scicompsoft/orhane/mia-train-experiments/large_inputs_nisb/runs/large_inputs_nisb__w256_5cube_20261003_141051",
+    "resolved_config": {
+      "experiment_name": "large_inputs_nisb__w256_5cube",
+      "model": {
+        "name": "dinov3_vit3d",
+        "kwargs": {
+          "img_size": 256,
+          "patch_size": 16,
+          "in_chans": 1,
+          "embed_dim": 1024,
+          "depth": 24,
+          "num_heads": 16,
+          "n_storage_tokens": 4,
+          "layerscale_init": 1e-05,
+          "mask_k_bias": true,
+          "pos_embed_rope_dtype": "fp32",
+          "pos_embed_rope_type": "vanilla",
+          "drop_path_rate": 0.0,
+          "use_fa4": false,
+          "attn_max_score": 100000.0
+        }
+      },
+      "algorithm": {
+        "name": "affinity_seg",
+        "kwargs": {
+          "long_range": 10,
+          "decoder": "unetr",
+          "decoder_skip_layers": [
+            5,
+            11,
+            17,
+            23
+          ],
+          "decoder_widths": [
+            16,
+            32,
+            64,
+            128
+          ],
+          "decoder_image_skip": true,
+          "decoder_zero_init_output": false,
+          "split_disconnected": true,
+          "decode_chunks": 1
+        }
+      },
+      "data": {
+        "name": "miao_volumes",
+        "kwargs": {
+          "volumes": [
+            {
+              "name": "NISB base seed0",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/train/seed0.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/public_gt-cell-nisb",
+              "weight": 0.2,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null
+            },
+            {
+              "name": "NISB base seed1",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/train/seed1.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/public_gt-cell-nisb",
+              "weight": 0.2,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null
+            },
+            {
+              "name": "NISB base seed2",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/train/seed2.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/public_gt-cell-nisb",
+              "weight": 0.2,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null
+            },
+            {
+              "name": "NISB base seed3",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/train/seed3.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/public_gt-cell-nisb",
+              "weight": 0.2,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null
+            },
+            {
+              "name": "NISB base seed4",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/train/seed4.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/public_gt-cell-nisb",
+              "weight": 0.2,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null
+            }
+          ],
+          "augment_fn": null,
+          "resolutions": [
+            [
+              9.0,
+              9.0,
+              20.0
+            ]
+          ],
+          "resolution_sampling": null,
+          "output_axes": "lcxyz",
+          "patch_size": [
+            256,
+            256,
+            256
+          ],
+          "bbox_mode": "absolute",
+          "samples_per_epoch": 100000,
+          "cache_bytes": 1073741824,
+          "file_io_concurrency": 64,
+          "sampling": "random",
+          "size_weighting_exponent": 0.0,
+          "overlap": 0,
+          "sample_windows": false,
+          "image_dtype": "float32",
+          "chunk_aligned": false,
+          "defer_image_ops": true
+        }
+      },
+      "trainer": {
+        "max_steps": 500000,
+        "batch_size": 1,
+        "lr": 0.0003,
+        "weight_decay": 0.05,
+        "beta1": 0.9,
+        "beta2": 0.95,
+        "warmup_steps": 5000,
+        "min_lr_ratio": 0.001,
+        "grad_clip_norm": 1.0,
+        "lr_schedule": "linear",
+        "layerwise_lr_decay": 1.0,
+        "patch_embed_lr_mult": 1.0,
+        "final_weight_decay": null,
+        "zero_weight_decay_on_norm_and_bias": true,
+        "zero_weight_decay_on_lora": true,
+        "activation_checkpointing": false,
+        "peak_tflops": null,
+        "measure_mfu": true,
+        "profile": false,
+        "profile_start_step": 50,
+        "profile_steps": 6,
+        "profile_all_ranks": false,
+        "profile_memory": false,
+        "freeze_backbone_steps": 0,
+        "unfreeze_warmup_steps": 1000,
+        "precision": "bf16",
+        "compile": true,
+        "log_every": 1000,
+        "checkpoint_every": 100000,
+        "val_every": 10000,
+        "num_workers": 11,
+        "persistent_workers": false,
+        "prefetch_factor": 2,
+        "seed": 0
+      },
+      "parallelism": {
+        "dp_replicate": 1,
+        "dp_shard": 8,
+        "tp": 1,
+        "fsdp_unit_budget_gb": "auto"
+      },
+      "val_data": {
+        "name": "miao_volumes",
+        "kwargs": {
+          "volumes": [
+            {
+              "name": "NISB base seed100",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/val/seed100.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/public_gt-cell-nisb",
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null
+            }
+          ],
+          "augment_fn": null,
+          "resolutions": [
+            [
+              9.0,
+              9.0,
+              20.0
+            ]
+          ],
+          "resolution_sampling": null,
+          "output_axes": "lcxyz",
+          "patch_size": [
+            256,
+            256,
+            256
+          ],
+          "bbox_mode": "absolute",
+          "samples_per_epoch": 32,
+          "cache_bytes": 1073741824,
+          "file_io_concurrency": 64,
+          "sampling": "random",
+          "size_weighting_exponent": 0.0,
+          "overlap": 0,
+          "sample_windows": false,
+          "image_dtype": "float32",
+          "chunk_aligned": false,
+          "defer_image_ops": true
+        }
+      },
+      "init": {
+        "path": "/groups/miaai/miaai/pretrained_models/dinov3/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth",
+        "prefix": "",
+        "inflate_2d_to_3d": true,
+        "skip": [
+          "rope_embed."
+        ],
+        "strict": true,
+        "allow_unused": false,
+        "target": "model",
+        "merge_lora": false
+      },
+      "augment": {
+        "rotate": "inplane",
+        "drop_slice_prob": 0.05,
+        "shift_slice_prob": 0.05,
+        "shift_magnitude": 10,
+        "intensity": true,
+        "mul_intensity": 0.1,
+        "add_intensity": 0.1,
+        "noise_scale": 0.5
+      },
+      "lora": {
+        "rank": 0,
+        "alpha": 0.0,
+        "targets": [
+          "attn_qkv",
+          "attn_proj"
+        ],
+        "train_stem": true,
+        "train_norms": true,
+        "train_tokens": true
+      }
+    },
+    "producer_commit": "36ff8f6d677a00595df5eed135b2a3eedc6d3083 (dirty)"
+  },
+  "views": {},
+  "versions": {
+    "python": "3.14.6",
+    "numpy": "2.4.4",
+    "zarr": "3.2.1",
+    "miao": "present",
+    "numba": "0.67.0",
+    "networkx": "3.6.1",
+    "funlib.evaluate": "present"
+  },
+  "schema_version": 1,
+  "label": "",
+  "route": "cc_threshold"
+}

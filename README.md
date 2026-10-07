@@ -350,6 +350,32 @@ the records already under its `task_name`, and rendering or checking a task whos
 fails the same way. Anything scored on a different set, or ranked differently, needs its own task
 name.
 
+## Adding a task
+
+A new task, meaning a new leaderboard table, needs no code if it uses an existing task type
+(`[task].name`), post-processor and metric. It only takes a config directory and one scored model:
+
+1. **Write the configs:** Create `configs/<task_name>/` as described under
+   [Scoring configuration](#scoring-configuration): one `<route>.toml` per post-processing route, plus
+   `data/test.yaml` and, if the post-processor sweeps parameters, `data/fit.yaml`. The directory must
+   be named after the task and each scoring config after its route, and a volume name used in another
+   task's data config must have exactly the same entry; `pytest -m unit` checks these rules.
+2. **Check the ground truth:** It must be where the task's `truth_kind` reads it (see [Tasks](#tasks)),
+   for example a `label_key` and `bounding_box` for each volume when `truth_kind = "instances"`. Data
+   that cannot be read as released gets a builder under `src/truth/` (`python -m truth.<dataset>`).
+3. **Settle the task before scoring it:** The first record fixes the task: its test volumes with their
+   ground truth, its ranking metric, and the region scored in each volume, which follows from how the
+   predictions were tiled. Later records that differ are refused, so changing any of these afterwards
+   needs a new task name, or re-scoring every existing record.
+4. **Score one model** (see [Quick start](#quick-start)): This creates `leaderboard/<task_name>/` and
+   adds the task to `leaderboard/README.md` and `leaderboard/index.html`. There is no list of tasks to
+   edit.
+5. **Check and commit:** Run `pytest -m unit` and `mia-evals leaderboard --check`, then commit
+   `configs/<task_name>/` together with the changed files under `leaderboard/`.
+
+A task that needs a new task type, post-processor or metric also needs code; see
+[Extending `mia-evals`](#extending-mia-evals).
+
 ## Repository layout
 
 | path | contents |
