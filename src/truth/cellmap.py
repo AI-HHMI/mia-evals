@@ -34,8 +34,8 @@ array (one leaf-class id per voxel, decoded by the store's `classes.csv`).
   fewshot test), chosen greedily for class coverage, preferring crops whose group holds no other
   complete crop. Test is every other eligible complete crop outside the fit crops' groups.
 - Each volume's `bounding_box` is its crop in the raw's level-0 voxels (checked to be whole
-  voxels), and its `resolutions` the raw's own voxel size, so a producer reads level 0 unless it
-  asks for another resolution.
+  voxels, clipped to the raw), and its `resolutions` the raw's own voxel size, so a producer reads
+  level 0 unless it asks for another resolution.
 """
 
 from __future__ import annotations
@@ -103,6 +103,7 @@ class Crop:
     label_shape: tuple[int, ...]
     raw_voxel: tuple[float, ...]
     raw_first: tuple[float, ...]
+    raw_shape: tuple[int, ...]
     annotated: frozenset[str] = frozenset()
     #: label id -> voxel count; filled for complete crops only.
     counts: dict[int, int] = field(default_factory=dict)
@@ -127,14 +128,23 @@ class Crop:
         ]
 
     def box(self) -> list[list[int]]:
-        """The crop in the raw's level-0 voxels; refused unless it falls on whole raw voxels."""
+        """The crop in the raw's level-0 voxels, clipped to the raw; refused unless it falls on
+        whole raw voxels.
+
+        Clipped because a few label crops reach a raw voxel or two past the raw: no prediction
+        covers that slab, so every row would score the crop as a sub-region.
+        """
         out = []
-        for (low, high), t, v in zip(self.extent(), self.raw_first, self.raw_voxel, strict=True):
+        for (low, high), t, v, n in zip(self.extent(), self.raw_first, self.raw_voxel,
+                                        self.raw_shape, strict=True):
             lo, hi = (low - (t - v / 2)) / v, (high - (t - v / 2)) / v
             if abs(lo - round(lo)) > 1e-6 or abs(hi - round(hi)) > 1e-6:
                 raise ValueError(f"{self.name}: crop [{low}, {high}) is not on whole raw voxels "
                                  f"({lo}, {hi})")
-            out.append([int(round(lo)), int(round(hi))])
+            lo, hi = max(0, int(round(lo))), min(n, int(round(hi)))
+            if hi <= lo:
+                raise ValueError(f"{self.name}: crop [{low}, {high}) lies outside the raw")
+            out.append([lo, hi])
         return out
 
 
@@ -187,7 +197,7 @@ def discover(
     for store in sorted(lmd.glob("*CellMap*/*.zarr")):
         csv_path = store / "classes.csv"
         tables[str(csv_path)] = hashlib.sha256(csv_path.read_bytes()).hexdigest()
-        raw_voxel, raw_first, _ = _ome_level0(store, "raw")
+        raw_voxel, raw_first, raw_shape = _ome_level0(store, "raw")
         for group in sorted((store / "labels").glob(f"{LABEL_GROUP}*")):
             number = int(group.name[len(LABEL_GROUP):])
             dataset = str(zarr.open_group(str(group), mode="r").attrs["dataset"])
@@ -202,7 +212,7 @@ def discover(
                 and (source[0] / e).is_dir()
             )
             crops.append(Crop(dataset, number, store, voxel, first, shape, raw_voxel, raw_first,
-                              annotated))
+                              raw_shape, annotated))
     digests = set(tables.values())
     if len(digests) != 1:
         raise ValueError(f"the stores' classes.csv differ: {tables}")
