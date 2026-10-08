@@ -130,6 +130,7 @@
       "voxel_instance"
     ],
     "rank_by": "voxel_instance",
+    "metric_kwargs": {},
     "data_config_path": "/groups/scicompsoft/home/fengtongd/project_mia/mia-evals/configs/lm_zebrafish_cell_instance/data/test.yaml",
     "volumes": [
       {
@@ -180,9 +181,10 @@
     }
   },
   "provenance": {
-    "mia_evals_commit": "67e942478a57327c54602854693217c3c534e060 (dirty)"
+    "mia_evals_commit": "ec1df9e0c904ec42f1a002a669aee5ca70691171 (dirty)"
   },
   "views": {},
+  "details": {},
   "versions": {
     "python": "3.11.16",
     "numpy": "2.4.6",
@@ -192,7 +194,7 @@
     "networkx": "3.6.1",
     "funlib.evaluate": "absent"
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "label": "",
   "route": "identity"
 }
