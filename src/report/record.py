@@ -26,7 +26,9 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 1
+#: 2 (2026-10-08) added `details`, which an older reader would reject as an unknown field; the
+#: version makes that a clear "update this checkout" instead. Version-1 records load unchanged.
+SCHEMA_VERSION = 2
 
 
 def git_commit(repo: Path) -> str:
@@ -103,6 +105,10 @@ class Submission:
     #: records alone, by whoever hosts it, without holding the keys that made these links; a
     #: volume absent here is shown as missing on that page.
     views: dict[str, dict[str, Any]] = field(default_factory=dict)
+    #: Metric name -> structured results kept beside the numbers (`BaseMetric.details`): for
+    #: `semantic`, the pooled confusion matrix, from which any other class grouping can be scored
+    #: without re-reading the data. Empty for metrics that keep nothing.
+    details: dict[str, Any] = field(default_factory=dict)
     versions: dict[str, str] = field(default_factory=_component_versions)
     schema_version: int = SCHEMA_VERSION
     #: Legacy free-text name. Empty on every record written since 2026-09-18; the identifier
@@ -113,10 +119,12 @@ class Submission:
 
     def identity(self) -> dict[str, Any]:
         """What this record claims to be a row of; see `task_identity`."""
+        metric = str(self.ranking.get("metric"))
         return task_identity(
             self.config.get("volumes") or [],
-            str(self.ranking.get("metric")),
+            metric,
             str(self.ranking.get("key")),
+            (self.config.get("metric_kwargs") or {}).get(metric),
         )
 
     def identifier(self) -> str:
@@ -168,8 +176,14 @@ class Submission:
 # that were scored on different things.
 
 
-def task_identity(volumes: list[dict[str, Any]], metric: str, key: str) -> dict[str, Any]:
-    """The comparable core of a task, in a canonical form that survives a JSON round trip."""
+def task_identity(volumes: list[dict[str, Any]], metric: str, key: str,
+                  settings: dict[str, Any] | None = None) -> dict[str, Any]:
+    """The comparable core of a task, in a canonical form that survives a JSON round trip.
+
+    `settings` are the ranking metric's own (`[metric.<name>]`): a semantic task's class table and
+    ignored values decide the number it ranks on. Records written before settings were recorded
+    carry none, which reads as `{}` -- what every task scored before then had.
+    """
     return {
         "volumes": sorted(
             (
@@ -194,6 +208,8 @@ def task_identity(volumes: list[dict[str, Any]], metric: str, key: str) -> dict[
         ),
         "metric": metric,
         "key": key,
+        # Through JSON so a TOML table and its round-tripped record compare equal.
+        "settings": json.loads(json.dumps(settings or {}, sort_keys=True)),
     }
 
 
@@ -205,6 +221,13 @@ def identity_differences(reference: dict[str, Any], other: dict[str, Any]) -> li
             f"ranking metric {other['metric']}.{other['key']} vs "
             f"{reference['metric']}.{reference['key']}"
         )
+    mine_settings, theirs_settings = other.get("settings") or {}, reference.get("settings") or {}
+    if mine_settings != theirs_settings:
+        changed = sorted(
+            k for k in set(mine_settings) | set(theirs_settings)
+            if mine_settings.get(k) != theirs_settings.get(k)
+        )
+        out.append(f"ranking metric settings differ in {changed}")
     mine = {v["name"]: v for v in other["volumes"]}
     theirs = {v["name"]: v for v in reference["volumes"]}
     if set(mine) != set(theirs):

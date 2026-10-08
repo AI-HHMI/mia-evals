@@ -324,6 +324,42 @@ def test_leaderboard_renders_and_detects_drift(instances, tmp_path):
     assert record_path.stem not in index
 
 
+def test_a_plain_submission_is_kept_on_the_stores_grid(instances):
+    """End to end: a plain-array labelling scored on a store with an OME image group is kept with
+    the store's geometry, so its view can lay it on the raw image."""
+    tmp_path, data, artifact = instances
+    raw = zarr.open_group(str(tmp_path / "cube.zarr"), mode="a").create_group("raw")
+    raw.attrs["ome"] = {"version": "0.5", "multiscales": [{
+        "axes": [{"name": a, "type": "space", "unit": "nanometer"} for a in "xyz"],
+        "datasets": [{"path": "s0", "coordinateTransformations": [
+            {"type": "scale", "scale": [8.0, 8.0, 8.0]}]}]}]}
+    raw.create_array("s0", shape=(4, 4, 4), dtype="uint8")
+    config = _task_config(tmp_path, data, textwrap.dedent("""\
+        [task]
+        name = "instance_seg"
+        truth_kind = "instances"
+
+        [postprocess]
+        name = "identity"
+
+        [metric]
+        names = ["voxel_instance"]
+        """))
+
+    import evaluate
+
+    root = tmp_path / "board"
+    evaluate.cmd_score(type("Args", (), {
+        "config": config, "test": artifact, "val": None, "leaderboard": root, "run_dir": None,
+        "scored_out": None, "no_scored": False, "scratch": tmp_path / "s",
+    })())
+    record_ = json.loads(_only_record(root / "unit_task" / "records").read_text())
+    (kept,) = record_["postprocess"]["scored_artifacts"].values()
+    ome = dict(zarr.open_group(kept, mode="r").attrs)["ome"]
+    (dataset,) = ome["multiscales"][0]["datasets"]
+    assert dataset["coordinateTransformations"][0]["scale"] == [8.0, 8.0, 8.0]
+
+
 # --------------------------------------------------------------- several volumes at once
 
 

@@ -394,13 +394,20 @@ def view_entries(producer: dict[str, Any], postprocess: dict[str, Any], config: 
     cover. The labelling shown is the post-processed one the row was scored on when the record
     names it and it still exists (`scored` True); otherwise the producer's output as written,
     which for a labelling is the one before the size filter and for affinities nothing a
-    segmentation layer can show."""
+    segmentation layer can show. The truth shown is the `<volume>.gt.zarr` beside the producer's
+    artifact; without one, a task that reads its truth from the store (`truth_kind =
+    "instances"`) shows the store's label array, which is exactly what it scored against. A
+    semantic task always shows the store's label array: it scored on that array's own grid, and a
+    `.gt.zarr` a producer wrote would be the labels resampled onto the prediction's."""
     volumes = {v["name"]: v for v in (config.get("volumes") or []) if isinstance(v, dict)}
     image_key = (producer.get("artifact_attrs") or {}).get("source_image_key") or "raw"
     scored_paths = postprocess.get("scored_artifacts") or {}
+    truth_kind = ((config.get("task") or {}).get("kwargs") or {}).get("truth_kind")
+    semantic = (config.get("task") or {}).get("name") == "semantic_seg"
     out = []
     for volume, artifact in sorted((producer.get("artifacts") or {}).items()):
-        store = (volumes.get(volume) or {}).get("path")
+        entry = volumes.get(volume) or {}
+        store = entry.get("path")
         if not store or not exists(artifact):
             continue
         scored = scored_paths.get(volume)
@@ -410,13 +417,24 @@ def view_entries(producer: dict[str, Any], postprocess: dict[str, Any], config: 
         if raw is None or prediction is None:
             continue
         unfiltered = None
-        if shown != artifact and producer.get("kind") != "affinity":
+        # The producer's labelling before post-processing, when that changed it: never for
+        # affinities or class scores (not a segmentation layer), nor for `identity`, whose copy is
+        # the same labels.
+        if (shown != artifact and producer.get("kind") not in ("affinity", "class_scores")
+                and postprocess.get("name") != "identity"):
             unfiltered = share_url(artifact, keys)
         truth_path = Path(artifact).with_name(f"{volume}.gt.zarr")
-        truth = share_url(truth_path, keys) if exists(truth_path) else None
+        if semantic and entry.get("label_key"):
+            truth = share_url(Path(store) / str(entry["label_key"]), keys)
+        elif exists(truth_path):
+            truth = share_url(truth_path, keys)
+        elif truth_kind == "instances" and entry.get("label_key"):
+            truth = share_url(Path(store) / str(entry["label_key"]), keys)
+        else:
+            truth = None
         transform = ome_transform(Path(shown))
         window = intensity_window(config, volume)
-        pinned = pinned_axes(Path(store) / image_key, (volumes.get(volume) or {}).get("fixed_axes"))
+        pinned = pinned_axes(Path(store) / image_key, entry.get("fixed_axes"))
         out.append((
             volume,
             neuroglancer_state(raw, prediction, truth, transform, label, "overlay", window,

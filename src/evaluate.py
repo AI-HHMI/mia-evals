@@ -28,7 +28,7 @@ from typing import Any
 
 import numpy as np
 
-from artifact import Artifact, open_artifact, write_scored
+from artifact import Artifact, open_artifact, store_ome, write_scored
 from config import ScoringConfig, load_scoring_config
 from metrics.base import BaseMetric
 from postprocess.base import BasePostprocess
@@ -197,7 +197,8 @@ def _aggregate(
         if not volumes:
             continue
         if metric.accumulates:
-            combined[name] = dict(volumes[-1])
+            pooled = metric.result()
+            combined[name] = dict(volumes[-1] if pooled is None else pooled)
             continue
         keys = sorted({k for entry in volumes for k in entry})
         combined[name] = {
@@ -232,6 +233,11 @@ def score_once(
     When every metric only looks the labelling up at points (`point_lookups`, a skeleton's nodes)
     and the post-processor can hand the stored labelling over unread (`lazy`, `identity`), the
     region is never loaded. The scored labelling is then the artifact itself and is not copied.
+
+    The block post-processed is the task's `read_window`, and the task's `align` puts the result on
+    the truth's grid. Both are the region itself, untouched, except for a task whose truth has a
+    grid of its own (`semantic_seg`); its kept copy is the post-processed labelling on the
+    prediction's grid, placed by the prediction's geometry.
     """
     for metric in metric_objects.values():
         # A metric that accumulates must start clean for each candidate, or the second candidate
@@ -245,12 +251,13 @@ def score_once(
     for volume in volumes:
         artifact = artifacts[volume.name]
         origin, shape = task.region(volume, artifact)
+        window_origin, window_shape = task.read_window(volume, artifact)
         context = task.context(volume, artifact)
         context["scratch_dir"] = scratch / volume.name
         prediction = processor.lazy(artifact, origin, shape, **params) if points_only else None
         if prediction is None:
             prediction = processor(
-                artifact.read(origin, shape, processor.reads_channels()), **params
+                artifact.read(window_origin, window_shape, processor.reads_channels()), **params
             )
         truth = task.ground_truth(volume, artifact)
         regions[volume.name] = {
@@ -263,11 +270,20 @@ def score_once(
             # How the post-processor computed this volume's result -- for mws, which watershed
             # implementation ran and how long it took. Provenance only: no score depends on it.
             regions[volume.name]["postprocess_run"] = run
-        if keep is not None and task.canonical == "instances":
+        if keep is not None:
             if isinstance(prediction, np.ndarray):
                 keep.mkdir(parents=True, exist_ok=True)
+                # A plain-array artifact carries no geometry for a viewer to place the copy with;
+                # on a task counting the store's own voxels it lies on the store's grid, so the
+                # copy takes the store's.
+                geometry = (
+                    store_ome(volume.path, volume.image_key, volume.zarr_version, window_origin)
+                    if artifact.array_path is None and task.in_volume_frame() else None
+                )
                 regions[volume.name]["scored_artifact"] = str(write_scored(
-                    keep / f"{volume.name}.zarr", prediction, artifact, origin,
+                    keep / f"{volume.name}.zarr", prediction, artifact, window_origin,
+                    geometry=geometry,
+                    kind="instances" if task.canonical == "instances" else "class_labels",
                     convention=processor.describe(params),
                     postprocess={"name": type(processor).__name__, "params": params},
                 ))
@@ -276,6 +292,8 @@ def score_once(
                 # itself for `identity`, the one `mws_blockwise` built on disk -- and a copy of a
                 # 478-gigavoxel labelling would be terabytes of duplicate.
                 regions[volume.name]["scored_artifact"] = str(prediction.artifact.path)
+        if isinstance(prediction, np.ndarray):
+            prediction = task.align(prediction, volume, artifact)
         per_volume[volume.name] = {
             name: metric(prediction, truth, **context)
             for name, metric in metric_objects.items()
@@ -377,8 +395,9 @@ def cmd_score(args: argparse.Namespace) -> None:
     for name in sorted(per_volume):
         each = per_volume[name][config.rank_by].get(ranking_metric.primary)
         print(f"    {name:32s} {ranking_metric.primary} = {each:.4f}", flush=True)
+    combined = "pooled" if ranking_metric.accumulates else "unweighted mean"
     print(f"  {config.rank_by}.{ranking_metric.primary} = {value:.4f} "
-          f"(unweighted mean over {len(per_volume)} volumes)", flush=True)
+          f"({combined} over {len(per_volume)} volumes)", flush=True)
 
     # A skeleton's content hash is part of what the task *is* (`report.record.task_identity`), so
     # ground truth rebuilt differently cannot join a table scored against the old one.
@@ -423,6 +442,10 @@ def cmd_score(args: argparse.Namespace) -> None:
         config=record_config,
         provenance=_provenance(args, representative),
         route=config.route,
+        # Taken now, while the metrics still hold the test split's state (score_once resets them
+        # at its start, so a validation sweep before it leaves nothing behind).
+        details={name: kept for name, metric in metric_objects.items()
+                 if (kept := metric.details())},
     )
     root = Path(args.leaderboard)
     # The row's neuroglancer views, from this machine's fileglancer key file, into the record --

@@ -79,6 +79,9 @@ class ScoringConfig:
             "postprocess": {"name": self.postprocess.name, "kwargs": self.postprocess.kwargs},
             "metrics": list(self.metrics),
             "rank_by": self.rank_by,
+            # Part of what a semantic task *is*: its class table and ignored values decide the
+            # ranked number, so they are recorded and compared (`record.task_identity`).
+            "metric_kwargs": {name: dict(kwargs) for name, kwargs in self.metric_kwargs.items()},
             "data_config_path": str(self.data_config_path),
             "volumes": [_volume_record(v) for v in self.volumes],
             "fit_data_config_path": (

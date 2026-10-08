@@ -64,6 +64,23 @@ LABELLING_KINDS = ("instances", "class_labels")
 
 
 @dataclass(frozen=True)
+class Geometry:
+    """Where an array's voxels sit in physical space, per spatial axis in storage order.
+
+    OME-NGFF's convention: voxel `i` of an axis is centred at `translation + i * voxel_size`, so
+    `translation` is the centre of the first voxel, not its corner. lmd stores, CellMap's label
+    crops and mia-train's artifacts all follow it, which is what lets a prediction made on one grid
+    be compared with truth painted on another.
+    """
+
+    axes: str
+    voxel_size: tuple[float, ...]
+    translation: tuple[float, ...]
+    #: The spatial axes' common unit ("nanometer"), or None when they declare none or disagree.
+    unit: str | None = None
+
+
+@dataclass(frozen=True)
 class Artifact:
     """A prediction on disk, with its declaration read and checked but its data not loaded.
 
@@ -88,6 +105,9 @@ class Artifact:
     #: and the two are compared before any node is looked up: transposed, every lookup still lands
     #: on a real voxel and the score is plausible nonsense.
     axes: str | None = None
+    #: The voxel size and first-voxel position its OME `multiscales` declare; None for a bare array.
+    #: A task whose truth lives on a grid of its own (`semantic_seg`) places the prediction by this.
+    geometry: Geometry | None = None
 
     @property
     def canonical(self) -> str:
@@ -181,10 +201,12 @@ def open_artifact(path: str | Path) -> Artifact:
     array_path: Path | None = None
     attrs: dict[str, Any]
     axes: str | None = None
+    geometry: Geometry | None = None
     if hasattr(store, "shape"):
         attrs = dict(store.attrs)
     else:
         axes = spatial_axes(dict(store.attrs))
+        geometry = ome_geometry(dict(store.attrs))
         level = single_level(store)
         if level is None:
             # A zarr *group* with several (or no) levels, most likely a multiscale OME-Zarr
@@ -260,6 +282,56 @@ def open_artifact(path: str | Path) -> Artifact:
         attrs=attrs,
         array_path=array_path,
         axes=axes,
+        geometry=geometry,
+    )
+
+
+def _transforms(items: Any, rank: int) -> tuple[list[float], list[float]]:
+    """The (scale, translation) a `coordinateTransformations` list declares; identity if absent."""
+    scale, shift = [1.0] * rank, [0.0] * rank
+    seen_scale = seen_shift = False
+    for item in items or []:
+        if not isinstance(item, dict):
+            continue
+        if item.get("type") == "scale" and not seen_scale:
+            scale, seen_scale = [float(v) for v in item["scale"]], True
+        elif item.get("type") == "translation" and not seen_shift:
+            shift, seen_shift = [float(v) for v in item["translation"]], True
+    return scale, shift
+
+
+def ome_geometry(group_attrs: dict[str, Any]) -> Geometry | None:
+    """The spatial `Geometry` of a single-level OME group; None if it declares no usable one.
+
+    The dataset's transform is applied first and the multiscale-level one second, so for index `i`
+    the position is `outer_scale * (scale * i + translation) + outer_translation` -- the composition
+    miao uses to read the same stores. Channel and time axes are dropped: a labelling has neither.
+    """
+    ome = group_attrs.get("ome") if isinstance(group_attrs.get("ome"), dict) else group_attrs
+    scales = ome.get("multiscales") if isinstance(ome, dict) else None
+    if not isinstance(scales, list) or len(scales) != 1 or not isinstance(scales[0], dict):
+        return None
+    multiscale = scales[0]
+    datasets = multiscale.get("datasets")
+    axes = multiscale.get("axes") or []
+    if (not isinstance(datasets, list) or len(datasets) != 1 or not axes
+            or not all(isinstance(axis, dict) for axis in axes)):
+        return None
+    rank = len(axes)
+    scale, shift = _transforms(datasets[0].get("coordinateTransformations"), rank)
+    outer_scale, outer_shift = _transforms(multiscale.get("coordinateTransformations"), rank)
+    if not len(scale) == len(shift) == len(outer_scale) == len(outer_shift) == rank:
+        return None
+    spatial = [i for i, axis in enumerate(axes) if axis.get("type") not in ("channel", "time")]
+    names = [str(axes[i].get("name")) for i in spatial]
+    if not names or not all(len(name) == 1 for name in names):
+        return None
+    units = {axes[i].get("unit") for i in spatial}
+    return Geometry(
+        axes="".join(names),
+        voxel_size=tuple(scale[i] * outer_scale[i] for i in spatial),
+        translation=tuple(shift[i] * outer_scale[i] + outer_shift[i] for i in spatial),
+        unit=str(units.pop()) if len(units) == 1 and None not in units else None,
     )
 
 
@@ -358,6 +430,9 @@ def write_scored(
     labels: np.ndarray,
     like: Artifact,
     origin: tuple[int, ...],
+    *,
+    geometry: dict[str, Any] | None = None,
+    kind: str = "instances",
     **attrs: Any,
 ) -> Path:
     """Persist a post-processed labelling of `like` -- the exact voxels a row was scored on.
@@ -366,8 +441,13 @@ def write_scored(
     is the producer's output before the size filter, and a viewer shows something other than
     what the number was computed on. This writes the labelling as a single-level OME-Zarr group
     with `like`'s geometry (the same voxel size; the translation shifted when the scored region
-    starts inside the artifact), as the narrowest unsigned type that holds its ids.
+    starts inside the artifact), as the narrowest unsigned type that holds its ids. A `like` that
+    carries no geometry (a plain array) takes `geometry` instead, the OME of the grid the caller
+    knows it lies on (`store_ome`); with neither, the copy is a plain array too. `kind` is
+    "class_labels" for a semantic task's labelling.
     """
+    if kind not in LABELLING_KINDS:
+        raise ValueError(f"a scored labelling is one of {LABELLING_KINDS}, not {kind!r}")
     path = Path(path)
     if labels.ndim != len(like.spatial_shape):
         raise ValueError(f"a scored labelling must be spatial, got shape {labels.shape}")
@@ -379,13 +459,13 @@ def write_scored(
     labels = labels.astype(np.uint32 if largest < 2**32 else np.uint64, copy=False)
 
     payload: dict[str, Any] = {
-        "kind": "instances", "background_id": 0, "origin": list(origin),
+        "kind": kind, "background_id": 0, "origin": list(origin),
         "source_artifact": str(like.path), **attrs,
     }
     chunks = tuple(min(256, s) for s in labels.shape)
-    ome = _shifted_ome(like, origin) if like.array_path is not None else None
+    ome = _shifted_ome(like, origin) if like.array_path is not None else geometry
     if ome is None:
-        # The source carries no geometry to inherit: a bare array, like the source itself.
+        # No geometry to inherit or to be given: a bare array, like the source itself.
         store = zarr.open(str(path), mode="w", shape=labels.shape, dtype=labels.dtype,
                           chunks=chunks)
         store[:] = labels
@@ -434,6 +514,39 @@ def _shifted_ome(like: Artifact, origin: tuple[int, ...]) -> dict[str, Any] | No
         for t, o, v in zip(shift["translation"], offset, scale["scale"], strict=True)
     ]
     return ome
+
+
+def store_ome(
+    path: str | Path, image_key: str, zarr_version: str, origin: tuple[int, ...]
+) -> dict[str, Any] | None:
+    """OME multiscales placing a labelling on a store's own level-0 grid, first voxel at `origin`.
+
+    For a plain-array labelling scored on a task that counts the store's own voxels: the scorer
+    compares it with the truth at the store's level-0 indices, so it lies on that grid whenever the
+    score means anything, and the image's level-0 voxel size and translation are its geometry.
+    Only the spatial axes are kept (a time series' frame and a channel are not the labelling's).
+    None when the image group has no OME metadata to read, or its spatial axes do not match.
+    """
+    from miao.zarr_meta import read_ome_metadata
+
+    try:
+        meta = read_ome_metadata(path, image_key, zarr_version, [0])
+    except (FileNotFoundError, KeyError, ValueError):
+        return None
+    spatial = [i for i, axis in enumerate(meta.axes) if axis.get("type") not in ("time", "channel")]
+    if len(spatial) != len(origin):
+        return None
+    level = meta.scales[0]
+    shift = level.translation_or_zeros()
+    voxel = [float(level.scale_factors[i]) for i in spatial]
+    first = [float(shift[i]) + float(o) * v for i, o, v in zip(spatial, origin, voxel, strict=True)]
+    return {"version": "0.5", "multiscales": [{
+        "axes": [dict(meta.axes[i]) for i in spatial],
+        "datasets": [{"path": "s0", "coordinateTransformations": [
+            {"type": "scale", "scale": voxel},
+            {"type": "translation", "translation": first},
+        ]}],
+    }]}
 
 
 def single_level(group: Any) -> str | None:
