@@ -31,7 +31,9 @@ def _config_identity(config):
     from metrics.registry import MetricRegistry
 
     key = MetricRegistry.get(config.rank_by).primary
-    return record.task_identity(config.as_record()["volumes"], config.rank_by, key)
+    return record.task_identity(
+        config.as_record()["volumes"], config.rank_by, key, config.metric_kwargs.get(config.rank_by)
+    )
 
 
 def test_task_files_sharing_a_name_agree_on_what_the_task_is():
@@ -91,6 +93,24 @@ def test_identity_differences_name_what_differs():
 
     diffs = record.identity_differences(same, record.task_identity([ALPHA], "skeleton_erl", "nerl"))
     assert diffs == ["ranking metric skeleton_erl.nerl vs voxel_instance.pq", "volumes ['alpha'] vs ['alpha', 'beta']"]
+
+
+def test_the_ranking_metrics_settings_are_part_of_the_task():
+    """A semantic task's class table decides the number it ranks on."""
+    cellmap = {"classes": {"mito": [3, 4, 5, 50]}, "ignore_truth": [0]}
+    same = record.task_identity([ALPHA], "semantic", "mean_iou", cellmap)
+    assert record.identity_differences(
+        same, record.task_identity([ALPHA], "semantic", "mean_iou", json.loads(json.dumps(cellmap)))
+    ) == []
+    leaves_only = {"classes": {"mito": [3, 4, 5]}, "ignore_truth": [0]}
+    assert record.identity_differences(
+        same, record.task_identity([ALPHA], "semantic", "mean_iou", leaves_only)
+    ) == ["ranking metric settings differ in ['classes']"]
+    # Records written before settings were recorded carry none, which is what they all had.
+    assert record.identity_differences(
+        record.task_identity([ALPHA], "voxel_instance", "pq"),
+        record.task_identity([ALPHA], "voxel_instance", "pq", {}),
+    ) == []
 
 
 def test_a_directory_whose_records_disagree_cannot_be_loaded_or_checked(tmp_path):

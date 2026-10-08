@@ -245,7 +245,10 @@ prediction voxel is no longer one label voxel, and no `origin` can line the pred
 volume's labels. Only the producer knows the exact grid it used, so it writes the ground truth onto
 that grid as a second artifact, and the scorer compares the two arrays voxel for voxel.
 
-`semantic_seg` has no `truth_kind`. Its truth is always the volume's label array.
+`semantic_seg` has no `truth_kind`. Its truth is always the volume's label array, scored on that
+array's own grid: the prediction is placed by its OME geometry, which it must therefore declare, and
+each label voxel takes the class of the prediction voxel holding its centre. Truth painted at 2 nm is
+then scored at 2 nm whatever resolution a model ran at; see [docs/cellmap.md](docs/cellmap.md).
 
 ## Scoring configuration
 
@@ -394,6 +397,7 @@ A task that needs a new task type, post-processor or metric also needs code; see
 | `configs/<task_name>/` | one directory per task: `<route>.toml` scoring configs (task + splits + post-processing route) and `data/{test,fit}.yaml`, the `miao` data configs of that task |
 | `docs/controls.md` | control experiments: baseline task metric scores without a model |
 | `docs/neurite_tracing.md` | the zebrafinch neurite tracing tasks: protocol, published numbers, data, how to submit |
+| `docs/cellmap.md` | the CellMap organelle semantic tasks: classes, splits, scoring, how to submit, reference numbers |
 | `tests/unit/` | fast, single-process tests |
 
 ## Extending `mia-evals`

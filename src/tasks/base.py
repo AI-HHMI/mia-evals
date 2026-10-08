@@ -146,6 +146,21 @@ class BaseTask(abc.ABC):
             )
         return tuple(int(v) for v in low), tuple(int(v) for v in (high - low))
 
+    def read_window(
+        self, volume: Volume, artifact: Artifact
+    ) -> tuple[tuple[int, ...], tuple[int, ...]]:
+        """The block of the artifact to post-process, in `Artifact.read`'s coordinates.
+
+        The scored region itself wherever prediction and truth share one grid, which is every task
+        but one whose truth is painted on a grid of its own (`semantic_seg`): there the region is
+        counted in label voxels and this is the block of prediction voxels that covers it.
+        """
+        return self.region(volume, artifact)
+
+    def align(self, prediction: np.ndarray, volume: Volume, artifact: Artifact) -> np.ndarray:
+        """The post-processed `read_window` block, on the truth's grid. Already there by default."""
+        return prediction
+
     def context(self, volume: Volume, artifact: Artifact) -> dict[str, Any]:
         """Everything a metric may need about this region, resolved by the task.
 

@@ -88,6 +88,17 @@ class BaseMetric(abc.ABC):
         if not self.primary:
             raise ValueError(f"{type(self).__name__} must name a `primary` key")
 
+    def result(self) -> dict[str, float] | None:
+        """For a metric that `accumulates`: the over-the-set answer, from everything scored since
+        the last reset. None means the last call's return value already is it (the older contract,
+        under which a per-volume entry is a running total rather than that volume's own score)."""
+        return None
+
+    def details(self) -> dict[str, Any]:
+        """Structured results a record keeps beside the numbers (a confusion matrix, say), so that
+        what they were computed from can be re-examined without re-scoring. Empty by default."""
+        return {}
+
     @abc.abstractmethod
     def __call__(self, prediction: np.ndarray, truth: Any, **context: Any) -> dict[str, float]:
         """Score one region. `truth` is whatever this metric's canonical form implies.
