@@ -37,9 +37,14 @@ translation and is usually painted at half the raw's voxel size (4 nm labels on 
 - **`all` is enough.** Deriving every per-class array from `all` and `classes.csv` reproduces
   CellMap's own per-class arrays on 23,557 of 23,575 (crop, class) pairs. The 18 misses are `cell`
   arrays CellMap left empty.
-- **The raw is the same image.** lmd's raw is the source raw shifted by one whole-voxel offset per
-  dataset. `jrc_sum159-4` and `jrc_ctl-id8-1` are contrast-inverted relative to CellMap's
-  `fibsem-uint8` arrays, which matters only to a model trained on the other copy.
+- **The raw is the published image.** In all 17 datasets with complete crops, lmd's raw is
+  byte-identical to CellMap's public S3 `fibsem-uint8`, which is what the challenge distributes. It is
+  shifted by one whole-voxel offset per dataset, the tissue crop lmd made.
+- **Two `/nrs` copies are inverted.** In every dataset, membranes are darker than cytosol. CellMap's
+  own copies on `/nrs/cellmap/data` differ for two datasets: `jrc_sum159-4`'s `fibsem-uint8` there is
+  exactly 255 minus the published one (written 2024-01, while the S3 array is from 2024-09), and
+  `jrc_ctl-id8-1` there has only its uint16 detector array, of opposite polarity. A model trained on
+  those copies sees bright membranes.
 - **Two crops are missing from lmd:** `jrc_cos7-1a` 247 and `jrc_hela-3` 102, both partial. Neither
   task uses them.
 

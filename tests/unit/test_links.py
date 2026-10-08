@@ -203,11 +203,12 @@ def test_view_entries_need_a_share_over_both_the_raw_store_and_the_artifact(tmp_
 
 
 @pytest.mark.unit
-def test_without_a_truth_artifact_a_task_shows_the_stores_label_array():
+def test_a_task_that_scored_the_stores_labels_shows_them_as_the_truth():
     """Truth read from the store is what the row was scored against, so the view shows that array.
 
-    A `<volume>.gt.zarr` beside the artifact still wins, and a task that scored resampled truth
-    (`instances_resampled`) shows none without it: the store's array is not what it scored.
+    Even when the producer left a `<volume>.gt.zarr` beside its artifact: that file is not what the
+    row was scored on, and a third party's may carry no geometry. A task that scored resampled
+    truth (`instances_resampled`) shows that `.gt.zarr`, and none without it.
     """
     import json
     import urllib.parse
@@ -225,8 +226,9 @@ def test_without_a_truth_artifact_a_task_shows_the_stores_label_array():
         state = json.loads(urllib.parse.unquote(entry[1][len(NEUROGLANCER):]))
         return {layer["name"]: layer for layer in state["layers"]}
 
-    assert "s.zarr/labels/seg/" in layers("instances", truth_artifact=False)["truth"]["source"]
-    assert "vol.gt.zarr" in layers("instances", truth_artifact=True)["truth"]["source"]
+    for truth_artifact in (False, True):
+        assert "s.zarr/labels/seg/" in layers("instances", truth_artifact)["truth"]["source"]
+    assert "vol.gt.zarr" in layers("instances_resampled", truth_artifact=True)["truth"]["source"]
     assert "truth" not in layers("instances_resampled", truth_artifact=False)
 
 

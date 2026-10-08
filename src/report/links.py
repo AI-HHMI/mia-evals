@@ -394,11 +394,12 @@ def view_entries(producer: dict[str, Any], postprocess: dict[str, Any], config: 
     cover. The labelling shown is the post-processed one the row was scored on when the record
     names it and it still exists (`scored` True); otherwise the producer's output as written,
     which for a labelling is the one before the size filter and for affinities nothing a
-    segmentation layer can show. The truth shown is the `<volume>.gt.zarr` beside the producer's
-    artifact; without one, a task that reads its truth from the store (`truth_kind =
-    "instances"`) shows the store's label array, which is exactly what it scored against. A
-    semantic task always shows the store's label array: it scored on that array's own grid, and a
-    `.gt.zarr` a producer wrote would be the labels resampled onto the prediction's."""
+    segmentation layer can show. A task that scored against the store's label array shows that
+    array as the truth: a semantic task, which scored on the array's own grid, and an instance
+    task that reads its truth from the store (`truth_kind = "instances"`). A `.gt.zarr` a producer
+    left beside its artifact is not what such a task scored, and may carry no geometry to place
+    it by. Any other task shows the `<volume>.gt.zarr` beside the producer's artifact, the
+    resampled truth an `instances_resampled` task scores against."""
     volumes = {v["name"]: v for v in (config.get("volumes") or []) if isinstance(v, dict)}
     image_key = (producer.get("artifact_attrs") or {}).get("source_image_key") or "raw"
     scored_paths = postprocess.get("scored_artifacts") or {}
@@ -424,12 +425,10 @@ def view_entries(producer: dict[str, Any], postprocess: dict[str, Any], config: 
                 and postprocess.get("name") != "identity"):
             unfiltered = share_url(artifact, keys)
         truth_path = Path(artifact).with_name(f"{volume}.gt.zarr")
-        if semantic and entry.get("label_key"):
+        if (semantic or truth_kind == "instances") and entry.get("label_key"):
             truth = share_url(Path(store) / str(entry["label_key"]), keys)
         elif exists(truth_path):
             truth = share_url(truth_path, keys)
-        elif truth_kind == "instances" and entry.get("label_key"):
-            truth = share_url(Path(store) / str(entry["label_key"]), keys)
         else:
             truth = None
         transform = ome_transform(Path(shown))
