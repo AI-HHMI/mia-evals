@@ -1,0 +1,271 @@
+{
+  "task_name": "lm_zebrafish_cell_instance",
+  "producer": {
+    "artifacts": {
+      "lm_zebrafish_t10": "/nrs/scicompsoft/orhane/mia-evals/lm_zebrafish_cell_instance/submissions/lsd-deep4wide_ft_t1-t25/test/lm_zebrafish_t10.zarr"
+    },
+    "run": "lsd-deep4wide_ft_t1-t25",
+    "step": 0,
+    "kind": "instances",
+    "convention": "",
+    "artifact_attrs": {
+      "kind": "instances",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "convention": "",
+      "background_id": 0,
+      "source_fixed_axes": {
+        "t": 10
+      },
+      "submission_frame": 10,
+      "run": "lsd-deep4wide_ft_t1-t25",
+      "step": 0,
+      "source_path": "/groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr",
+      "model": "training_runs/TRAIN_ZEBRAFISH_BETZIG/liconn_ai_deep4wide_lm_zebrafish_Betzig_t01_t25_lr3.2e-4_4c4b/checkpoints/best_liconn_ai_deep4wide_lm_zebrafish_Betzig_t01_t25_VALID_train_0.0252",
+      "tool": "lsd",
+      "train_timepoints": [
+        1,
+        25
+      ],
+      "submission_store": "/groups/miaai/miaai/lsd_segmentations/Zebrafish_LM/Zebrafish_Betzig/Zebrafish_Betzig_Segmentation.zarr/segments/s0",
+      "submission_prefix": "segments_sws_t05_b4_msd20_xy30_z50_lsd80_zebrafish",
+      "postprocess_selection": "submitter's GT-box sweeps on t1 and t25, 128 points each; these settings are t25's best by VOI and by combined score; t10 not used",
+      "border": {
+        "pad": "reflect",
+        "shell_zeroed": false,
+        "context_vox": [
+          36,
+          36,
+          36
+        ]
+      },
+      "grid_conversion": "nearest neighbour from the submitter's raster-v1 grid (spacing_nm [140.18691588785046, 140.29906542056074, 140.29906542056074], corner-aligned): native voxel j <- raster voxel floor((j + 0.5) v / s)",
+      "relabelled": "ids renumbered 1..N in the order of the submitter's; partition unchanged",
+      "converted_by": "/nrs/scicompsoft/orhane/probes/lsd_zebrafish_segmentation/to_task_grid.py"
+    }
+  },
+  "scores": {
+    "voxel_instance": {
+      "adapted_rand_error": 0.9137042577071233,
+      "false_negative": 108.0,
+      "false_positive": 46.0,
+      "instances_predicted": 231.0,
+      "instances_truth": 293.0,
+      "iou_threshold": 0.5,
+      "pq": 0.5273774300940001,
+      "rq": 0.7061068702290076,
+      "sq": 0.7468804685655568,
+      "true_positive": 185.0,
+      "voi_merge": 2.2113969418519996,
+      "voi_split": 0.8566840421970383,
+      "voi_sum": 3.068080984049038,
+      "volumes_scored": 1.0
+    }
+  },
+  "ranking": {
+    "metric": "voxel_instance",
+    "key": "pq",
+    "value": 0.5273774300940001,
+    "higher_is_better": true
+  },
+  "postprocess": {
+    "name": "size_filter",
+    "params": {
+      "min_size": 75000
+    },
+    "describe": "size_filter(min_size=75000)",
+    "fitted_on": "/nrs/scicompsoft/orhane/mia-evals/lm_zebrafish_cell_instance/submissions/lsd-deep4wide_ft_t1-t25/fit",
+    "fitted_on_data_config": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/lm_zebrafish_cell_instance/data/fit.yaml",
+    "validation_scores": {
+      "voxel_instance": {
+        "adapted_rand_error": 0.9166742403956629,
+        "false_negative": 128.5,
+        "false_positive": 35.0,
+        "instances_predicted": 213.0,
+        "instances_truth": 306.5,
+        "iou_threshold": 0.5,
+        "pq": 0.519563229064089,
+        "rq": 0.6864381641688111,
+        "sq": 0.7568578527809933,
+        "true_positive": 178.0,
+        "voi_merge": 2.3071832060919855,
+        "voi_split": 0.8018946318319329,
+        "voi_sum": 3.1090778379239183,
+        "volumes_scored": 2.0
+      }
+    },
+    "scored_artifacts": {
+      "lm_zebrafish_t10": "/nrs/scicompsoft/orhane/mia-evals/lm_zebrafish_cell_instance/scored/lsd-deep4wide_ft_t1-t25.step0.size_filter/lm_zebrafish_t10.zarr"
+    }
+  },
+  "region": {
+    "volumes": {
+      "lm_zebrafish_t10": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          152,
+          508,
+          1466
+        ],
+        "whole_region": true,
+        "artifact": "/nrs/scicompsoft/orhane/mia-evals/lm_zebrafish_cell_instance/submissions/lsd-deep4wide_ft_t1-t25/test/lm_zebrafish_t10.zarr",
+        "scored_artifact": "/nrs/scicompsoft/orhane/mia-evals/lm_zebrafish_cell_instance/scored/lsd-deep4wide_ft_t1-t25.step0.size_filter/lm_zebrafish_t10.zarr"
+      }
+    }
+  },
+  "config": {
+    "task_name": "lm_zebrafish_cell_instance",
+    "task": {
+      "name": "instance_seg",
+      "kwargs": {
+        "truth_kind": "instances"
+      }
+    },
+    "postprocess": {
+      "name": "size_filter",
+      "kwargs": {
+        "min_sizes": [
+          0,
+          500,
+          2000,
+          5000,
+          10000,
+          20000,
+          50000,
+          75000,
+          100000,
+          150000,
+          200000
+        ]
+      }
+    },
+    "metrics": [
+      "voxel_instance"
+    ],
+    "rank_by": "voxel_instance",
+    "metric_kwargs": {},
+    "data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/lm_zebrafish_cell_instance/data/test.yaml",
+    "volumes": [
+      {
+        "name": "lm_zebrafish_t10",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr",
+        "label_key": "labels/manual_gt-cell-t10_postproofread",
+        "bounding_box": [
+          [
+            0,
+            152
+          ],
+          [
+            0,
+            508
+          ],
+          [
+            0,
+            1466
+          ]
+        ],
+        "fixed_axes": {
+          "t": 10
+        }
+      }
+    ],
+    "fit_data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/lm_zebrafish_cell_instance/data/fit.yaml",
+    "fit_volumes": [
+      {
+        "name": "lm_zebrafish_t01",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr",
+        "label_key": "labels/postprocessed_labels_t01",
+        "bounding_box": [
+          [
+            1,
+            152
+          ],
+          [
+            5,
+            508
+          ],
+          [
+            5,
+            1466
+          ]
+        ],
+        "fixed_axes": {
+          "t": 1
+        }
+      },
+      {
+        "name": "lm_zebrafish_t25",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr",
+        "label_key": "labels/manual_gt-cell-t25_postproofread",
+        "bounding_box": [
+          [
+            0,
+            152
+          ],
+          [
+            0,
+            508
+          ],
+          [
+            0,
+            1466
+          ]
+        ],
+        "fixed_axes": {
+          "t": 25
+        }
+      }
+    ],
+    "notes": "",
+    "route": "size_filter"
+  },
+  "per_volume": {
+    "lm_zebrafish_t10": {
+      "voxel_instance": {
+        "pq": 0.5273774300940001,
+        "sq": 0.7468804685655568,
+        "rq": 0.7061068702290076,
+        "true_positive": 185.0,
+        "false_positive": 46.0,
+        "false_negative": 108.0,
+        "instances_truth": 293.0,
+        "instances_predicted": 231.0,
+        "voi_split": 0.8566840421970383,
+        "voi_merge": 2.2113969418519996,
+        "voi_sum": 3.068080984049038,
+        "adapted_rand_error": 0.9137042577071233,
+        "iou_threshold": 0.5
+      }
+    }
+  },
+  "provenance": {
+    "mia_evals_commit": "0ef31ff9a76430070bf51f8269f01a7cc9e9f248 (dirty)"
+  },
+  "views": {
+    "lm_zebrafish_t10": {
+      "overlay": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%2C%22shaderControls%22%3A%7B%22normalized%22%3A%7B%22range%22%3A%5B715.0%2C16923.0%5D%7D%7D%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lm_zebrafish_cell_instance/scored/lsd-deep4wide_ft_t1-t25.step0.size_filter/lm_zebrafish_t10.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lsd-deep4wide_ft_t1-t25.step0.size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr/labels/manual_gt-cell-t10_postproofread/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Afalse%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lm_zebrafish_cell_instance/submissions/lsd-deep4wide_ft_t1-t25/test/lm_zebrafish_t10.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lsd-deep4wide_ft_t1-t25.step0.size_filter%22%7D%2C%22gpuMemoryLimit%22%3A4000000000%2C%22systemMemoryLimit%22%3A8000000000%2C%22layout%22%3A%224panel-alt%22%2C%22dimensions%22%3A%7B%22z%22%3A%5B2.0000000000000002e-07%2C%22m%22%5D%2C%22y%22%3A%5B1.08e-07%2C%22m%22%5D%2C%22x%22%3A%5B1.08e-07%2C%22m%22%5D%2C%22t%22%3A%5B0.001%2C%22s%22%5D%7D%2C%22position%22%3A%5B76.0%2C254.0%2C733.0%2C10.0%5D%7D",
+      "side_by_side": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%2C%22shaderControls%22%3A%7B%22normalized%22%3A%7B%22range%22%3A%5B715.0%2C16923.0%5D%7D%7D%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lm_zebrafish_cell_instance/scored/lsd-deep4wide_ft_t1-t25.step0.size_filter/lm_zebrafish_t10.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lsd-deep4wide_ft_t1-t25.step0.size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr/labels/manual_gt-cell-t10_postproofread/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Atrue%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lm_zebrafish_cell_instance/submissions/lsd-deep4wide_ft_t1-t25/test/lm_zebrafish_t10.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22unfiltered%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lsd-deep4wide_ft_t1-t25.step0.size_filter%22%7D%2C%22gpuMemoryLimit%22%3A4000000000%2C%22systemMemoryLimit%22%3A8000000000%2C%22layout%22%3A%7B%22type%22%3A%22row%22%2C%22children%22%3A%5B%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22truth%22%5D%2C%22layout%22%3A%22xy%22%7D%2C%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22lsd-deep4wide_ft_t1-t25.step0.size_filter%22%5D%2C%22layout%22%3A%22xy%22%7D%5D%7D%2C%22dimensions%22%3A%7B%22z%22%3A%5B2.0000000000000002e-07%2C%22m%22%5D%2C%22y%22%3A%5B1.08e-07%2C%22m%22%5D%2C%22x%22%3A%5B1.08e-07%2C%22m%22%5D%2C%22t%22%3A%5B0.001%2C%22s%22%5D%7D%2C%22position%22%3A%5B76.0%2C254.0%2C733.0%2C10.0%5D%7D",
+      "shows": "scored"
+    }
+  },
+  "details": {},
+  "versions": {
+    "python": "3.14.6",
+    "numpy": "2.4.4",
+    "zarr": "3.2.1",
+    "miao": "present",
+    "numba": "0.67.0",
+    "networkx": "3.6.1",
+    "funlib.evaluate": "present"
+  },
+  "schema_version": 2,
+  "label": "",
+  "route": "size_filter"
+}
