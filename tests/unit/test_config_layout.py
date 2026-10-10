@@ -13,7 +13,7 @@ SCORING = sorted(glob.glob(str(ROOT / "configs" / "*" / "*.toml")))
 
 @pytest.mark.unit
 @pytest.mark.parametrize("path", SCORING, ids=lambda p: str(Path(p).relative_to(ROOT / "configs")))
-def test_scoring_config_lives_in_its_task_directory_under_its_route_name(path):
+def test_scoring_config_lives_in_its_task_directory_named_for_what_it_runs(path):
     from conftest import needs_newer_miao
 
     import components  # noqa: F401
@@ -26,7 +26,20 @@ def test_scoring_config_lives_in_its_task_directory_under_its_route_name(path):
             pytest.skip("its data pins a frame with fixed_axes; the installed miao predates it")
         raise
     assert Path(path).parent.name == config.task_name, "directory name must be the task name"
-    assert Path(path).stem == config.route, "file stem must be the route (the record name's last part)"
+    # The file name is the route, the last part of every record's name, so it says what runs: the
+    # post-processor, then each add-on its sweep can apply -- `_size_filter` for `min_sizes` beyond
+    # [0], `_fill` for `fill_distances` beyond [0] -- then optionally a variant (`mws_blockwise_1024`).
+    # Until 2026-10-10 `mws.toml` swept a size filter, and the lmd tasks' ran `identity`.
+    settings = config.postprocess.kwargs
+    expected = config.postprocess.name
+    if {int(v) for v in settings.get("min_sizes", [0])} != {0}:
+        expected += "_size_filter"
+    if {str(v) for v in settings.get("fill_distances", [0])} != {"0"}:
+        expected += "_fill"
+    variant = config.route[len(expected) + 1:] if config.route.startswith(f"{expected}_") else ""
+    assert config.route == expected or (
+        variant and not {"size", "filter", "fill"} & set(variant.split("_"))
+    ), f"its settings make it {expected!r}: name it {expected}.toml or {expected}_<variant>.toml"
     for data in (config.data_config_path, config.fit_data_config_path):
         if data is not None:
             assert Path(data).resolve().parent == (Path(path).parent / "data").resolve(), \

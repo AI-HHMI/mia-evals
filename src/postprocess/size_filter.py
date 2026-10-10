@@ -1,26 +1,32 @@
-"""Dropping instance components below a voxel count, shared by every postprocessor that needs it,
-and filling the holes that leaves.
+"""The two add-ons every instance post-processor takes: dropping components below a voxel count
+(`min_sizes`), and growing the surviving segments into the background around them
+(`fill_distances`).
 
-Its own module because it is not specific to how the labelling was produced. `cc_threshold` and
+Its own module because neither is specific to how the labelling was produced. `cc_threshold` and
 `mws` both emit enormous numbers of tiny fragments on real affinity maps -- 3,583,131 predicted
 objects against 3,620 true ones for thresholded components, 57,542 against 273 for mutex watershed
 on one volume -- and PQ's recognition term counts objects unweighted by size, so in both cases
-specks dominate the score independently of the segmentation's actual quality.
+specks dominate the score independently of the segmentation's actual quality. A finished labelling
+can carry specks too, and gaps: `identity` takes both settings, so a stored labelling (a persisted
+mutex watershed, or one handed over by another lab) is filtered and filled exactly as a computed
+one is.
 
-Kept as a plain function rather than folded into the base class: it is a filter over a labelling
-with no knowledge of a sweep, a config or a kind, and the two callers differ in nothing but which
-parameter name they read it from.
+Kept as plain functions rather than folded into the base class: a filter over a labelling with no
+knowledge of a sweep, a config or a kind; the three callers differ only in how they produce the
+labelling first. Each sweeps the add-ons innermost, fill inside size filter, so `FillBases` can
+serve every fill distance of one size filter from one distance transform.
 """
 
 from __future__ import annotations
 
+import hashlib
+import math
+from collections import OrderedDict
+from collections.abc import Callable
 from typing import Any
 
 import numpy as np
 from scipy import ndimage
-
-from .base import BasePostprocess
-from .registry import PostprocessRegistry
 
 
 def drop_small_components(labels: np.ndarray, min_size: int) -> np.ndarray:
@@ -95,51 +101,105 @@ def fill_holes(
     return filled
 
 
-@PostprocessRegistry.register("size_filter")
-class SizeFilter(BasePostprocess):
-    """Drop components below a voxel count from a labelling that already exists.
+def parse_min_sizes(values: Any, owner: str) -> tuple[int, ...]:
+    """A `min_sizes` setting, checked and sorted; `[0]`, no filter, is every caller's default."""
+    if not values:
+        raise ValueError(
+            f"{owner} with an empty `min_sizes` has nothing to sweep. Use `[0]` for no size "
+            "filter, which is the default."
+        )
+    if any(int(v) < 0 for v in values):
+        raise ValueError(f"min_sizes must be non-negative voxel counts, got {list(values)}")
+    return tuple(sorted({int(v) for v in values}))
 
-    `cc_threshold` and `mws` apply the same filter as part of producing a labelling. This entry
-    exists for the case where the labelling is the *input*: a stored `instances` artifact, whether
-    written by an expensive postprocessor whose output was persisted or handed over by someone else.
-    Mutex watershed on a 7-gigavoxel volume takes eleven hours, so re-running it once per candidate
-    to sweep a filter is not an option -- the labelling is computed once and the filter swept over
-    it, which is only possible if the filter is a postprocessor in its own right.
 
-    Accepts `instances` only, unlike `identity`. A size filter on `class_labels` would be
-    meaningless: a class region is not a component, and "drop small ones" has no reading there.
+def parse_fill_distances(values: Any, owner: str) -> tuple[int | str, ...]:
+    """A `fill_distances` setting, checked and sorted with "all" last, as `mws` reads its own."""
+    if not values:
+        raise ValueError(
+            f"{owner} with an empty `fill_distances` has nothing to sweep. Use `[0]` for no "
+            "filling, which is the default."
+        )
+    bad = [v for v in values
+           if v != "all" and (isinstance(v, bool) or not isinstance(v, int) or v < 0)]
+    if bad:
+        raise ValueError(f'fill_distances must be non-negative voxel counts or "all", got {bad}')
+    return tuple(sorted({int(v) for v in values if v != "all"})) + (
+        ("all",) if "all" in values else ()
+    )
+
+
+def with_fill(
+    space: list[dict[str, Any]], fill_distances: tuple[int | str, ...]
+) -> list[dict[str, Any]]:
+    """`space` with every fill distance swept innermost, or `space` itself for the default `[0]`,
+    so a config without `fill_distances` fits and records exactly as before the setting existed."""
+    if fill_distances == (0,):
+        return space
+    return [{**point, "fill_distance": fill} for point in space for fill in fill_distances]
+
+
+def fill_limit(fill: int | str) -> float:
+    """A `fill_distance` as `fill_holes` takes it: "all" is no limit."""
+    return math.inf if fill == "all" else int(fill)
+
+
+def fingerprint(array: np.ndarray) -> str:
+    """Which array this is, cheaply: shape, dtype and a hash of a one-in-N sample, as `mws` keys
+    its caches. Distinguishes the volumes of one fit, which is all a cache key here needs."""
+    flat = array.reshape(-1)
+    step = max(1, flat.size // 1_000_000)
+    digest = hashlib.blake2b(digest_size=16)
+    digest.update(np.ascontiguousarray(flat[::step]).tobytes())
+    digest.update(np.ascontiguousarray(flat[-1024:]).tobytes())
+    return f"{array.shape}:{array.dtype}:{digest.hexdigest()}"
+
+
+#: What `FillBases` may hold: an lm_zebrafish frame's basis (113 M voxels) is ~3 GB, so every fit
+#: frame of a sweep fits; a gigavoxel block's (~28 GB) never does, and then only the latest is kept,
+#: as `mws` keeps one.
+FILL_CACHE_BYTES = 16 * 2**30
+#: A basis's size per voxel at most: an int64 labelling, a float64 distance, three int32 indices.
+BASIS_BYTES_PER_VOXEL = 8 + 8 + 3 * 4
+
+
+class FillBases:
+    """Size-filtered labellings and their distance transforms, kept for the fill candidates that
+    follow them.
+
+    The fill candidates of one size filter differ only in distance, so they share its filtered
+    labelling and that labelling's transform (`nearest_segment`). The runner scores a candidate on
+    every fit volume before the next, so a basis is reused only if every volume's survives in
+    between: they are kept, least recently used first out, while they fit `budget` bytes. Room is
+    made before a basis is built, so a block too large to keep two of frees the old one first.
     """
 
-    accepts = ("instances",)
-    produces = "instances"
+    def __init__(self, budget: int = FILL_CACHE_BYTES) -> None:
+        self.budget = budget
+        self._entries: OrderedDict[Any, tuple[np.ndarray, tuple[np.ndarray, np.ndarray]]] = (
+            OrderedDict()
+        )
 
-    def __init__(
-        self, min_sizes: tuple[int, ...] | list[int] = (0,), **settings: Any
-    ) -> None:
-        super().__init__(min_sizes=min_sizes, **settings)
-        if not min_sizes:
-            raise ValueError(
-                "size_filter with an empty `min_sizes` has nothing to sweep. Use `[0]` for no "
-                "filter, which is the default."
-            )
-        if any(int(v) < 0 for v in min_sizes):
-            raise ValueError(f"min_sizes must be non-negative voxel counts, got {list(min_sizes)}")
-        self.min_sizes = tuple(sorted({int(v) for v in min_sizes}))
+    def fill(self, key: Any, voxels: int, filtered: Callable[[], np.ndarray],
+             fill: int | str) -> np.ndarray:
+        """`filtered()`'s labelling filled to `fill`, its basis computed once per `key`.
 
-    def search_space(self) -> list[dict[str, Any]]:
-        return [{"min_size": min_size} for min_size in self.min_sizes]
+        A fresh array every time, never the cached one, since that serves the next distance.
+        """
+        entry = self._entries.get(key)
+        if entry is None:
+            need = voxels * BASIS_BYTES_PER_VOXEL
+            while self._entries and self._held() + need > self.budget:
+                self._entries.popitem(last=False)
+            labels = filtered()
+            entry = (labels, nearest_segment(labels))
+            self._entries[key] = entry
+        else:
+            self._entries.move_to_end(key)
+        labels, nearest = entry
+        out = fill_holes(labels, fill_limit(fill), nearest)
+        return out.copy() if out is labels else out
 
-    def __call__(self, array: np.ndarray, **params: Any) -> np.ndarray:
-        if array.dtype.kind == "f":
-            raise ValueError(
-                f"size_filter was handed a floating-point array (dtype {array.dtype}); a labelling "
-                "must be integral, or the ids are not ids. Check the artifact's `kind`."
-            )
-        # `drop_small_components` works in place. Safe here because the runner reads the artifact
-        # afresh for every candidate, so each sweep step owns its array -- but not safe in general,
-        # which is why the helper says so.
-        return drop_small_components(array, int(params.get("min_size", 0)))
-
-    def describe(self, params: dict[str, Any]) -> str:
-        min_size = int(params.get("min_size", 0))
-        return f"size_filter(min_size={min_size})" if min_size else "size_filter(no filter)"
+    def _held(self) -> int:
+        return sum(labels.nbytes + distance.nbytes + index.nbytes
+                   for labels, (distance, index) in self._entries.values())

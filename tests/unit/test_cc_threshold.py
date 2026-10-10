@@ -108,3 +108,48 @@ def test_default_sweep_applies_no_size_filter():
 def test_rejects_an_unusable_min_sizes(bad):
     with pytest.raises(ValueError, match="min_sizes"):
         ConnectedComponentThreshold(logits=[0], min_sizes=bad)
+
+
+# ------------------------------------------------------------------------------------ the fill
+
+
+def test_fill_distances_default_adds_nothing_to_the_sweep():
+    """Records scored before `fill_distances` existed must be reproduced by their configs."""
+    processor = ConnectedComponentThreshold(logits=[0, 3], min_sizes=[0, 500])
+    assert all("fill_distance" not in candidate for candidate in processor.search_space())
+
+
+def test_fill_distances_are_swept_inside_each_logit_and_size():
+    processor = ConnectedComponentThreshold(logits=[0], min_sizes=[0, 5], fill_distances=[2, 0])
+    assert processor.search_space() == [
+        {"logit": 0.0, "min_size": 0, "fill_distance": 0},
+        {"logit": 0.0, "min_size": 0, "fill_distance": 2},
+        {"logit": 0.0, "min_size": 5, "fill_distance": 0},
+        {"logit": 0.0, "min_size": 5, "fill_distance": 2},
+    ]
+
+
+def test_describe_names_the_fill_when_it_is_active():
+    processor = ConnectedComponentThreshold(logits=[0], fill_distances=[0, 2])
+    assert "fill" not in processor.describe({"logit": 0.0, "min_size": 0, "fill_distance": 0})
+    assert processor.describe({"logit": 0.0, "min_size": 500, "fill_distance": 2}).endswith(
+        ", min_size=500, fill_distance=2)")
+
+
+def test_a_fill_grows_the_components_and_computes_them_once_for_every_distance(monkeypatch):
+    from postprocess.size_filter import fill_holes
+
+    components = np.zeros((1, 3, 9), dtype=np.uint32)
+    components[0, :, 0:3] = 1
+    components[0, :, 5:8] = 2
+    calls = []
+    processor = ConnectedComponentThreshold(logits=[0], fill_distances=[0, 1, "all"])
+    monkeypatch.setattr(processor, "_labelling",
+                        lambda array, **params: calls.append(1) or components.copy())
+    affinities = np.zeros((3, 1, 3, 9), dtype=np.float32)
+    unfilled = processor(affinities, logit=0.0, min_size=0, fill_distance=0)
+    assert np.array_equal(unfilled, components)
+    for fill, limit in ((1, 1), ("all", np.inf)):
+        filled = processor(affinities, logit=0.0, min_size=0, fill_distance=fill)
+        assert np.array_equal(filled, fill_holes(components, limit))
+    assert len(calls) == 2              # once for the unfilled candidate, once for both fills

@@ -37,7 +37,7 @@ def test_a_legacy_label_still_names_its_record():
 
 
 @pytest.mark.unit
-def test_route_is_read_from_the_scoring_config(tmp_path):
+def test_route_is_the_scoring_config_s_file_name(tmp_path):
     from config import load_scoring_config
     data = tmp_path / "d.yaml"
     data.write_text(
@@ -45,14 +45,17 @@ def test_route_is_read_from_the_scoring_config(tmp_path):
         "volumes:\n- name: v\n  path: /nowhere/v.zarr\n  image_key: raw\n  label_key: labels/gt\n"
     )
     body = ("task_name = \"t\"\n[data]\nconfig_path = \"d.yaml\"\n[task]\nname = \"instance_seg\"\n"
-            "[postprocess]\nname = \"size_filter\"\n[metric]\nnames = [\"voxel_instance\"]\n")
-    (tmp_path / "plain.toml").write_text(body)
-    assert load_scoring_config(tmp_path / "plain.toml").route == "size_filter"
+            "[postprocess]\nname = \"identity\"\n[metric]\nnames = [\"voxel_instance\"]\n")
+    path = tmp_path / "identity_size_filter.toml"
+    path.write_text(body)
+    assert load_scoring_config(path).route == "identity_size_filter"
+    # A route is no longer a setting: a config still carrying one is refused, not half-read.
     (tmp_path / "named.toml").write_text("route = \"mws\"\n" + body)
-    assert load_scoring_config(tmp_path / "named.toml").route == "mws"
-    (tmp_path / "bad.toml").write_text("route = \"has space\"\n" + body)
+    with pytest.raises(ValueError, match="no longer a setting"):
+        load_scoring_config(tmp_path / "named.toml")
+    (tmp_path / "has space.toml").write_text(body)
     with pytest.raises(ValueError, match="filesystem-safe"):
-        load_scoring_config(tmp_path / "bad.toml")
+        load_scoring_config(tmp_path / "has space.toml")
 
 
 @pytest.mark.unit

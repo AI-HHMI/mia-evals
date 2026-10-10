@@ -335,7 +335,6 @@ def test_the_scorer_builds_the_labelling_once_and_reads_only_what_the_skeleton_t
     config = tmp_path / "mws_blockwise.toml"
     config.write_text(textwrap.dedent(f"""\
         task_name = "unit_tracing"
-        route = "mws_blockwise"
 
         [data]
         config_path = "{data}"

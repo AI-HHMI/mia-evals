@@ -1,0 +1,35 @@
+# lm_zebrafish_cell_instance from finished segmentations, through a SIZE FILTER fitted on frames 1 and 25.
+#
+# For labellings made without affinities whose size filter is fitted here rather than by the producer:
+# segments below a voxel count become background, the count is fitted on frames 1 and 25 ([data.fit])
+# and applied once to frame 10 ([data.test]), as in the mws route. Artifacts are `instances` labellings
+# of whole frames on the store's own grid (152 x 508 x 1466, z, y, x), named after the volumes:
+# lm_zebrafish_t10.zarr in --test, lm_zebrafish_t01.zarr and lm_zebrafish_t25.zarr in --val. As for the
+# identity route, attrs name the producer (`run`, `step`), and `source_path` with `source_fixed_axes`
+# lets the scorer refuse a labelling of the wrong frame.
+#
+#   mia-evals score configs/lm_zebrafish_cell_instance/identity_size_filter.toml \
+#       --test <labellings>/test --val <labellings>/fit
+
+task_name = "lm_zebrafish_cell_instance"
+
+[data.test]
+config_path = "data/test.yaml"      # frame 10
+
+[data.fit]
+config_path = "data/fit.yaml"       # frames 1 and 25
+
+[task]
+name = "instance_seg"
+truth_kind = "instances"   # read from the store at the pinned frame
+
+[postprocess]
+name = "identity"
+# mws_size_filter.toml's candidates (its comment gives the reasoning), extended to 200 k, near the median truth cell
+# (206-259 k voxels): the first labelling fitted here chose 50 k, the top of mws's list, with the fit's pq
+# still rising. A fitted value on the edge of its candidates says nothing about where the optimum is.
+min_sizes = [0, 500, 2000, 5000, 10000, 20000, 50000, 75000, 100000, 150000, 200000]
+
+[metric]
+names = ["voxel_instance"]
+rank_by = "voxel_instance"        # primary key: pq

@@ -419,10 +419,13 @@ def view_entries(producer: dict[str, Any], postprocess: dict[str, Any], config: 
             continue
         unfiltered = None
         # The producer's labelling before post-processing, when that changed it: never for
-        # affinities or class scores (not a segmentation layer), nor for `identity`, whose copy is
-        # the same labels.
+        # affinities or class scores (not a segmentation layer), nor for `identity` with no add-on
+        # applied (every fitted value 0 or none fitted), whose copy is the same labels.
+        unchanged = postprocess.get("name") == "identity" and not any(
+            (postprocess.get("params") or {}).values()
+        )
         if (shown != artifact and producer.get("kind") not in ("affinity", "class_scores")
-                and postprocess.get("name") != "identity"):
+                and not unchanged):
             unfiltered = share_url(artifact, keys)
         truth_path = Path(artifact).with_name(f"{volume}.gt.zarr")
         if (semantic or truth_kind == "instances") and entry.get("label_key"):

@@ -478,7 +478,8 @@ def cmd_score(args: argparse.Namespace) -> None:
         raise SystemExit(
             f"a record named {submission.identifier()!r} already exists ({target}): this run, step "
             "and route were scored before. If this scoring supersedes it, delete that file first; if "
-            "it is a different protocol, give the scoring config a distinct top-level `route`."
+            "it is a different protocol, save the scoring config under a file name of its own (the "
+            "file name is the route)."
         )
     path = submission.write(root)
     print(f"record: {path}", flush=True)

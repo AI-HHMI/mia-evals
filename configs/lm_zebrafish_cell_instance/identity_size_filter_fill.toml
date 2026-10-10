@@ -1,0 +1,31 @@
+# lm_zebrafish_cell_instance from finished segmentations, through a SIZE FILTER and then a FILL, both
+# fitted on frames 1 and 25: identity_size_filter.toml with the surviving segments grown into the
+# background around them, for labellings whose producer leaves voxels between cells unassigned. The
+# fit can choose no fill (distance 0), so on the fit frames this route can only match or beat
+# identity_size_filter.toml. Artifacts as for identity_size_filter.toml.
+#
+#   mia-evals score configs/lm_zebrafish_cell_instance/identity_size_filter_fill.toml \
+#       --test <labellings>/test --val <labellings>/fit
+
+task_name = "lm_zebrafish_cell_instance"
+
+[data.test]
+config_path = "data/test.yaml"      # frame 10
+
+[data.fit]
+config_path = "data/fit.yaml"       # frames 1 and 25
+
+[task]
+name = "instance_seg"
+truth_kind = "instances"   # read from the store at the pinned frame
+
+[postprocess]
+name = "identity"
+min_sizes = [0, 500, 2000, 5000, 10000, 20000, 50000, 75000, 100000, 150000, 200000]   # identity_size_filter.toml's
+# Voxels, Euclidean over the array's indices: 1 is 200 nm along z and 108 nm along y and x. "all" fills
+# every background voxel, the unannotated fifth of the frame included, so the fit should reject it.
+fill_distances = [0, 1, 2, 3, 4, 6, 8, "all"]
+
+[metric]
+names = ["voxel_instance"]
+rank_by = "voxel_instance"        # primary key: pq

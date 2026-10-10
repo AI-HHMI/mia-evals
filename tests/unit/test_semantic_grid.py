@@ -195,7 +195,6 @@ def _write_configs(root: Path, store: Path, route: str, postprocess: str) -> Pat
     config = root / f"{route}.toml"
     config.write_text(textwrap.dedent(f"""\
         task_name = "unit_semantic"
-        route = "{route}"
 
         [data]
         config_path = "{data}"

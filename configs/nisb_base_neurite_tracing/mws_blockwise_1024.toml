@@ -14,7 +14,6 @@
 # score. The rest is mws_blockwise.toml's: whole cubes predicted with --cover-box, no mask, one candidate.
 
 task_name = "nisb_base_neurite_tracing"
-route = "mws_blockwise_1024"     # records <run>.step<N>.mws_blockwise_1024, beside mws_blockwise.toml's
 
 [data.test]
 config_path = "data/test.yaml"

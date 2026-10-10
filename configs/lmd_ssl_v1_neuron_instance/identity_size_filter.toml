@@ -1,0 +1,61 @@
+# lmd_ssl_v1 -- neuron/cell instance segmentation over the lmd eval set, scored from FINISHED instance
+# labellings through a size filter: `identity` with `min_sizes`, fitted on the finetune half
+# ([data.fit]) and applied once to the held-out half ([data.test]).
+#
+#   mia-evals score configs/lmd_ssl_v1_neuron_instance/identity_size_filter.toml \
+#       --test <labellings>/test --val <labellings>/finetune --run-dir <mia-train run dir>
+#
+# Two kinds of labelling are scored here, by the same filter, so their rows differ only in what wrote
+# the labelling:
+# - Mutex-watershed labellings of the lmd_ssl_v1 arms' affinities (rows `lmd1__...`). Mutex watershed
+#   on the largest of these volumes takes eleven hours -- 7.078 G voxels, 42.35 G edges, 1.70 TB
+#   resident -- so it was run once per volume, outside the scorer, and its labelling persisted: when
+#   these were scored (2026-09) the mws route re-ran the watershed for every candidate. It has
+#   computed each volume's watershed once since 2026-09-18, so a new mutex-watershed row belongs in
+#   an mws route from affinities instead. These records were scored as route `mws` before
+#   2026-10-10, when routes became config file names.
+# - Direct instance labellings of the promptable / SAM arms of mia-train's sam_lmd_v1 (rows
+#   `sam1__...`): the producer already wrote objects. Scored as route `size_filter` before 2026-10-10.
+#
+# Same task name and same halves as `cc_threshold_size_filter.toml` beside it, so the rows land in
+# the same table.
+
+task_name = "lmd_ssl_v1_neuron_instance"
+
+notes = """
+Voxel metrics, not skeleton ones: these volumes ship dense label arrays and no skeletons, so nERL is
+unavailable and panoptic quality ranks. Not comparable with any NISB nERL figure.
+
+Scored region per volume is the largest lattice-aligned sub-box of each volume's bounding box, the
+same region the cc_threshold entries use, so the routes are directly comparable.
+
+Mutex-watershed labellings are 1..k with no background: mutex watershed assigns every voxel to a
+cluster. Ids were compacted at conversion because `_factorize` only takes its counting path while the
+id span stays under 2**31, and two of these volumes carried raw union-find root ids spanning 4.2 G
+and 7.06 G. Direct labellings come from mia-train's predict.py (a `PromptGridPredictor` pass with the
+labeller's own gates, windows reconciled by agreement); 0 is background and every id is one object.
+"""
+
+[data.test]
+config_path = "data/test.yaml"
+
+[data.fit]
+config_path = "data/fit.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "instances_resampled"   # <volume>.gt.zarr beside each labelling
+
+[postprocess]
+name = "identity"
+# The sweep. Measured on the mutex-watershed labellings of all eight volumes: mean pq over the
+# finetune half rises 0.0037 -> 0.0278 -> 0.1301 -> 0.3441 across these four values, while mean
+# voi_sum is flat to 5,000 (1.5188 -> 1.5202) and worsens at 50,000 (1.6158). So pq and voi disagree
+# about the right value, and total true positives fall 4,158 -> 2,374 across the sweep: the largest
+# filter is deleting real objects. Both are reported so a reader sees the trade rather than the
+# ranking metric alone.
+min_sizes = [0, 500, 5000, 50000]
+
+[metric]
+names = ["voxel_instance"]
+rank_by = "voxel_instance"        # primary key: pq

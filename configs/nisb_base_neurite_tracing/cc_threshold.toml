@@ -12,7 +12,6 @@
 # Affinities as for mws_blockwise.toml: whole cubes, predicted with mia-train's predict.py --cover-box.
 
 task_name = "nisb_base_neurite_tracing"
-route = "cc_threshold"
 
 [data.test]
 config_path = "data/test.yaml"

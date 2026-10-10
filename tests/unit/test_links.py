@@ -295,10 +295,19 @@ def test_views_show_the_scored_labelling_when_the_record_names_one():
     (entry,) = view_entries({**producer, "kind": "affinity"}, {"scored_artifacts": scored},
                             config, KEYS, "arm", exists=lambda p: True)
     assert "unfiltered" not in entry[1]
-    # Nor for identity rows: their scored copy is the submitted labelling itself.
-    (entry,) = view_entries(producer, {"name": "identity", "scored_artifacts": scored},
-                            config, KEYS, "arm", exists=lambda p: True)
-    assert "unfiltered" not in entry[1] and "x/scored/vol.zarr" in entry[1]
+    # Nor for identity rows: their scored copy is the submitted labelling itself -- also when the
+    # fit chose no add-on...
+    for params in ({}, {"min_size": 0}, {"min_size": 0, "fill_distance": 0}):
+        (entry,) = view_entries(producer, {"name": "identity", "params": params,
+                                           "scored_artifacts": scored},
+                                config, KEYS, "arm", exists=lambda p: True)
+        assert "unfiltered" not in entry[1] and "x/scored/vol.zarr" in entry[1], params
+    # ...but not once a size filter or a fill changed it: then it shows what they removed or added.
+    for params in ({"min_size": 500}, {"min_size": 0, "fill_distance": 2}):
+        (entry,) = view_entries(producer, {"name": "identity", "params": params,
+                                           "scored_artifacts": scored},
+                                config, KEYS, "arm", exists=lambda p: True)
+        assert "unfiltered" in entry[1] and "x/test/vol.zarr" in entry[1], params
     # A scored copy that was deleted falls back to the producer's output.
     (entry,) = view_entries(producer, {"scored_artifacts": scored}, config, KEYS, "arm",
                             exists=lambda p: "scored" not in str(p))

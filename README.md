@@ -70,7 +70,7 @@ python <mia-train>/src/predict.py <run_dir> --step 50000 --data-config configs/l
 python <mia-train>/src/predict.py <run_dir> --step 50000 --data-config configs/lmd_ssl_v1_neuron_instance/data/fit.yaml  --out <artifacts>/finetune
 
 # 2. Fit the post-processing hyperparams on the finetune half, report on the test half, and write a record.
-mia-evals score configs/lmd_ssl_v1_neuron_instance/cc_threshold.toml \
+mia-evals score configs/lmd_ssl_v1_neuron_instance/cc_threshold_size_filter.toml \
     --val <artifacts>/finetune --test <artifacts>/test --run-dir <run_dir>
 
 # 3. Rebuild a table from its records. Scoring already does this for the task it scored; this is for after editing or removing a record by hand.
@@ -177,7 +177,7 @@ labelling arrived as affinities, as a watershed, or as a finished mask from a co
 | kind | array shape | post-processors | canonical form |
 | --- | --- | --- | --- |
 | `affinity` | `(2·rank, *spatial)` | `cc_threshold`, `mws` | instance labelling |
-| `instances` | `(*spatial)`, integer | `identity`, `size_filter` | instance labelling |
+| `instances` | `(*spatial)`, integer | `identity` | instance labelling |
 | `class_scores` | `(K, *spatial)` | `argmax`, `per_class_threshold` | class labelling |
 | `class_labels` | `(*spatial)`, integer | `identity` | class labelling |
 | `boundary` | `(1, *spatial)` | none yet | instance labelling |
@@ -191,32 +191,22 @@ currently cannot be scored. Adding one is the normal way to extend the repositor
 
 | name | accepts | produces | swept parameters |
 | --- | --- | --- | --- |
-| `cc_threshold` | `affinity` | instances | `logits`, `min_sizes` |
-| `mws` | `affinity` | instances | `repulsive_strides`, `min_sizes` |
-| `size_filter` | `instances` | instances | `min_sizes` |
-| `identity` | `instances`, `class_labels` | either | none |
+| `cc_threshold` | `affinity` | instances | `logits`, `min_sizes`, `fill_distances` |
+| `mws` | `affinity` | instances | `repulsive_strides`, `min_sizes`, `fill_distances` |
+| `identity` | `instances`, `class_labels` | either | none; `min_sizes`, `fill_distances` for `instances` |
 | `argmax` | `class_scores` | classes | none |
 | `per_class_threshold` | `class_scores` | classes | `thresholds` |
 
-`cc_threshold` thresholds the affinities and takes connected components. `mws` runs a mutex
-watershed, which uses the long-range affinity channels that a threshold discards and needs no
-threshold at all; it is more accurate on the volumes measured here but far more expensive, and
-`src/postprocess/mws.py` documents both.
+- `cc_threshold` thresholds the affinities and takes connected components. 
+- `mws` runs a mutex watershed, which uses the long-range affinity channels. It is generally more accurate than `cc_threshold` but far more expensive.
+- `identity` keeps the provided segmentation as is without any changes, _i.e._ it is effectively a no-op.
 
-`mws` always runs the compiled kernel (`src/postprocess/mws_kernel.py`). A block with at most
-`max_in_memory_edges` edges, 8 G by default, is watershedded with all its edges in memory, which
-peaks at about 37 bytes per edge; a larger one has its edges streamed through the scorer's
-`--scratch` in priority bands (`src/postprocess/mws_stream.py`). Both give exactly the partition
-of the plain Python implementation, `mutex_watershed_reference`, which the tests use as the
-oracle and nothing scores with. So the setting changes time and memory, never a number; a record
-names the path taken under `region.volumes.<volume>.postprocess_run`. An 896^3 block, 4.3 G edges
-at repulsive stride 1, takes about 20 minutes when the job has its node to itself, and two to five
-times longer beside another memory-heavy job, so give mws scoring jobs a whole node. Before
-2026-09-23 the scorer ran the Python implementation, about two and a half hours per block.
-Re-scoring every gary_comparison mws record then reproduced each pq, fitted parameter and scored
-partition exactly. The one visible trace of the change is in VOI: the labels are numbered
-differently, VOI sums in label order, and so it can differ in the 15th digit from a record scored
-before that date.
+The three instance post-processors take the same two add-ons, applied in this order: 
+- `min_sizes` drops every segment below a voxel count 
+- `fill_distances` then grows the surviving segments into the background within that many voxels (Euclidean; `"all"` for no
+limit). 
+Both are swept jointly with the post-processor's own settings and fitted on `[data.fit]`,
+and their default, `[0]`, adds nothing.
 
 ### Metrics
 
@@ -253,11 +243,11 @@ then scored at 2 nm whatever resolution a model ran at; see [docs/cellmap.md](do
 ## Scoring configuration
 
 Configs are laid out one directory per task, named exactly as the task: `configs/<task_name>/<route>.toml`
-is a scoring config (its file stem is its `route`) and `configs/<task_name>/data/{test,fit}.yaml` are that
+is a scoring config (its file name is its route) and `configs/<task_name>/data/{test,fit}.yaml` are that
 task's data configs, referenced from the scoring config as `data/test.yaml`. A scoring config says which task is scored (`task_name`,
 the reported volumes and the ranking metric), where the post-processing sweep is fitted, and which
 post-processing route turns the artifact into a labelling; several scoring configs may score one
-task through different routes, as `mws.toml` does. Data is referenced as `miao` YAMLs rather
+task through different routes, as `mws_size_filter.toml` and `cc_threshold_size_filter.toml` do. Data is referenced as `miao` YAMLs rather
 than restated, so prediction and scoring read the same volume definitions.
 
 ```toml
@@ -283,11 +273,18 @@ names = ["voxel_instance"]
 rank_by = "voxel_instance"           # ranks on its `primary` key, pq; direction is the metric's own
 ```
 
-`route` (top-level, optional) is the short name of the scoring route and the last part of every
-record's identifier (see below). It defaults to the post-processor's name; a config sets it when that
-name would mislead, as `mws.toml` of the lmd tasks does (`size_filter` runs there, over a stored mutex-watershed
-labelling, so `route = "mws"`). Two configs that score one task through different routes must differ
-in `route`, or their records would collide.
+The config's file name is its route: the last part of every record's identifier (see below), so a
+record always says which config scored it, and two configs of one task can never collide. It is not
+a setting, and a config that sets `route` is refused. A file is named for what it runs: the
+post-processor, then `_size_filter` if it sweeps `min_sizes` beyond `[0]`, then `_fill` if it sweeps
+`fill_distances` beyond `[0]`, and optionally a variant after that. So `mws_size_filter.toml` runs
+`mws` with a size filter, `mws_size_filter_fill.toml` adds a fill, `identity_size_filter.toml`
+size-filters a finished labelling, and `mws_blockwise_1024.toml` is a variant of
+`mws_blockwise.toml`; `pytest -m unit` checks every config's name against its settings. The name
+says what a config can apply, not what its fit chose: a row fitted at `min_size = 0` under
+`mws_size_filter` applied no filter. Routes were a setting until 2026-10-10; the records of the
+routes renamed then (`size_filter`, `mws`, `mws_fill`, `cc_threshold`, and `mws` over stored
+labellings in the lmd tasks) were renamed with them, their scores and links unchanged.
 
 `rank_by` names a metric rather than one of its keys. Which number ranks, and whether
 higher is better, are properties of the metric class, so a config cannot declare a ranking direction
@@ -326,13 +323,13 @@ leaderboard/
 **Record names.** A record is named `<run>.step<N>.<route>`, and only that way: `<run>` is the
 name of the run directory that was passed to the producer's `predict.py` (which already carries the
 experiment, the arm and the launch time, e.g. `gary__1a_dinov3_axial_subpixel_20260916_215544`),
-`<N>` the checkpoint step, `<route>` the scoring config's `route`. So
-`lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919.step50000.mws` says exactly which checkpoint was
+`<N>` the checkpoint step, `<route>` the scoring config's file name. So
+`lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919.step50000.cc_threshold_size_filter` says exactly which checkpoint was
 scored and how, and its checkpoint directory can be found by name. There is no `--label`: hand-written
 names (`2c_step50000`, `2c_step50000_sizefilter`, ...) made the tables unreadable and were replaced on
 2026-09-18. Scoring a run, step and route that already has a record is refused rather than
-overwritten; delete the old record if the new scoring supersedes it, or give the config a distinct
-`route` if it is a different protocol (`cc_threshold_nosizesweep` is the one legacy example).
+overwritten; delete the old record if the new scoring supersedes it, or save the config under a
+file name of its own if it is a different protocol.
 
 `mia-evals score` writes the record and re-renders that task's table, so the two cannot drift
 apart through a forgotten second command; every other task's file is left untouched.

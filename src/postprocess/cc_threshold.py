@@ -44,7 +44,13 @@ import numpy as np
 from .base import BasePostprocess
 from .mws import SHORT_OFFSETS, check_offsets
 from .registry import PostprocessRegistry
-from .size_filter import drop_small_components
+from .size_filter import (
+    FillBases,
+    drop_small_components,
+    fingerprint,
+    parse_fill_distances,
+    with_fill,
+)
 
 #: BANIS' `scale_sigmoid` factor. Both codebases train with plain
 #: `binary_cross_entropy_with_logits`, so a logit is directly comparable; this is only how the
@@ -61,9 +67,11 @@ def threshold_of(logit: float) -> float:
 class ConnectedComponentThreshold(BasePostprocess):
     """Threshold the short-range affinities, then label 6-connected components of what survives.
 
-    `logits` and `min_sizes` are the sweep, and `search_space()` is their cross-product. The runner
-    scores each candidate on validation and applies the winner to test; sweeping on the reported
-    split would be selecting on the reported number.
+    `logits`, `min_sizes` and `fill_distances` are the sweep, and `search_space()` is their
+    cross-product. The runner scores each candidate on validation and applies the winner to test;
+    sweeping on the reported split would be selecting on the reported number. `fill_distances`
+    grows the surviving components into the background around them, as in `mws`; the default `[0]`
+    adds nothing to the sweep, so a config without it scores exactly as before it existed.
     """
 
     accepts = ("affinity",)
@@ -73,12 +81,14 @@ class ConnectedComponentThreshold(BasePostprocess):
         self,
         logits: tuple[float, ...] | list[float] = (3, 4, 5, 6, 7),
         min_sizes: tuple[int, ...] | list[int] = (0,),
+        fill_distances: tuple[int | str, ...] | list[int | str] = (0,),
         short_range_channels: int = 3,
         **settings: Any,
     ) -> None:
         super().__init__(
             logits=logits,
             min_sizes=min_sizes,
+            fill_distances=fill_distances,
             short_range_channels=short_range_channels,
             **settings,
         )
@@ -97,7 +107,9 @@ class ConnectedComponentThreshold(BasePostprocess):
         self.logits = tuple(float(v) for v in logits)
         # Sorted so a sweep is reported in a readable order regardless of how the config lists it.
         self.min_sizes = tuple(sorted({int(v) for v in min_sizes}))
+        self.fill_distances = parse_fill_distances(fill_distances, "cc_threshold")
         self.short_range_channels = int(short_range_channels)
+        self._fill_bases = FillBases()
 
     def check_artifact(self, artifact: Any) -> None:
         check_offsets(artifact, SHORT_OFFSETS)
@@ -106,7 +118,7 @@ class ConnectedComponentThreshold(BasePostprocess):
         return self.short_range_channels
 
     def search_space(self) -> list[dict[str, Any]]:
-        """Every (logit, min_size) pair, logit-major.
+        """Every (logit, min_size) pair, logit-major, and every fill distance within each.
 
         A full cross-product rather than a two-stage fit, because the two are not independent in
         principle: a higher threshold fragments more, so it invites a larger size filter. The cost
@@ -114,13 +126,24 @@ class ConnectedComponentThreshold(BasePostprocess):
         that has already established its logit can pin `logits` to that one value and sweep only
         `min_sizes`, which is a reduction the config makes explicit rather than one hidden here.
         """
-        return [
+        return with_fill([
             {"logit": logit, "min_size": min_size}
             for logit in self.logits
             for min_size in self.min_sizes
-        ]
+        ], self.fill_distances)
 
     def __call__(self, array: np.ndarray, **params: Any) -> np.ndarray:
+        fill = params.get("fill_distance", 0)
+        if fill:
+            key = (fingerprint(array), float(params["logit"]), int(params.get("min_size", 0)))
+            voxels = int(np.prod(array.shape[1:]))
+            return self._fill_bases.fill(
+                key, voxels, lambda: self._labelling(array, **params), fill
+            )
+        return self._labelling(array, **params)
+
+    def _labelling(self, array: np.ndarray, **params: Any) -> np.ndarray:
+        """The thresholded, size-filtered components, before any fill."""
         # Imported here, not at module scope: numba compiles the pass on first call, which neither
         # `--help` nor a test that only checks the search space should pay for.
         from utils.connected_components import compute_connected_component_segmentation
@@ -150,4 +173,6 @@ class ConnectedComponentThreshold(BasePostprocess):
         # model differences do: a leaderboard row without it invites comparing a filtered PQ against
         # an unfiltered one.
         min_size = int(params.get("min_size", 0))
-        return text + (f", min_size={min_size}" if min_size else "") + ")"
+        fill = params.get("fill_distance", 0)
+        return (text + (f", min_size={min_size}" if min_size else "")
+                + (f", fill_distance={fill}" if fill else "") + ")")

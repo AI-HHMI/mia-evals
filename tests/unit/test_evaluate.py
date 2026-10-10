@@ -66,7 +66,7 @@ def _data_config(root, entries: list[tuple[str, str, tuple[int, ...]]]) -> str:
 
 
 def _task_config(root, data_path: str, body: str) -> str:
-    path = root / "task.toml"
+    path = root / "identity.toml"      # a route is its file name: the post-processor it runs
     path.write_text(f'task_name = "unit_task"\n\n[data]\nconfig_path = "{data_path}"\n\n{body}')
     return str(path)
 
@@ -512,7 +512,7 @@ SIZE_FILTER_BODY = textwrap.dedent("""\
     truth_kind = "instances"
 
     [postprocess]
-    name = "size_filter"
+    name = "identity"
     min_sizes = [0, 3]
 
     [metric]
@@ -593,3 +593,62 @@ def test_a_sweep_is_fitted_on_the_declared_fit_split_and_applied_to_the_test_spl
     args.config = plain
     with pytest.raises(SystemExit, match="declares no fit split"):
         evaluate.cmd_score(args)
+
+
+# ------------------------------------------------- a finished labelling, size-filtered and filled
+
+
+FILL_BODY = textwrap.dedent("""\
+    [task]
+    name = "instance_seg"
+    truth_kind = "instances"
+
+    [postprocess]
+    name = "identity"
+    min_sizes = [0, 3]
+    fill_distances = [0, 1, "all"]
+
+    [metric]
+    names = ["voxel_instance"]
+    """)
+
+
+def test_identity_fits_a_size_filter_and_a_fill_together_over_two_fit_volumes(tmp_path):
+    """The truth tiles the cube, as cells tile the zebrafish frames, so a fill has no background to
+    flood: on both fit volumes only the size filter (the specks) and the fill (the holes, each
+    bordered by its own object only) together recover the truth, so the fit must choose both."""
+    import evaluate
+
+    truth = np.zeros((4, 4, 4), dtype=np.int64)
+    truth[:2] = 1
+    truth[2:] = 2
+    paths = {name: _volume(tmp_path, name, truth) for name in ("alpha", "beta", "gamma")}
+    data = _data_config(tmp_path, [(name, path, truth.shape) for name, path in paths.items()])
+    config = _split_task_config(tmp_path, data, data, FILL_BODY,
+                                test_volumes=["alpha"], fit_volumes=["beta", "gamma"])
+    beta = truth.copy()
+    beta[0, 1:3, 1:3] = 0                    # a hole inside object 1, away from object 2
+    beta[3, 0, :2] = 9                       # a 2-voxel speck inside object 2
+    gamma = truth.copy()
+    gamma[3, 3, :] = 0                       # a gap along an edge of object 2
+    gamma[0, 0, 0] = 8                       # a 1-voxel speck inside object 1
+    val_dir = tmp_path / "val"
+    test_dir = tmp_path / "test"
+    val_dir.mkdir()
+    test_dir.mkdir()
+    write_artifact(val_dir / "beta.zarr", beta, "instances", background_id=0)
+    write_artifact(val_dir / "gamma.zarr", gamma, "instances", background_id=0)
+    write_artifact(test_dir / "alpha.zarr", truth.copy(), "instances", background_id=0,
+                   run="unit_run", step=1)
+
+    records = tmp_path / "records"
+    evaluate.cmd_score(type("Args", (), {
+        "config": config, "test": test_dir, "val": val_dir, "leaderboard": records,
+        "run_dir": None, "scored_out": None, "no_scored": False, "scratch": tmp_path / "scratch",
+    })())
+    payload = json.loads(_only_record(records / "unit_task" / "records").read_text())
+    # The first of the two perfect candidates: "all" also recovers the truth but comes after 1.
+    assert payload["postprocess"]["params"] == {"min_size": 3, "fill_distance": 1}
+    assert payload["postprocess"]["describe"] == "identity(min_size=3, fill_distance=1)"
+    assert payload["postprocess"]["validation_scores"]["voxel_instance"]["pq"] == 1.0
+    assert payload["scores"]["voxel_instance"]["pq"] == 1.0         # alpha is predicted exactly

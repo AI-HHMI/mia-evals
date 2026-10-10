@@ -245,6 +245,6 @@ def test_scoring_refuses_a_record_that_would_redefine_the_task(tmp_path):
                    run="second_run", step=7)
     evaluate.cmd_score(args(one, test=second))
     written = json.loads(
-        (tmp_path / "board" / "unit_task" / "records" / "second_run.step7.identity.json").read_text()
+        (tmp_path / "board" / "unit_task" / "records" / "second_run.step7.one.json").read_text()
     )
     assert written["task_name"] == "unit_task"

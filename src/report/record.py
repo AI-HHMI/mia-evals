@@ -132,7 +132,7 @@ class Submission:
 
         `run` is the producing run directory's name (`gary__1a_dinov3_axial_subpixel_20260916_215544`),
         which already carries the experiment, the arm and the launch time; `step` is the checkpoint;
-        `route` is the scoring config's `route`. Two records may share a run and step only through
+        `route` is the scoring config's file name. Two records may share a run and step only through
         different routes, and `mia-evals score` refuses to overwrite an existing identifier. The
         convention replaced hand-written labels on 2026-09-18, after those had made the tables
         unreadable (`2c_step50000`, `2c_step50000_sizefilter`, `sam1_arm4_8nm_gb16_r0_step200000`

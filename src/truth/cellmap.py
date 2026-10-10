@@ -406,7 +406,6 @@ def scoring_toml(task: str, route: str, table: dict[str, list[int]], header: str
              f"crop's own label grid; artifacts are {accepts}. See docs/cellmap.md.")
     return f'''{header}
 task_name = "{task}"
-route = "{route}"
 notes = "{notes}"
 
 [data.test]

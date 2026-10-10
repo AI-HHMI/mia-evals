@@ -6,7 +6,7 @@ has the model's exact per-channel affinity distribution and 58,473 segments agai
 57,542 -- within 1.6% on segment count, and so indistinguishable from it on any size statistic --
 and it scores `pq = 0.0000` with zero matched objects.
 
-That is the property worth pinning. The leaderboard's fitted `size_filter(min_size=50000)` deletes
+That is the property worth pinning. The leaderboard's fitted `identity(min_size=50000)` deletes
 roughly 43% of the objects mutex watershed recovers, which makes the ranking metric look vulnerable
 to a prediction that merely emits plausibly-sized blobs. It is not, and these tests fail if that ever
 changes -- for instance if someone relaxed `iou_threshold` past 0.5, below which a translated

@@ -12,12 +12,13 @@ SCORING = sorted(glob.glob(str(ROOT / "configs" / "*" / "*.toml")))
 
 @pytest.mark.unit
 def test_a_setting_of_another_route_is_refused():
-    """`fill_distances` is mws's; cc_threshold used to keep it and run unfilled (2026-09-29)."""
+    """`repulsive_strides` is mws's. cc_threshold once kept a key it did not take (`fill_distances`,
+    before it took one) and ran without it (2026-09-29)."""
     import components  # noqa: F401
     from postprocess.registry import PostprocessRegistry
 
-    with pytest.raises(ValueError, match=r"unknown key\(s\) \['fill_distances'\]"):
-        PostprocessRegistry.build("cc_threshold", fill_distances=[1])
+    with pytest.raises(ValueError, match=r"unknown key\(s\) \['repulsive_strides'\]"):
+        PostprocessRegistry.build("cc_threshold", repulsive_strides=[1])
 
 
 @pytest.mark.unit
@@ -26,7 +27,7 @@ def test_a_postprocessor_without_settings_refuses_any():
     from postprocess.registry import PostprocessRegistry
 
     with pytest.raises(ValueError, match="it takes none"):
-        PostprocessRegistry.build("identity", min_sizes=[0])
+        PostprocessRegistry.build("argmax", min_sizes=[0])
 
 
 @pytest.mark.unit

@@ -18,5 +18,4 @@ import postprocess.cc_threshold  # noqa: F401  (imported for its registration si
 import postprocess.labellings  # noqa: F401  (imported for its registration side effect)
 import postprocess.mws  # noqa: F401  (imported for its registration side effect)
 import postprocess.mws_blockwise  # noqa: F401  (imported for its registration side effect)
-import postprocess.size_filter  # noqa: F401  (imported for its registration side effect)
 import tasks.segmentation  # noqa: F401  (imported for its registration side effect)

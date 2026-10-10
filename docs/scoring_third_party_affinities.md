@@ -102,7 +102,7 @@ from artifact import write_artifact          # from mia-evals (`pip install -e .
 STORE = "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-hemibrain/crop-001_EllipsoidBody_x24000_y23000_z17000.zarr"
 LABEL_KEY = "labels/proofread-cell-hemibrain-v1.2"
 
-RUN = "gary_mymodel_20260921"                                    # EDIT: names your row, <RUN>.mws -- letters, digits, _ and - only, NO dots
+RUN = "gary_mymodel_20260921"                                    # EDIT: names your row, <RUN>.mws_size_filter -- letters, digits, _ and - only, NO dots
 OUT = "/groups/miaai/miaai/<your dir>/gary_comparison_eval"    # EDIT: outputs; keep it readable by group miaai
 SOURCES = {                                                      # EDIT: your affinity arrays, (6, X, Y, Z) in x,y,z order, values in [0, 1]
     "test": "/path/to/my_test_affinities.zarr",
@@ -136,8 +136,8 @@ for split in ("test", "fit"):
 
 Notes on the attributes it writes (`README.md`, "Prediction artifacts", has the full contract):
 `kind="affinity"` is what lets the routes accept the array; `origin` is the box corner in
-absolute voxel coordinates; `run` names your leaderboard row (`<RUN>.mws`; add `step=<int>` to the
-affinity call if you want `<RUN>.step<N>.mws`); `source_path` lets the scorer refuse a file filed
+absolute voxel coordinates; `run` names your leaderboard row (`<RUN>.mws_size_filter`; add `step=<int>` to the
+affinity call if you want `<RUN>.step<N>.mws_size_filter`); `source_path` lets the scorer refuse a file filed
 under the wrong volume; `native_box` must be identical on the prediction and its `.gt.zarr`, which
 the script guarantees.
 
@@ -164,7 +164,7 @@ The mutex-watershed route is the one our rows are ranked by:
 ```bash
 cd ~/mia-evals
 bsub -P miaai -q local -n 32 -W 24:00 -J score_mws -o score_mws_%J.log \
-  ~/envs/mia-evals/bin/mia-evals score configs/gary_comparison_neuron_instance/mws.toml \
+  ~/envs/mia-evals/bin/mia-evals score configs/gary_comparison_neuron_instance/mws_size_filter.toml \
     --test <OUT>/test --val <OUT>/fit \
     --scored-out <OUT>/scored/mws --scratch <OUT>/scratch
 ```
@@ -176,7 +176,7 @@ components on the short-range channels, is the cheap baseline (30 minutes, 8 slo
 
 ```bash
 bsub -P miaai -q local -n 8 -W 6:00 -J score_cc -o score_cc_%J.log \
-  ~/envs/mia-evals/bin/mia-evals score configs/gary_comparison_neuron_instance/cc_threshold.toml \
+  ~/envs/mia-evals/bin/mia-evals score configs/gary_comparison_neuron_instance/cc_threshold_size_filter.toml \
     --test <OUT>/test --val <OUT>/fit \
     --scored-out <OUT>/scored/cc_threshold --scratch <OUT>/scratch
 ```
@@ -191,7 +191,7 @@ scoring test
 scored labellings kept under <OUT>/scored/mws
     hemibrain_eb_test                pq = 0.1xxx
   voxel_instance.pq = 0.1xxx (unweighted mean over 1 volumes)
-record: /path/to/mia-evals/leaderboard/gary_comparison_neuron_instance/records/gary_mymodel_20260921.mws.json
+record: /path/to/mia-evals/leaderboard/gary_comparison_neuron_instance/records/gary_mymodel_20260921.mws_size_filter.json
 updated: .../leaderboard/gary_comparison_neuron_instance/README.md
 ```
 
@@ -214,8 +214,8 @@ neuroglancer links, which need a fileglancer key that only exists on our side):
 ```bash
 cd ~/mia-evals
 git checkout -b gary-mws-record
-git add leaderboard/gary_comparison_neuron_instance/records/gary_mymodel_20260921.mws.json
-git commit -m "gary_comparison_neuron_instance: add gary_mymodel_20260921.mws"
+git add leaderboard/gary_comparison_neuron_instance/records/gary_mymodel_20260921.mws_size_filter.json
+git commit -m "gary_comparison_neuron_instance: add gary_mymodel_20260921.mws_size_filter"
 git push -u origin gary-mws-record
 ```
 

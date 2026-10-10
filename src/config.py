@@ -61,10 +61,9 @@ class ScoringConfig:
     metric_kwargs: dict[str, dict[str, Any]] = field(default_factory=dict)
     notes: str = ""
     #: Short name of this scoring route, the third part of every record's identifier
-    #: (`<run>.step<N>.<route>`). Defaults to the post-processor's registry name; a config
-    #: sets it explicitly when that name would mislead -- `size_filter` over a stored mutex
-    #: watershed labelling is `route = "mws"`. Two configs scoring one task through different
-    #: routes must differ here, or their records would overwrite each other.
+    #: (`<run>.step<N>.<route>`): the scoring config's file name, `configs/<task>/<route>.toml`.
+    #: Not a setting, so it always says which config scored a record, and the configs of one
+    #: task -- files in one directory -- can never share one.
     route: str = ""
     #: The fit split, from `[data.fit]`: where a swept post-processing parameter is chosen. None
     #: for a task that declares none, which is fine for a single-candidate post-processor.
@@ -290,11 +289,18 @@ def load_scoring_config(path: str | Path) -> ScoringConfig:
                 "so that no task can rank in the wrong direction."
             )
 
-    route = str(raw.get("route") or raw["postprocess"]["name"])
+    if "route" in raw:
+        raise ValueError(
+            f"{path.name} sets `route`, which is no longer a setting: a config's route is its file "
+            f"name ({path.stem!r} here). Remove the key, and rename the file if the route should "
+            "be something else."
+        )
+    route = path.stem
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_+-]*", route):
         raise ValueError(
-            f"route = {route!r} must be a filesystem-safe word (letters, digits, '_', '-', '+'): "
-            "it becomes the last part of every record's file name"
+            f"{path.name}: a scoring config's file name is its route, so it must be a "
+            "filesystem-safe word (letters, digits, '_', '-', '+'): it becomes the last part of "
+            "every record's file name"
         )
     return ScoringConfig(
         task_name=str(raw["task_name"]),

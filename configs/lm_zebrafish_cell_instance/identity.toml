@@ -3,8 +3,9 @@
 # For labellings made without affinities -- another tool's cells, a hand segmentation: no watershed
 # and no size filter, hence no fit split. The artifact is an `instances` labelling of the whole frame
 # on the store's own grid (152 x 508 x 1466, z, y, x), named lm_zebrafish_t10.zarr, whose attrs name
-# its producer (`run`, `step`) as every record's must. The mws route scores the whole frame, and the
-# first record fixes the region for every route of the task, so a labelling must cover all of it.
+# its producer (`run`, `step`) as every record's must. The mws_size_filter route scores the whole
+# frame, and the first record fixes the region for every route of the task, so a labelling must
+# cover all of it.
 # Declaring `source_path` and `source_fixed_axes = {t: 10}` lets the scorer refuse a labelling of
 # another frame; without them it is taken at its word.
 #
