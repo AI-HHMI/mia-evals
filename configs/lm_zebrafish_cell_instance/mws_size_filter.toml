@@ -48,8 +48,10 @@ repulsive_strides = [1]
 # Ground-truth cells are a median 206-259 k voxels per frame, but the smallest 5% are only 8-16 k:
 # slivers of cells cut by the volume faces, which hold nearly every cell (272 of 293 in frame 10). The
 # candidates run from no filter past that 5th percentile, so the fitted value has candidates on both
-# sides of it.
-min_sizes = [0, 500, 2000, 5000, 10000, 20000, 50000]
+# sides of it, and on to 200 k, near the median cell, as in identity_size_filter.toml: the first affinity
+# models fitted here (2026-10-12) chose 50 k, then the top candidate, with the fit's pq still rising. A
+# fitted value on the edge of its candidates says nothing about where the optimum is.
+min_sizes = [0, 500, 2000, 5000, 10000, 20000, 50000, 75000, 100000, 150000, 200000]
 
 [metric]
 names = ["voxel_instance"]
