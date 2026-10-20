@@ -1,0 +1,25 @@
+# hemibrain_al_neurite_tracing from a model's affinities, through blockwise mutex watershed.
+#
+#   mia-evals score configs/hemibrain_al_neurite_tracing/mws_blockwise.toml --test <affinities> --scratch <dir>
+#
+# The EB task's watershed and blocks (docs/neurite_tracing.md measures them against exact mutex watershed). Predict
+# over the cube plus at least 3/4 of a patch per side (the store's raw carries 200 voxels). One candidate.
+
+task_name = "hemibrain_al_neurite_tracing"
+
+[data]
+config_path = "data/test.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "skeleton"
+skeleton_name = "skeletons/{volume}_largest_piece.pkl"   # inside the volume's store, {volume} = its name
+
+[postprocess]
+name = "mws_blockwise"
+block = [512, 512, 512]         # ~40 GB per process at most
+processes = 8                   # give the job 32 slots
+
+[metric]
+names = ["skeleton_erl"]
+rank_by = "skeleton_erl"

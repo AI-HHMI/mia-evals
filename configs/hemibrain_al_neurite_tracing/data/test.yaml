@@ -1,0 +1,23 @@
+# hemibrain_al_neurite_tracing -- lmd's hemibrain crop-004 in the right alpha lobe, reported as [data].
+#
+# One 8 um cube at 8 nm (1000^3, 1.0 gigavoxels). The store is built by `python -m truth.lmd_hemibrain` (its
+# manifest.json says what was built from what): `raw` is the hemibrain image over the cube plus 200 voxels of
+# context on every side, and the bounding box is the cube in raw's voxels. The ground truth is each listed
+# neuron's largest piece (skeletons/<volume>_largest_piece.pkl in the store). No validation set, so nothing is
+# fitted. Axes are the store's own, z, y, x. The cube's raw is in lmd's SSL corpora and its labels in lmd's
+# labeled neuron_instance/all recipe: a model trained with that recipe has seen this ground truth.
+
+resolutions: [[8.0, 8.0, 8.0]]
+patch_size: [256, 256, 256]   # read by mia-train's predict.py, which requires the model's own: set it first
+output_axes: lczyx
+samples_per_epoch: 1000
+defer_image_ops: true   # irrelevant for scoring; kept so the rule holds for every miao config
+
+volumes:
+  - name: hemibrain_al_crop004        # 8 um: 1000^3 cube inside a 1400^3 raw
+    path: /groups/miaai/miaai/mia-evals-data/hemibrain_al_lmd/hemibrain_al_crop004.zarr
+    image_key: raw
+    zarr_version: zarr2
+    bounding_box: [[200, 1200], [200, 1200], [200, 1200]]
+    weight: 1.0
+    normalize: true   # uint8 on disk, so this maps to [0, 1] by dtype max

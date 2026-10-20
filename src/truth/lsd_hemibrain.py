@@ -68,8 +68,11 @@ node's `id` is its object. LSD relabelled `consolidated_ids` into connected comp
 eroding it, so objects are the counterpart of their zebrafinch components; but the erosion cuts
 thin necks -- roi_1's 364 skeletonised objects are 425 pieces at any block size -- and numbering
 pieces would make a segmentation that keeps such a neuron whole score as merging them. The
-whitelist makes the ground truth sparse (29-48 neurons per region, 30-42% of the voxels), so a
-merge with an unlisted neuron is invisible; a merge between two listed ones is not.
+whitelist -- exactly the bodies whose neuPrint status was "Traced" in LSD's 2019 export of the
+ellipsoid body's neurons, measured on their intermediate arrays -- makes the ground truth sparse:
+92, 138 and 134 neurons in roi_1, roi_2 and roi_3, 31-39% of the ellipsoid body's voxels there
+(counted at 16 nm, 2026-10-20). A merge with an unlisted neuron is invisible; a merge between two
+listed ones is not.
 
 **Where the regions are** (measured 2026-09-30 by label-id agreement of 97-100% with lmd's proofread
 v1.2 labels): array axes and offsets are z, y, x. The cores, in hemibrain voxels x, y, z, are
@@ -252,6 +255,19 @@ def region_skeleton(
     roi: str, workers: int, block: int | None = None
 ) -> tuple[nx.Graph, dict[str, Any]]:
     """Every whitelisted object of the region's core, skeletonised; `id` is the object."""
+    return skeletonise(GROUND_TRUTH / roi / "consolidated_ids", core_box(roi), volume_name(roi),
+                       roi, workers, block)
+
+
+def skeletonise(
+    labels_path: Path, box: list[list[int]], volume: str, region: str, workers: int,
+    block: int | None = None,
+) -> tuple[nx.Graph, dict[str, Any]]:
+    """Every object of a label array, skeletonised; `id` is the object.
+
+    `box` is where the array lies in the image the skeletons index ([lo, hi) per axis, z, y, x),
+    so node positions count in that image's voxels. truth.lmd_hemibrain uses it too.
+    """
     import itertools
     from collections import defaultdict
     from concurrent.futures import ProcessPoolExecutor
@@ -260,13 +276,10 @@ def region_skeleton(
     from osteoid import Skeleton
 
     block = block or BLOCK
-    labels, original = load_objects(
-        zarr.open_array(str(GROUND_TRUTH / roi / "consolidated_ids"), mode="r")
-    )
+    labels, original = load_objects(zarr.open_array(str(labels_path), mode="r"))
     sizes = np.zeros(original.size, dtype=np.int64)
     for z in range(0, labels.shape[0], SLAB):
         sizes += np.bincount(labels[z:z + SLAB].ravel(), minlength=original.size)
-    box = core_box(roi)
     low = np.array([lo for lo, _ in box])
 
     blocks = [
@@ -314,7 +327,7 @@ def region_skeleton(
         inside = labels[tuple(voxels.T)] == label
         if not inside.all():
             outside = int((~inside).sum())
-            raise ValueError(f"{roi}: {outside} nodes of object {label} lie outside it")
+            raise ValueError(f"{region}: {outside} nodes of object {label} lie outside it")
         index = {vertex: node + i for i, vertex in enumerate(order)}
         for i, voxel in enumerate(voxels + low):
             graph.add_node(node + i, id=int(label), index_position=tuple(int(v) for v in voxel),
@@ -349,8 +362,8 @@ def region_skeleton(
     }
     graph.graph.update(
         format=SKELETON_FORMAT, axes="zyx", voxel_size_nm=list(RESOLUTION),
-        volume=volume_name(roi), region=roi, region_box=box,
-        source=f"kimimaro {TEASAR} on {GROUND_TRUTH / roi / 'consolidated_ids'} in {block}^3 "
+        volume=volume, region=region, region_box=box,
+        source=f"kimimaro {TEASAR} on {labels_path} in {block}^3 "
                f"blocks, objects under {DUST} voxels dropped, branch ends inset {INSET} voxels, "
                f"thinned by {DOWNSAMPLE}",
     )

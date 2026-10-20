@@ -1,0 +1,22 @@
+# hemibrain_al_neurite_tracing from a finished segmentation.
+#
+# hemibrain_eb_neurite_tracing's protocol on lmd's alpha-lobe cube: each neuron's largest piece is looked up in the
+# labelling, funlib's expected run length is computed over them, and nERL divides by what a perfect segmentation
+# scores. A labelling must be relabelled into connected components inside the cube; the scorer does not do it.
+
+task_name = "hemibrain_al_neurite_tracing"
+
+[data]
+config_path = "data/test.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "skeleton"
+skeleton_name = "skeletons/{volume}_largest_piece.pkl"   # inside the volume's store, {volume} = its name
+
+[postprocess]
+name = "identity"
+
+[metric]
+names = ["skeleton_erl"]
+rank_by = "skeleton_erl"
