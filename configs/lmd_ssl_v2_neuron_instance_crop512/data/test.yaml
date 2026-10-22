@@ -1,0 +1,286 @@
+# lmd_ssl_v2 FAST eval -- the HELD-OUT half: lmd_ssl_v2_neuron_instance's test volumes, each cropped to a centred
+# 512^3 box (in its level-0 voxels) of its measured region. Scored once, as `--test`.
+#
+# Copied on 2026-10-21 from lmd-configs caac01e,
+#   /groups/miaai/miaai/lmd-v0.0.1/configs/configs/labeled/singlescale/instance_seg/v2/8nm_p256_crop512_census20261015.yaml
+# keeping only these 7 of its 16 volumes, each renamed with a `_crop512` suffix: a volume name shared with
+# lmd_ssl_v2_neuron_instance must mean the same box (tests/unit/test_config_layout.py), and these boxes differ.
+# Everything else below is that file unchanged. The complementary half is fit.yaml (in this directory).
+#   kasthuri15_ac4 zebrafish_fish2_doublecube1 liconn_mouse_hippocampus liconn_expid82 flyid49_40xw006 cns_mito_crop164 cremi_sample_c
+# jiefu_cerebellum, the split's eighth, was dropped on 2026-10-21: its labels are over-fragmented.
+#
+# lmd-v0.0.1 instance-segmentation eval v2 FAST (cells / neurons) — single scale (8 nm) — SimMIM / DINOv3
+#
+# GENERATED FILE — do not edit by hand. Every setting that decides what is in here
+# lives in the recipe below; there are no command-line options that change content.
+#
+#   rebuild   python build.py recipes/labeled/singlescale/instance_seg/v2/8nm_p256_crop512.yaml
+#   verify    python build.py --check          # regenerates, diffs, writes nothing
+#
+#   recipe    recipes/labeled/singlescale/instance_seg/v2/8nm_p256_crop512.yaml  sha256:944a18811a497ea3
+#   corpus    corpus/census-20261015.csv  sha256:3427b216cf9ede8a  (1078 stores)
+#   input     corpus/gt_regions.json  sha256:ca6969df975773ce
+#   input     corpus/gt_subboxes.json  sha256:be0ffb905d30cd58
+#   input     corpus/windows.yaml  sha256:bb3f37cc5de5a404
+#   builder   lmd/build_labeled.py  sha256:15b1833940420daf
+#   miao      0.4.2
+#
+# 16 volumes, 1.4 G level-0 voxels total, 0 with a ladder override.
+#
+# ==========================================================================
+# CROPPED EVAL: every bounding_box below is a centred 512x512x512 crop of the
+# measured annotated region, not the region itself. This exists to be cheap enough
+# to run between experiments: scoring cost is dominated by mutex watershed, which is
+# roughly linear in voxels and needed 1.70 TB resident for one 7 G voxel volume.
+#
+# Its scores are NOT comparable with the uncropped eval, or with any published
+# number. Panoptic quality and nERL both move with the extent scored -- the same
+# model on the same data gives 0.30 whole-cube against 0.42 on a 512^3 block. Use it
+# to rank checkpoints against each other, and confirm the ranking on the full eval
+# before drawing a conclusion from it.
+#
+# The GT density and instance counts listed below are for the FULL measured region,
+# because that is what was measured. The delivered-labels figure is not: it comes
+# from patches drawn inside the cropped box, so it describes what is actually scored.
+# ==========================================================================
+#
+# Every entry carries a `bounding_box`: the MEASURED non-zero extent of the label, in
+# image level-0 voxels, xyz order. It is not a crop for speed. Several volumes annotate
+# an offset sub-box, and two have 0.0% GT foreground in their own central block — drop
+# the box and the eval scores unannotated space as background.
+#
+# Scoring: take rung 0. A multi-scale eval returns one label PER SCALE, not one shared
+# label. Rung 0 is the finest and matches the stored GT; coarser rungs cover a larger
+# physical extent and are context, not targets. nERL is not comparable across extents.
+#
+# There are deliberately NO task / metric / split keys: miao sets extra="forbid", so a
+# config carrying them raises on load rather than having them ignored.
+#
+# Contents:
+#   kasthuri15_ac3                 0.026 G   92.4% GT      333 instances  ~81 delivered per patch
+#     mouse cortex, ATUM-ssTEM 6x6x29 nm. The classic public benchmark.
+#   kasthuri15_ac4                 0.026 G   89.8% GT      400 instances  ~92 delivered per patch
+#     mouse cortex, ATUM-ssTEM 6x6x29 nm. Second Kasthuri block.
+#   zebrafish_fish2_quadcube1      0.134 G   58.5% GT    5,363 instances  ~85 delivered per patch
+#     zebrafish brain EM, 8x8x7.5 nm, near-isotropic.
+#   zebrafish_fish2_doublecube1    0.134 G   48.9% GT   11,690 instances  ~112 delivered per patch
+#     zebrafish brain EM, 8x8x7.5 nm. Densest instance count in the set.
+#   liconn_mouse_dg                0.044 G   62.7% GT      141 instances  ~30 delivered per patch
+#     mouse dentate gyrus LICONN ExM. The annotation is an offset sub-box: this volume has
+#     0.0% GT foreground in its own central 256^3 block, which is why the measured
+#     bounding_box is not optional.
+#   liconn_mouse_hippocampus       0.044 G   55.7% GT      266 instances  ~50 delivered per patch
+#     mouse hippocampus CA1 LICONN ExM. Annotation is an offset sub-box, as for DG.
+#   hemibrain_ellipsoid_body       0.134 G   97.1% GT    4,186 instances  ~124 delivered per patch
+#     Drosophila central brain EM (FlyEM hemibrain v1.2), 8 nm isotropic.
+#   liconn_expid82                 0.134 G   57.5% GT    5,839 instances  ~48 delivered per patch
+#     mouse LICONN ExM at connectomic scale, dense agglomerated GT. Scored on v1's measured
+#     box, kept as it is: xyz [[1229, 2253], [1642, 2666], [0, 534]], 1024 x 1024 x 534 image
+#     voxels and off-centre, not the centred 1024^3 ([[2969, 3993], [3795, 4819], [21, 1045]])
+#     the region asks for. lmd.gt.measure_subbox centres the box in the label's voxels, which
+#     are 2x coarser than the image's here, and returns them as image voxels. For the same
+#     reason the density and instance count this config reports for it (57.5%, 5,839) were
+#     measured over a different region; inside the scored box the label is 55.3% dense with
+#     1,257 instances (probe of 2026-09-23).
+#   cremi_sample_a                 0.051 G  100.0% GT   12,424 instances  ~2163 delivered per patch
+#     CREMI sample A. The canonical public benchmark for Drosophila neuron instance
+#     segmentation, 4x4x40 nm ssTEM. The label group was renamed on disk from
+#     public_gt-cell-neuron_ids to proofread-cell-neuron_ids on 2026-09-03 (same data). Only
+#     the three *_train_padded volumes carry GT; CREMI withholds the test annotations, so
+#     A+/B+/C+ have no label groups at all. "padded" means 3072x3072x200 around a smaller
+#     annotated core, which is exactly what the measured bounding_box is for.
+#   cremi_sample_b                 0.051 G  100.0% GT    1,101 instances  ~157 delivered per patch
+#     CREMI sample B. Same acquisition as A, different block.
+#   cremi_sample_c                 0.051 G  100.0% GT    1,882 instances  ~271 delivered per patch
+#     CREMI sample C. Same acquisition as A, different block.
+#   jiefu_cerebellum               0.134 G   96.9% GT   39,464 instances  ~75 delivered per patch
+#     Mouse cerebellum, 16 nm isotropic — the only isotropic mammalian entry, and a cerebellar
+#     specimen the set otherwise lacks. 311 G voxels whole, so a centred sub-box. Uses the
+#     agglomerated proofread labels, matching liconn_expid82; auto_pred-cell-supervoxel is
+#     model output and excluded.
+#   flyid49_40xw005                0.044 G   53.4% GT      119 instances  ~95 delivered per patch
+#     Drosophila LICONN ExM, 5.1 x 5.1 x 12.5 nm — v2's Drosophila ExM entry, which v1 had
+#     none of. The annotation is an offset sub-box (480 x 480 x 189 image voxels) inside a
+#     2304 x 2304 x 1053 stack, so the measured bounding_box is not optional. `final`
+#     supersedes the dated snapshots (snap_09042026 ... snap_10022026). Fit/test pair with
+#     flyid49_40xw006.
+#   flyid49_40xw006                0.110 G   61.7% GT      168 instances  ~80 delivered per patch
+#     The same fly and gel as flyid49_40xw005, another 40XW field. Offset annotated sub-box of
+#     480 x 480 x 477 image voxels. Fit/test pair with flyid49_40xw005.
+#   cns_mito_crop182               0.134 G   95.3% GT   24,933 instances  ~11 delivered per patch
+#     Drosophila male CNS EM (FlyEM, 8 nm isotropic; Berg et al. 2025): one of the 198 boxes
+#     of FlyEM's mitochondria ground truth v6, carrying the male CNS connectome's proofread
+#     neuron segmentation v1.0 cut to the box. The image stops at the box. 2048 x 2048 x 1024
+#     voxels, the largest box. Fit/test pair with cns_mito_crop164, ~340 um away in the same
+#     CNS.
+#   cns_mito_crop164               0.134 G   90.8% GT   24,965 instances  ~464 delivered per patch
+#     A second FlyEM male CNS box, 1152 x 1152 x 1792 voxels, the largest after crop-182 that
+#     is not a thin slab (crop-172 is 4 um thick). Fit/test pair with cns_mito_crop182.
+#
+# Considered but excluded by a gate:
+#   liconn_mouse_cortex          GT only 10.8% dense inside the region (gate 30%)
+#   microns_minnie65             miao delivers a median of 1 instance(s) per patch (gate 5) despite 32,039 measured in th
+#     e region — labels are being destroyed in transit, not missing from the store; see
+#     lmd/probe.py
+#   pyr_ca3_hippocampus          miao delivers a median of 1 instance(s) per patch (gate 5) despite 22,462 measured in th
+#     e region — labels are being destroyed in transit, not missing from the store; see
+#     lmd/probe.py
+#
+# Considered and rejected by hand, recorded so the reason is not re-derived:
+#   em-zebrafinch-FFN-j0126-areaX
+#     33 crops of the FFN j0126 songbird dataset with public_gt-cell-neuron_ids — a fourth
+#     species and a well-known public benchmark, so worth wanting. Unusable at this patch
+#     size: the crops are 3-8 M voxels each, and a single 256^3 patch is 16.8 M, so every
+#     store is smaller than one patch. Scoring them needs a separate recipe at patch 128 or
+#     below, which is a different eval rather than an addition to this one.
+#   Betzig light-microscopy zebrafish time series (Korra 24hpf brain, example_annotations_Thayer)
+#     Light-microscopy time series with one label per timepoint, in stores with a time axis.
+#     Voxels are 108 x 108 x 200 nm, an order of magnitude coarser than the EM and ExM volumes
+#     this eval is built from, so it would not be a like-for-like comparison. The Thayer
+#     series is scored on its own, as mia-evals' lm_zebrafish_cell_instance task.
+#   em-drosophila-cremi crop-004/005/006 (samples A+, B+, C+)
+#     The CREMI test volumes carry no label groups at all — the challenge withholds test
+#     annotations. They are real image data and remain available for pretraining.
+#   em-mouse-PYR-ca3-hippocampus crop-002_ca3, crop-003_ca3
+#     Same specimen and preparation as crop-001, which already represents it. This set spans
+#     modalities and specimens rather than maximising entry count — the same reason hemibrain
+#     is represented by one crop of eight.
+#   exm-drosophila-flyliconn-FlyID10-20250923_2ndGel_PBS_MES_B1_Atto488_40XW_002
+#     manual_gt-cell-combined is only 1.7% dense inside its own bounding box — a handful of
+#     traced neurons in a large box, not a dense segmentation. Excellent for inter-annotator
+#     agreement (three independent annotators ship alongside), unusable for a dense instance
+#     score without a validity mask.
+#   every CellMap dataset (22 stores)
+#     All 287 CellMap label groups are organelle semantic segmentation
+#     (manual_gt-all_organelles-* since the 2026-09-21 rename, public_gt-all_organelles-*
+#     before it). Not one carries a cell instance label, so nothing there belongs in a
+#     cell-instance eval. Those 22 volumes would belong to an organelle semantic-segmentation
+#     set instead: see NOTES.md, "Why there is no multi-class organelle eval".
+#   em-hydra-zhang2025 (3 crops), em-drosophila-flyem-hemibrain crop-002 ... crop-008
+#     Hydra and hemibrain crop-002 / crop-003 are 190-1331 G voxels each, affordable only as
+#     sub-boxes. Hemibrain is already represented by crop-001, which also covers the five
+#     1000^3 hemibrain crops (crop-004 ... crop-008) that landed in census-20260920. Hydra was
+#     not measured for v2.
+#   volumes carrying only auto_pred-cell-* labels
+#     model output, not ground truth: scoring against it measures agreement with another
+#     segmentation, not with an annotator.
+#   em-drosophila-flyem-cns-mito-gt-v6, the 196 crops not listed
+#     136 of the 198 crops cannot hold a 256^3 patch (their smallest side is 128 or 256
+#     voxels). The 62 that can all pass the gates (88-98% dense, a median of 220 instances
+#     delivered per patch; 32.6 G together, measured 2026-10-15), but they are one specimen,
+#     so v2 takes two of them as a fit/test pair rather than all.
+#   FlyID49 mirrorscope-central (manual_gt-cell-snap_*)
+#     Annotation in progress: dated snapshots only (snap_09042026, snap_09142026,
+#     snap_10022026), no `final` yet. 6.7 T voxels, so it would need a sub-box, and with
+#     snap_09142026 the annotated region was only 24.8% dense (neuron_instance/all,
+#     2026-09-28).
+#   exm-drosophila-rubinlab-30X_lobeTm1_NHS546_687um_lower-laser_n2 (manual_gt-cell-assessment_Cat / _Tiff)
+#     Two annotators' assessments of one volume, 4-5 instances each, made to measure
+#     inter-annotator variability rather than as a dense segmentation.
+
+# ---------------------------------------------------------------------------
+# Global settings — apply to every volume unless overridden per volume below.
+# ---------------------------------------------------------------------------
+resolutions:
+- - 8.0
+  - 8.0
+  - 8.0
+patch_size:
+- 256
+- 256
+- 256
+output_axes: lcxyz
+samples_per_epoch: 1000
+
+# ---------------------------------------------------------------------------
+# Volumes (16).
+# ---------------------------------------------------------------------------
+volumes:
+- name: kasthuri15_ac4_crop512
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-002_ac4_100slices.zarr
+  image_key: raw
+  zarr_version: zarr3
+  label_key: labels/public_gt-cell-kasthuri15
+  bounding_box:
+  - - 256
+    - 768
+  - - 256
+    - 768
+  - - 0
+    - 100
+- name: zebrafish_fish2_doublecube1_crop512
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr
+  image_key: raw
+  zarr_version: zarr3
+  label_key: labels/proofread-cell-seg230927
+  bounding_box:
+  - - 744
+    - 1256
+  - - 744
+    - 1256
+  - - 800
+    - 1312
+- name: liconn_mouse_hippocampus_crop512
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-hippocampus-202507013_ExPID10-02_2percentAA_S2_Atto488_40XW_004/crop-001.zarr
+  image_key: raw
+  zarr_version: zarr3
+  label_key: labels/manual_gt-cell-final
+  bounding_box:
+  - - 496
+    - 976
+  - - 496
+    - 976
+  - - 44
+    - 236
+  normalize_max: 919
+  normalize_min: 219
+- name: liconn_expid82_crop512
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-ExPID82-1/crop-002_sub.zarr
+  image_key: raw
+  zarr_version: zarr3
+  label_key: labels/proofread-cell-agglom-dense-v20240123
+  bounding_box:
+  - - 1485
+    - 1997
+  - - 1898
+    - 2410
+  - - 11
+    - 523
+- name: cremi_sample_c_crop512
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-cremi/crop-003_sampleC_train_padded.zarr
+  image_key: raw
+  zarr_version: zarr3
+  label_key: labels/proofread-cell-neuron_ids
+  bounding_box:
+  - - 1217
+    - 1857
+  - - 1217
+    - 1857
+  - - 37
+    - 162
+- name: flyid49_40xw006_crop512
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-drosophila-flyliconn-FlyID49-2ndgel-DUP-BIS-40XW006-20260625/crop-001.zarr
+  image_key: raw
+  zarr_version: zarr3
+  label_key: labels/manual_gt-cell-final
+  bounding_box:
+  - - 912
+    - 1392
+  - - 912
+    - 1392
+  - - 351
+    - 828
+  normalize_max: 1448
+  normalize_min: 210
+- name: cns_mito_crop164_crop512
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-cns-mito-gt-v6/crop-164_box163.zarr
+  image_key: raw
+  zarr_version: zarr3
+  label_key: labels/proofread-cell-v1.0
+  bounding_box:
+  - - 320
+    - 832
+  - - 320
+    - 832
+  - - 640
+    - 1152

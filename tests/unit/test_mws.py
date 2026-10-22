@@ -272,3 +272,24 @@ def test_affinities_declaring_another_layout_are_refused(tmp_path):
         with pytest.raises(ValueError, match="reads them as"):
             processor.check_artifact(stored(f"eight_{type(processor).__name__}", eight))
     routes[2].check_artifact(stored("eight_cc", eight))        # reads the short-range block only
+
+
+def test_a_sweep_computes_each_volumes_watershed_once_however_many_volumes(monkeypatch):
+    """The scorer runs every fit volume for each candidate, so the cache must hold the whole fit
+    split: with eight volumes, a cache of four entries recomputed all eight per candidate."""
+    calls = []
+    real = mws_module.segment
+    monkeypatch.setattr(mws_module, "segment",
+                        lambda *args, **kwargs: calls.append(1) or real(*args, **kwargs))
+    processor = MutexWatershed(repulsive_strides=[1], min_sizes=[0, 3])
+    volumes = [_float16_affinities((6, 6, 6), seed) for seed in range(8)]
+    for candidate in processor.search_space():                  # as the scorer loops
+        for aff in volumes:
+            processor(aff, **candidate)
+    assert len(calls) == len(volumes)
+
+    monkeypatch.setattr(MutexWatershed, "CACHE_BYTES", 0)       # the newest entry always stays
+    tight = MutexWatershed(repulsive_strides=[1], min_sizes=[0, 3])
+    first = tight(volumes[0], repulsive_stride=1, min_size=0)
+    assert np.array_equal(tight(volumes[0], repulsive_stride=1, min_size=0), first)
+    assert len(tight._labellings) == 1

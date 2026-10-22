@@ -112,6 +112,17 @@ class BasePostprocess(abc.ABC):
         """
         return None
 
+    def from_artifact(self, artifact: Any, origin: tuple[int, ...], shape: tuple[int, ...],
+                      **params: Any) -> np.ndarray | None:
+        """This region's labelling computed from the artifact on disk, or None to be handed it.
+
+        For a post-processor that would rather read the artifact itself than be given the region in
+        memory -- `mws_blockwise`, whose pool processes each read their own block, so the region's
+        affinities are never held at once. The runner asks before reading the region, and falls
+        back to `__call__` on None.
+        """
+        return None
+
     @abc.abstractmethod
     def __call__(self, array: np.ndarray, **params: Any) -> np.ndarray:
         """Prediction -> (*spatial) integer labelling. `params` comes from `search_space()`."""

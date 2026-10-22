@@ -1,0 +1,46 @@
+# lmd_ssl_v2 -- neuron/cell instance segmentation over the v2 lmd eval set, from affinities through BLOCKWISE
+# mutex watershed and a size filter: fitted on the finetune half ([data.fit]), applied once to the held-out half
+# ([data.test]).
+#
+#   mia-evals score configs/lmd_ssl_v2_neuron_instance/mws_blockwise_size_filter.toml \
+#       --test <artifacts>/test --val <artifacts>/fit --run-dir <mia-train run dir> --scratch <dir>
+#
+# Blockwise rather than exact mws: the zebrafish doublecube (7.1 G voxels) needs more memory for
+# an exact watershed than a CPU node has (v1's doublecube: 1.70 TB). Each volume's watershed is built once under
+# --scratch, from the artifact, by 8 processes, and every size filter candidate reuses it.
+
+task_name = "lmd_ssl_v2_neuron_instance"
+
+notes = """
+Voxel metrics, not skeleton ones: these volumes ship dense label arrays and no skeletons, so panoptic
+quality ranks. Not comparable with lmd_ssl_v1_neuron_instance, which scores a different volume set (v1's
+eight) on a different split.
+
+Scored region per volume is mia-train predict.py's lattice-aligned sub-box of the volume's measured
+bounding box, at 8 nm: 10.9 G voxels on the reported half, 10.1 G on the fit half. Blockwise mutex
+watershed decides every edge inside a 512^3 block before any edge crossing a block face; on gary's
+896^3 test block that moved pq from 0.1637 (exact) to 0.1630.
+"""
+
+[data.test]
+config_path = "data/test.yaml"
+
+[data.fit]
+config_path = "data/fit.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "instances_resampled"   # <volume>.gt.zarr beside each prediction, written by mia-train's predict.py
+
+[postprocess]
+name = "mws_blockwise"
+block = [512, 512, 512]
+repulsive_strides = [1]
+processes = 8
+# A typical object is ~2e4 (CREMI A) to ~6e5 (Kasthuri) voxels at 8 nm. v1's sweep stopped at 5e4 with pq
+# still rising, so this one brackets the whole range.
+min_sizes = [0, 500, 5000, 20000, 50000, 150000, 300000, 600000]
+
+[metric]
+names = ["voxel_instance"]
+rank_by = "voxel_instance"        # primary key: pq

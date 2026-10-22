@@ -256,6 +256,8 @@ def score_once(
         context["scratch_dir"] = scratch / volume.name
         prediction = processor.lazy(artifact, origin, shape, **params) if points_only else None
         if prediction is None:
+            prediction = processor.from_artifact(artifact, window_origin, window_shape, **params)
+        if prediction is None:
             prediction = processor(
                 artifact.read(window_origin, window_shape, processor.reads_channels()), **params
             )

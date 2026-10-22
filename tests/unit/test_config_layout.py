@@ -55,11 +55,13 @@ def test_configs_hold_nothing_but_task_directories():
 
 @pytest.mark.unit
 def test_a_volume_shared_by_two_tasks_is_the_same_entry():
-    """The zebrafish task re-declares two of the eight-volume task's volumes; a drift between the two
-    copies would silently score one task on a different region than the other reports."""
+    """Tasks re-declare each other's volumes (the zebrafish task two of the eight-volume task's, lmd_ssl_v2
+    eight of v1's); a drift between the copies would silently score one task on a different region than
+    the other reports. `weight` is a training-sampling weight that mia-evals never reads, so it may differ."""
     entries: dict[str, dict] = {}
     for data in sorted(glob.glob(str(ROOT / "configs" / "*" / "data" / "*.yaml"))):
         for volume in yaml.safe_load(Path(data).read_text()).get("volumes") or []:
+            volume = {key: value for key, value in volume.items() if key != "weight"}
             seen = entries.setdefault(volume["name"], volume)
             assert seen == volume, f"{volume['name']} differs between task data configs ({data})"
     assert entries

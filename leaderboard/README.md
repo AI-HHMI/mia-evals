@@ -12,6 +12,7 @@ Every task's table on one sortable page: [https://ai-hhmi.github.io/mia-evals/](
 | `lm_zebrafish_cell_instance` | 6 | [lm_zebrafish_cell_instance/README.md](lm_zebrafish_cell_instance/README.md) |
 | `lmd_ssl_v1_neuron_instance` | 13 | [lmd_ssl_v1_neuron_instance/README.md](lmd_ssl_v1_neuron_instance/README.md) |
 | `lmd_ssl_v1_zebrafish_instance` | 3 | [lmd_ssl_v1_zebrafish_instance/README.md](lmd_ssl_v1_zebrafish_instance/README.md) |
+| `lmd_ssl_v2_neuron_instance_crop512` | 7 | [lmd_ssl_v2_neuron_instance_crop512/README.md](lmd_ssl_v2_neuron_instance_crop512/README.md) |
 | `nisb_base_neurite_tracing` | 36 | [nisb_base_neurite_tracing/README.md](nisb_base_neurite_tracing/README.md) |
 | `zebrafinch_neurite_tracing` | 1 | [zebrafinch_neurite_tracing/README.md](zebrafinch_neurite_tracing/README.md) |
 | `zebrafinch_neurite_tracing_11um` | 1 | [zebrafinch_neurite_tracing_11um/README.md](zebrafinch_neurite_tracing_11um/README.md) |

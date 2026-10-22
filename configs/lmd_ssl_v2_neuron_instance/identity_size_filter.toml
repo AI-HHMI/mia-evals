@@ -1,0 +1,38 @@
+# lmd_ssl_v2 -- the same task, scored from FINISHED instance labellings (the promptable / SAM arm's
+# segment-everything pass) through the same size filter, fitted on [data.fit] and applied once to [data.test].
+#
+#   mia-evals score configs/lmd_ssl_v2_neuron_instance/identity_size_filter.toml \
+#       --test <labellings>/test --val <labellings>/fit --run-dir <mia-train run dir>
+#
+# Same task, halves and candidates as mws_size_filter.toml beside it, so the rows land in one table and differ
+# only in what wrote the labelling.
+
+task_name = "lmd_ssl_v2_neuron_instance"
+
+notes = """
+Voxel metrics, not skeleton ones: these volumes ship dense label arrays and no skeletons, so panoptic
+quality ranks. Not comparable with lmd_ssl_v1_neuron_instance, which scores a different volume set (v1's
+eight) on a different split.
+
+Scored region per volume is mia-train predict.py's lattice-aligned sub-box of the volume's measured
+bounding box, at 8 nm: 10.9 G voxels on the reported half, 10.1 G on the fit half. Labellings come from
+predict.py's PromptGridPredictor pass with sam_lmd_v1's labeller settings; 0 is background.
+"""
+
+[data.test]
+config_path = "data/test.yaml"
+
+[data.fit]
+config_path = "data/fit.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "instances_resampled"   # <volume>.gt.zarr beside each labelling
+
+[postprocess]
+name = "identity"
+min_sizes = [0, 500, 5000, 20000, 50000, 150000, 300000, 600000]
+
+[metric]
+names = ["voxel_instance"]
+rank_by = "voxel_instance"        # primary key: pq

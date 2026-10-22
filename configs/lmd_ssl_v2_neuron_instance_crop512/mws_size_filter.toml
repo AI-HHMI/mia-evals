@@ -1,0 +1,41 @@
+# lmd_ssl_v2 FAST eval -- lmd_ssl_v2_neuron_instance's volumes, each cropped to a centred 512^3 box (lmd-configs'
+# 8nm_p256_crop512 sibling), from affinities through EXACT mutex watershed and a size filter: fitted on the
+# finetune half ([data.fit]), applied once to the held-out half ([data.test]).
+#
+#   mia-evals score configs/lmd_ssl_v2_neuron_instance_crop512/mws_size_filter.toml \
+#       --test <artifacts>/test --val <artifacts>/fit --run-dir <mia-train run dir>
+#
+# Cheap enough for exact mws: 1.27 G voxels per arm at 8 nm, none larger than 0.2 G.
+
+task_name = "lmd_ssl_v2_neuron_instance_crop512"
+
+notes = """
+Voxel metrics, not skeleton ones: these volumes ship dense label arrays and no skeletons, so panoptic
+quality ranks. A FAST eval: every volume is a centred 512^3 crop of its measured region, so its scores
+are not comparable with lmd_ssl_v2_neuron_instance's or any published number (pq moves with the extent
+scored). Use it to rank checkpoints against each other, and confirm a ranking on the full eval.
+
+Scored region per volume is mia-train predict.py's lattice-aligned sub-box of the cropped box, at 8 nm:
+0.66 G voxels on the reported half, 0.60 G on the fit half.
+"""
+
+[data.test]
+config_path = "data/test.yaml"
+
+[data.fit]
+config_path = "data/fit.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "instances_resampled"   # <volume>.gt.zarr beside each prediction, written by mia-train's predict.py
+
+[postprocess]
+name = "mws"
+repulsive_strides = [1]
+# A typical object is ~2e4 (CREMI A) to ~6e5 (Kasthuri) voxels at 8 nm. v1's sweep stopped at 5e4 with pq
+# still rising, so this one brackets the whole range.
+min_sizes = [0, 500, 5000, 20000, 50000, 150000, 300000, 600000]
+
+[metric]
+names = ["voxel_instance"]
+rank_by = "voxel_instance"        # primary key: pq

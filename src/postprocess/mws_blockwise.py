@@ -73,6 +73,7 @@ from .base import BasePostprocess
 from .mws import LONG, LONG_OFFSETS, SHORT_OFFSETS, build_edges, check_offsets
 from .mws_kernel import EMPTY, finalize, initial_capacities, make_state, run_edges
 from .registry import PostprocessRegistry
+from .size_filter import drop_small_components, parse_min_sizes
 
 OFFSETS = SHORT_OFFSETS + LONG_OFFSETS
 N_SHORT = len(SHORT_OFFSETS)
@@ -740,16 +741,21 @@ def _pool_map(function: Any, jobs: list[Any], processes: int) -> list[Any]:
 class BlockwiseMutexWatershed(BasePostprocess):
     """Six-channel affinities -> instances by blockwise mutex watershed, for regions of any size.
 
-    The route for regions whose exact watershed does not fit (`mws`, up to a few gigavoxels). No
-    size filter: on a region this size it would need global segment sizes, and the neurite tracing
-    tasks it is for score every segment. `mask` is a key in the volume's store (the affinity
-    artifact's `source_path`), or an absolute path, of an OME array whose nonzero voxels are kept;
-    see the module docstring for why it is applied inside the watershed.
+    The route for regions whose exact watershed does not fit (`mws`, up to a few gigavoxels). `mask`
+    is a key in the volume's store (the affinity artifact's `source_path`), or an absolute path, of
+    an OME array whose nonzero voxels are kept; see the module docstring for why it is applied
+    inside the watershed.
 
-    For a skeleton metric the scorer asks for the labelling lazily: it is built (or finished) in
-    `<--scratch>/mws_blockwise/repulsive_stride<s>/<volume>.zarr` with a pool of `processes`, and
-    only the chunks under the skeleton's nodes are read back. The same directory is where
-    `python -m postprocess.mws_blockwise` workers build it ahead of the scorer.
+    The labelling is built (or finished) in `<--scratch>/mws_blockwise/repulsive_stride<s>/<volume>.zarr`
+    with a pool of `processes`, each reading its own block of the artifact, which is also where
+    `python -m postprocess.mws_blockwise` workers build it ahead of the scorer. For a skeleton
+    metric the scorer reads back only the chunks under the skeleton's nodes (`lazy`); for a voxel
+    metric it reads the whole labelling (`from_artifact`), never the affinities.
+
+    `min_sizes` is the size filter `mws` sweeps, over the stitched labelling, swept the same way:
+    one watershed per (volume, stride) serves every candidate, because the run on disk is reused.
+    Voxel metrics only: it needs every segment's size over the region, which a lazily read
+    labelling never computes, and the neurite tracing tasks score every segment anyway.
     """
 
     accepts = ("affinity",)
@@ -759,16 +765,18 @@ class BlockwiseMutexWatershed(BasePostprocess):
         self,
         block: Sequence[int] = (256, 512, 512),
         repulsive_strides: Sequence[int] = (1,),
+        min_sizes: Sequence[int] = (0,),
         mask: str | None = None,
         processes: int = 1,
         chunk: int = CHUNK,
     ) -> None:
-        super().__init__(block=block, repulsive_strides=repulsive_strides, mask=mask,
-                         processes=processes, chunk=chunk)
+        super().__init__(block=block, repulsive_strides=repulsive_strides, min_sizes=min_sizes,
+                         mask=mask, processes=processes, chunk=chunk)
         self.block = tuple(int(b) for b in block)
         self.repulsive_strides = tuple(int(s) for s in repulsive_strides)
         if not self.repulsive_strides or min(self.repulsive_strides) < 1:
             raise ValueError(f"repulsive_strides must be >= 1, got {list(repulsive_strides)}")
+        self.min_sizes = parse_min_sizes(min_sizes, "mws_blockwise")
         self.mask = mask
         self.processes = int(processes)
         self.chunk = int(chunk)
@@ -785,7 +793,10 @@ class BlockwiseMutexWatershed(BasePostprocess):
         return None if self._last_run is None else dict(self._last_run)
 
     def search_space(self) -> list[dict[str, Any]]:
-        return [{"repulsive_stride": s} for s in self.repulsive_strides]
+        if self.min_sizes == (0,):
+            return [{"repulsive_stride": s} for s in self.repulsive_strides]   # records as before
+        return [{"repulsive_stride": s, "min_size": m}
+                for s in self.repulsive_strides for m in self.min_sizes]
 
     def _mask_path(self, artifact: Any) -> str | None:
         if self.mask is None:
@@ -817,6 +828,11 @@ class BlockwiseMutexWatershed(BasePostprocess):
              **params: Any) -> Any:
         from artifact import LazyLabelling, open_artifact
 
+        if int(params.get("min_size", 0)):
+            raise ValueError(
+                "mws_blockwise's size filter needs every segment's size over the region, which a "
+                "lazily read labelling never computes; score a skeleton metric with min_sizes = [0]"
+            )
         run = self.blockwise(artifact, origin, shape, int(params["repulsive_stride"]))
         path = run.run(processes=self.processes)
         assert path is not None                                  # one worker finishes the run
@@ -825,6 +841,16 @@ class BlockwiseMutexWatershed(BasePostprocess):
         labelling = open_artifact(path if has_ome else path / "s0")
         self._last_run = labelling.attrs.get("mws_blockwise")
         return LazyLabelling(labelling, tuple(origin), tuple(shape))
+
+    def from_artifact(self, artifact: Any, origin: tuple[int, ...], shape: tuple[int, ...],
+                      **params: Any) -> np.ndarray:
+        """The whole region's labelling for a voxel metric, size-filtered: the run `lazy` builds."""
+        run = self.blockwise(artifact, origin, shape, int(params["repulsive_stride"]))
+        path = run.run(processes=self.processes)
+        assert path is not None                                  # one worker finishes the run
+        labelling = zarr.open_array(str(path / "s0"), mode="r")
+        self._last_run = labelling.attrs.get("mws_blockwise")
+        return drop_small_components(np.asarray(labelling[:]), int(params.get("min_size", 0)))
 
     def __call__(self, array: np.ndarray, **params: Any) -> np.ndarray:
         """In memory, one process: for a region small enough to hold, e.g. a voxel metric's."""
@@ -844,13 +870,14 @@ class BlockwiseMutexWatershed(BasePostprocess):
                                int(params["repulsive_stride"]), chunk=self.chunk)
             run.run()
             self._last_run = dict(run.stats)
-            return run.read()
+            return drop_small_components(run.read(), int(params.get("min_size", 0)))
         finally:
             shutil.rmtree(work, ignore_errors=True)
 
     def describe(self, params: dict[str, Any]) -> str:
+        min_size = int(params.get("min_size", 0))
         return (f"mws_blockwise(repulsive_stride={params['repulsive_stride']}, "
-                f"block={list(self.block)})")
+                f"block={list(self.block)}" + (f", min_size={min_size}" if min_size else "") + ")")
 
 
 # --------------------------------------------------------------------------------------- the CLI
@@ -890,8 +917,8 @@ def main() -> None:
             artifact = task.place(artifacts[volume.name])        # as the scorer places it
             processor.check_artifact(artifact)
             origin, shape = task.region(volume, artifact)
-            for params in processor.search_space():
-                processor.blockwise(artifact, origin, shape, params["repulsive_stride"]).run(
+            for stride in processor.repulsive_strides:       # min_sizes reuse the stride's run
+                processor.blockwise(artifact, origin, shape, stride).run(
                     args.worker, args.workers, args.processes or processor.processes)
 
 

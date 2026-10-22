@@ -384,3 +384,128 @@ def test_the_scorer_builds_the_labelling_once_and_reads_only_what_the_skeleton_t
                "whole_region": True, "axes": None, "scratch_dir": tmp_path / "metric"}
     in_memory = SkeletonExpectedRunLength()(expected, graph, **context)
     assert payload["ranking"]["value"] == pytest.approx(in_memory["nerl"])
+
+
+def test_a_size_filter_is_swept_over_one_watershed_per_region(tmp_path, monkeypatch):
+    """`from_artifact`, the voxel-metric path: every `min_size` candidate reuses the one run on disk,
+    so each block is segmented once per region, not once per candidate, and each candidate is the
+    unfiltered labelling through `drop_small_components`. A lazy read refuses a size filter."""
+    import postprocess.mws_blockwise as blockwise
+    from artifact import open_artifact
+    from postprocess.size_filter import drop_small_components
+
+    processor = blockwise.BlockwiseMutexWatershed(block=(12, 12, 12), min_sizes=[40, 0],
+                                                  chunk=CHUNK)
+    assert processor.search_space() == [{"repulsive_stride": 1, "min_size": 0},
+                                        {"repulsive_stride": 1, "min_size": 40}]
+    assert blockwise.BlockwiseMutexWatershed().search_space() == [{"repulsive_stride": 1}]
+    assert (processor.describe({"repulsive_stride": 1, "min_size": 40})
+            == "mws_blockwise(repulsive_stride=1, block=[12, 12, 12], min_size=40)")
+    assert (processor.describe({"repulsive_stride": 1})
+            == "mws_blockwise(repulsive_stride=1, block=[12, 12, 12])")
+
+    affinities = _affinities(seed=5)
+    expected, _ = _blockwise(tmp_path / "memory", affinities, (12, 12, 12))
+    sizes = np.bincount(expected.ravel())[1:]
+    median = int(np.median(sizes[sizes > 0]))                     # drops about half the segments
+    processor = blockwise.BlockwiseMutexWatershed(block=(12, 12, 12), min_sizes=[0, median],
+                                                  chunk=CHUNK)
+    path = write_artifact(tmp_path / "cube.zarr", affinities, "affinity", origin=(0, 0, 0),
+                          run="unit_run", step=1)
+    artifact = open_artifact(path)
+    processor.use_scratch(tmp_path / "scratch")
+    calls = []
+    segment = blockwise.segment_block
+    monkeypatch.setattr(blockwise, "segment_block",
+                        lambda *args, **kwargs: calls.append(1) or segment(*args, **kwargs))
+
+    unfiltered = processor.from_artifact(artifact, (0, 0, 0), SHAPE, repulsive_stride=1,
+                                         min_size=0)
+    filtered = processor.from_artifact(artifact, (0, 0, 0), SHAPE, repulsive_stride=1,
+                                       min_size=median)
+    assert len(calls) == len(block_boxes(SHAPE, (12, 12, 12), 1, CHUNK))
+    assert np.array_equal(unfiltered, expected)
+    assert np.array_equal(filtered, drop_small_components(expected.copy(), median))
+    assert 0 < np.count_nonzero(filtered == 0) < filtered.size     # the filter removed something
+    assert processor.run_info()["blocks"] == len(calls)
+    assert np.array_equal(processor(affinities, repulsive_stride=1, min_size=median), filtered)
+    with pytest.raises(ValueError, match="size filter"):
+        processor.lazy(artifact, (0, 0, 0), SHAPE, repulsive_stride=1, min_size=median)
+
+
+def test_the_scorer_fits_a_size_filter_over_blockwise_labellings_built_once(tmp_path,
+                                                                           monkeypatch):
+    """`mia-evals score` on a voxel metric with route mws_blockwise: the labellings are built under
+    the scratch directory from the artifacts (never read in memory by the scorer), once per volume
+    for the whole sweep, and the scored labelling is the fitted candidate's."""
+    import evaluate
+    import postprocess.mws_blockwise as blockwise
+    from postprocess.size_filter import drop_small_components
+
+    grid = np.indices(SHAPE)
+    truth = (grid[0] // 7) * 10_000 + (grid[1] // 9) * 100 + grid[2] // 6   # _affinities' objects
+    entries, artifacts = [], {}
+    for name, seed in (("alpha", 6), ("beta", 7)):
+        store = zarr.open_group(str(tmp_path / f"{name}.zarr"), mode="w")
+        store.create_array("labels/gt/s0", shape=SHAPE, dtype="i8", chunks=SHAPE)[:] = truth
+        box = "\n".join(f"  - - 0\n    - {s}" for s in SHAPE)
+        entries.append(f"- name: {name}\n  path: {tmp_path / f'{name}.zarr'}\n  image_key: raw\n"
+                       f"  label_key: labels/gt\n  zarr_version: zarr3\n  bounding_box:\n{box}")
+        split = tmp_path / ("test" if name == "alpha" else "val")
+        split.mkdir(exist_ok=True)
+        artifacts[name] = _affinities(seed=seed)
+        write_artifact(split / f"{name}.zarr", artifacts[name], "affinity", origin=(0, 0, 0),
+                       run="unit_run", step=1)
+    data = tmp_path / "data.yaml"
+    data.write_text("resolutions: [[8.0, 8.0, 8.0]]\npatch_size: [4, 4, 4]\noutput_axes: lczyx\n"
+                    "volumes:\n" + "\n".join(entries) + "\n")
+    config = tmp_path / "mws_blockwise_size_filter.toml"
+    config.write_text(textwrap.dedent(f"""\
+        task_name = "unit_task"
+
+        [data.test]
+        config_path = "{data}"
+        volumes = ["alpha"]
+
+        [data.fit]
+        config_path = "{data}"
+        volumes = ["beta"]
+
+        [task]
+        name = "instance_seg"
+        truth_kind = "instances"
+
+        [postprocess]
+        name = "mws_blockwise"
+        block = [12, 12, 12]
+        chunk = {CHUNK}
+        min_sizes = [0, 40]
+
+        [metric]
+        names = ["voxel_instance"]
+        """))
+    calls = []
+    segment = blockwise.segment_block
+    monkeypatch.setattr(blockwise, "segment_block",
+                        lambda *args, **kwargs: calls.append(1) or segment(*args, **kwargs))
+    scratch = tmp_path / "scratch"
+    evaluate.cmd_score(type("Args", (), {
+        "config": config, "test": tmp_path / "test", "val": tmp_path / "val",
+        "leaderboard": tmp_path / "board", "run_dir": None, "scored_out": None,
+        "no_scored": False, "scratch": scratch,
+    })())
+
+    assert len(calls) == 2 * len(block_boxes(SHAPE, (12, 12, 12), 1, CHUNK))  # once per volume
+    for name in ("alpha", "beta"):
+        assert (scratch / "mws_blockwise" / "repulsive_stride1" / f"{name}.zarr").is_dir()
+    [written] = list((tmp_path / "board").rglob("records/*.json"))
+    payload = json.loads(written.read_text())
+    assert written.name == "unit_run.step1.mws_blockwise_size_filter.json"
+    params = payload["postprocess"]["params"]
+    assert set(params) == {"repulsive_stride", "min_size"} and params["min_size"] in (0, 40)
+    expected, _ = _blockwise(tmp_path / "memory", artifacts["alpha"], (12, 12, 12))
+    expected = drop_small_components(expected, params["min_size"])
+    scored = payload["region"]["volumes"]["alpha"]["scored_artifact"]
+    stored = zarr.open_group(scored, mode="r") if (Path(scored) / "s0").exists() else None
+    stored = np.asarray((stored["s0"] if stored is not None else zarr.open_array(scored))[:])
+    assert np.array_equal(stored, expected)

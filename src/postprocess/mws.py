@@ -379,7 +379,10 @@ class MutexWatershed(BasePostprocess):
         # the scorer re-reads the artifact for every candidate.
         self._labellings: OrderedDict[tuple, tuple[np.ndarray, dict[str, Any]]] = OrderedDict()
 
-    CACHE_ENTRIES = 4                      # int64 labellings; 4 x 896^3 is ~23 GB
+    #: The int64 labellings kept, by total size rather than count. The scorer runs every fit volume
+    #: for each candidate, so the cache has to hold the whole fit split at once: a 4-entry cache
+    #: recomputed every watershed for every candidate of an 8-volume fit split. 896^3 is ~5.8 GB.
+    CACHE_BYTES = 128 * 2**30
 
     def check_artifact(self, artifact: Any) -> None:
         check_offsets(artifact, SHORT_OFFSETS + LONG_OFFSETS)
@@ -415,7 +418,8 @@ class MutexWatershed(BasePostprocess):
                   f"{info['growths']} growth(s)", flush=True)
             cached = (labels, info)
             self._labellings[key] = cached
-            while len(self._labellings) > self.CACHE_ENTRIES:
+            while (len(self._labellings) > 1 and
+                   sum(kept.nbytes for kept, _ in self._labellings.values()) > self.CACHE_BYTES):
                 self._labellings.popitem(last=False)
         else:
             self._labellings.move_to_end(key)
