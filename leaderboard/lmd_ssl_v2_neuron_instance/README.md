@@ -1,0 +1,19 @@
+<!-- GENERATED FILE -- do not edit by hand.
+     Regenerate with `mia-evals leaderboard --task lmd_ssl_v2_neuron_instance`, or verify with `--check`.
+     Rows come from ./records/; edit a record, not this table. -->
+
+# lmd_ssl_v2_neuron_instance
+
+The artifact/checkpoint/view links below point to locations on the Janelia cluster and will only work on the Janelia network.
+
+**Views:** [neuroglancer views for every row below](https://fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/views/lmd_ssl_v2_neuron_instance.html)
+
+**Region:** cns_mito_crop164 1152x1152x1792; cremi_sample_c 512x512x512 (sub-region); flyid49_40xw006 640x256x256 (sub-region); kasthuri15_ac4 256x640x640 (sub-region); liconn_expid82 768x1152x1152 (sub-region); liconn_mouse_hippocampus 512x512x512 (sub-region); zebrafish_fish2_doublecube1 1920x1920x1920 (sub-region)
+
+| # | model | links | voxel_instance.pq (higher is better) | postprocess | voxel_instance.voi_merge | voxel_instance.voi_split | voxel_instance.sq | voxel_instance.rq | voxel_instance.adapted_rand_error |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | lmd2__2d_sam_musam128_lvd_20261018_231122.step100000.identity_size_filter | [artifacts](https://fileglancer.int.janelia.org/browse/nrs_scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2d_sam_musam128_lvd/step100000/test) · [checkpoint](https://fileglancer.int.janelia.org/browse/nrs_scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/runs/lmd2__2d_sam_musam128_lvd_20261018_231122/checkpoints/step_100000) | 0.2663 | identity(min_size=5000) | 1.8480 | 1.0293 | 0.7019 | 0.3710 | 0.5322 |
+| 2 | lmd2__2e_mtlsd_unetr_lvd_w10_20261019_004951.step100000.mws_size_filter | [artifacts](https://fileglancer.int.janelia.org/browse/nrs_scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2e_mtlsd_unetr_lvd_w10/step100000/test) · [checkpoint](https://fileglancer.int.janelia.org/browse/nrs_scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/runs/lmd2__2e_mtlsd_unetr_lvd_w10_20261019_004951/checkpoints/step_100000) | 0.2551 | mws(repulsive_stride=1, min_size=20000) | 1.4273 | 1.0329 | 0.7435 | 0.3313 | 0.4154 |
+| 3 | lmd2__2a_affinity_unetr_lvd_20261018_215936.step100000.mws_size_filter | [artifacts](https://fileglancer.int.janelia.org/browse/nrs_scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2a_affinity_unetr_lvd/step100000/test) · [checkpoint](https://fileglancer.int.janelia.org/browse/nrs_scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/runs/lmd2__2a_affinity_unetr_lvd_20261018_215936/checkpoints/step_100000) | 0.2455 | mws(repulsive_stride=1, min_size=20000) | 1.3620 | 1.0264 | 0.7434 | 0.3211 | 0.3894 |
+| 4 | lmd2__2b_affinity_unetr_scratch_20261018_215937.step100000.mws_size_filter | [artifacts](https://fileglancer.int.janelia.org/browse/nrs_scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2b_affinity_unetr_scratch/step100000/test) · [checkpoint](https://fileglancer.int.janelia.org/browse/nrs_scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/runs/lmd2__2b_affinity_unetr_scratch_20261018_215937/checkpoints/step_100000) | 0.2240 | mws(repulsive_stride=1, min_size=20000) | 1.6018 | 1.1764 | 0.7336 | 0.3002 | 0.4938 |
+| 5 | lmd2__2c_mtlsd_unetr_lvd_20261018_215102.step100000.mws_size_filter | [artifacts](https://fileglancer.int.janelia.org/browse/nrs_scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2c_mtlsd_unetr_lvd/step100000/test) · [checkpoint](https://fileglancer.int.janelia.org/browse/nrs_scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/runs/lmd2__2c_mtlsd_unetr_lvd_20261018_215102/checkpoints/step_100000) | 0.2043 | mws(repulsive_stride=1, min_size=20000) | 1.6373 | 1.2736 | 0.7265 | 0.2640 | 0.4526 |
