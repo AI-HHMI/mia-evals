@@ -1,0 +1,2729 @@
+{
+  "task_name": "lmd_ssl_v2_neuron_instance",
+  "producer": {
+    "artifacts": {
+      "cns_mito_crop164": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/cns_mito_crop164.zarr",
+      "cremi_sample_c": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/cremi_sample_c.zarr",
+      "flyid49_40xw006": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/flyid49_40xw006.zarr",
+      "kasthuri15_ac4": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/kasthuri15_ac4.zarr",
+      "liconn_expid82": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/liconn_expid82.zarr",
+      "liconn_mouse_hippocampus": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/liconn_mouse_hippocampus.zarr",
+      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/zebrafish_fish2_doublecube1.zarr"
+    },
+    "run": "lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125",
+    "step": 100000,
+    "kind": "affinity",
+    "convention": "sigmoid(0.2 * logit), blended in that space",
+    "artifact_attrs": {
+      "kind": "affinity",
+      "convention": "sigmoid(0.2 * logit), blended in that space",
+      "channels": 6,
+      "model_axes": "xyz",
+      "offsets": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          10,
+          0,
+          0
+        ],
+        [
+          0,
+          10,
+          0
+        ],
+        [
+          0,
+          0,
+          10
+        ]
+      ],
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "axes": "zyx",
+      "source_path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-002_ac4_100slices.zarr",
+      "source_image_key": "raw",
+      "source_label_key": "labels/public_gt-cell-kasthuri15",
+      "image_level": 0,
+      "label_level": 0,
+      "native_box": [
+        [
+          14,
+          86
+        ],
+        [
+          84,
+          939
+        ],
+        [
+          84,
+          939
+        ]
+      ],
+      "annotated_box": [
+        [
+          0,
+          100
+        ],
+        [
+          0,
+          1024
+        ],
+        [
+          0,
+          1024
+        ]
+      ],
+      "read_shape": [
+        72,
+        342,
+        342
+      ],
+      "scale": [
+        3.5555555555555554,
+        0.7485380116959064,
+        0.7485380116959064
+      ],
+      "effective_voxel_nm": [
+        8.15625,
+        8.015625,
+        8.015625
+      ],
+      "covers_full_box": false,
+      "box_coverage": 0.501955,
+      "cover_box": false,
+      "patch": [
+        256,
+        256,
+        256
+      ],
+      "stride": [
+        128,
+        128,
+        128
+      ],
+      "run": "lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125",
+      "run_dir": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/runs/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125",
+      "step": 100000,
+      "data_config": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/lmd_ssl_v2_neuron_instance/data/test.yaml",
+      "volume": "kasthuri15_ac4",
+      "code_version": "d5e9b3e4edf3047b4c0bf95e64d355e57f0464c7"
+    }
+  },
+  "scores": {
+    "voxel_instance": {
+      "adapted_rand_error": 0.3533517549061031,
+      "false_negative": 5521.142857142857,
+      "false_positive": 2365.0,
+      "instances_predicted": 3272.714285714286,
+      "instances_truth": 6428.857142857143,
+      "iou_threshold": 0.5,
+      "pq": 0.264018915367411,
+      "rq": 0.34494206031375896,
+      "sq": 0.7479415869051474,
+      "true_positive": 907.7142857142857,
+      "voi_merge": 1.1868610745268167,
+      "voi_split": 0.9411742147608569,
+      "voi_sum": 2.128035289287673,
+      "volumes_scored": 7.0
+    }
+  },
+  "ranking": {
+    "metric": "voxel_instance",
+    "key": "pq",
+    "value": 0.264018915367411,
+    "higher_is_better": true
+  },
+  "postprocess": {
+    "name": "mws",
+    "params": {
+      "repulsive_stride": 1,
+      "min_size": 20000
+    },
+    "describe": "mws(repulsive_stride=1, min_size=20000)",
+    "fitted_on": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/fit",
+    "fitted_on_data_config": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/lmd_ssl_v2_neuron_instance/data/fit.yaml",
+    "validation_scores": {
+      "voxel_instance": {
+        "adapted_rand_error": 0.1272929656234431,
+        "false_negative": 6416.625,
+        "false_positive": 485.75,
+        "instances_predicted": 1487.375,
+        "instances_truth": 7418.25,
+        "iou_threshold": 0.5,
+        "pq": 0.431284118832172,
+        "rq": 0.4819556354304563,
+        "sq": 0.8830837076936588,
+        "true_positive": 1001.625,
+        "voi_merge": 0.3570058011653846,
+        "voi_split": 0.35354479080284484,
+        "voi_sum": 0.7105505919682295,
+        "volumes_scored": 8.0
+      }
+    },
+    "scored_artifacts": {
+      "kasthuri15_ac4": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/kasthuri15_ac4.zarr",
+      "zebrafish_fish2_doublecube1": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/zebrafish_fish2_doublecube1.zarr",
+      "liconn_mouse_hippocampus": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/liconn_mouse_hippocampus.zarr",
+      "liconn_expid82": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/liconn_expid82.zarr",
+      "cremi_sample_c": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/cremi_sample_c.zarr",
+      "flyid49_40xw006": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/flyid49_40xw006.zarr",
+      "cns_mito_crop164": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/cns_mito_crop164.zarr"
+    }
+  },
+  "region": {
+    "volumes": {
+      "kasthuri15_ac4": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          256,
+          640,
+          640
+        ],
+        "whole_region": false,
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/kasthuri15_ac4.zarr",
+        "postprocess_run": {
+          "implementation": "compiled kernel, edges in memory",
+          "seconds": 166.4,
+          "edges": 621035520,
+          "pair_insertions": 95414299,
+          "growths": 0
+        },
+        "scored_artifact": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/kasthuri15_ac4.zarr"
+      },
+      "zebrafish_fish2_doublecube1": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          1920,
+          1920,
+          1920
+        ],
+        "whole_region": false,
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/zebrafish_fish2_doublecube1.zarr",
+        "postprocess_run": {
+          "implementation": "compiled kernel, edges streamed through disk",
+          "seconds": 39133.2,
+          "edges": 42345676800,
+          "pair_insertions": 31220742750,
+          "growths": 5
+        },
+        "scored_artifact": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/zebrafish_fish2_doublecube1.zarr"
+      },
+      "liconn_mouse_hippocampus": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          512,
+          512,
+          512
+        ],
+        "whole_region": false,
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/liconn_mouse_hippocampus.zarr",
+        "postprocess_run": {
+          "implementation": "compiled kernel, edges in memory",
+          "seconds": 332.2,
+          "edges": 796655616,
+          "pair_insertions": 418702412,
+          "growths": 4
+        },
+        "scored_artifact": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/liconn_mouse_hippocampus.zarr"
+      },
+      "liconn_expid82": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          768,
+          1152,
+          1152
+        ],
+        "whole_region": false,
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/liconn_expid82.zarr",
+        "postprocess_run": {
+          "implementation": "compiled kernel, edges in memory",
+          "seconds": 2305.4,
+          "edges": 6081232896,
+          "pair_insertions": 1945848122,
+          "growths": 2
+        },
+        "scored_artifact": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/liconn_expid82.zarr"
+      },
+      "cremi_sample_c": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          512,
+          512,
+          512
+        ],
+        "whole_region": false,
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/cremi_sample_c.zarr",
+        "postprocess_run": {
+          "implementation": "compiled kernel, edges in memory",
+          "seconds": 173.4,
+          "edges": 796655616,
+          "pair_insertions": 19556939,
+          "growths": 0
+        },
+        "scored_artifact": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/cremi_sample_c.zarr"
+      },
+      "flyid49_40xw006": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          640,
+          256,
+          256
+        ],
+        "whole_region": false,
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/flyid49_40xw006.zarr",
+        "postprocess_run": {
+          "implementation": "compiled kernel, edges in memory",
+          "seconds": 100.2,
+          "edges": 247332864,
+          "pair_insertions": 137006792,
+          "growths": 4
+        },
+        "scored_artifact": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/flyid49_40xw006.zarr"
+      },
+      "cns_mito_crop164": {
+        "origin": [
+          0,
+          0,
+          0
+        ],
+        "shape": [
+          1152,
+          1152,
+          1792
+        ],
+        "whole_region": true,
+        "artifact": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/cns_mito_crop164.zarr",
+        "postprocess_run": {
+          "implementation": "compiled kernel, edges streamed through disk",
+          "seconds": 6255.2,
+          "edges": 14209007616,
+          "pair_insertions": 3207055977,
+          "growths": 1
+        },
+        "scored_artifact": "/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/cns_mito_crop164.zarr"
+      }
+    }
+  },
+  "config": {
+    "task_name": "lmd_ssl_v2_neuron_instance",
+    "task": {
+      "name": "instance_seg",
+      "kwargs": {
+        "truth_kind": "instances_resampled"
+      }
+    },
+    "postprocess": {
+      "name": "mws",
+      "kwargs": {
+        "repulsive_strides": [
+          1
+        ],
+        "min_sizes": [
+          0,
+          500,
+          5000,
+          20000,
+          50000,
+          150000,
+          300000,
+          600000
+        ]
+      }
+    },
+    "metrics": [
+      "voxel_instance"
+    ],
+    "rank_by": "voxel_instance",
+    "metric_kwargs": {},
+    "data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/lmd_ssl_v2_neuron_instance/data/test.yaml",
+    "volumes": [
+      {
+        "name": "kasthuri15_ac4",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-002_ac4_100slices.zarr",
+        "label_key": "labels/public_gt-cell-kasthuri15",
+        "bounding_box": [
+          [
+            0,
+            1024
+          ],
+          [
+            0,
+            1024
+          ],
+          [
+            0,
+            100
+          ]
+        ]
+      },
+      {
+        "name": "zebrafish_fish2_doublecube1",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr",
+        "label_key": "labels/proofread-cell-seg230927",
+        "bounding_box": [
+          [
+            0,
+            2000
+          ],
+          [
+            0,
+            2000
+          ],
+          [
+            0,
+            2112
+          ]
+        ]
+      },
+      {
+        "name": "liconn_mouse_hippocampus",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-hippocampus-202507013_ExPID10-02_2percentAA_S2_Atto488_40XW_004/crop-001.zarr",
+        "label_key": "labels/manual_gt-cell-final",
+        "bounding_box": [
+          [
+            496,
+            976
+          ],
+          [
+            496,
+            976
+          ],
+          [
+            44,
+            236
+          ]
+        ]
+      },
+      {
+        "name": "liconn_expid82",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-ExPID82-1/crop-002_sub.zarr",
+        "label_key": "labels/proofread-cell-agglom-dense-v20240123",
+        "bounding_box": [
+          [
+            1229,
+            2253
+          ],
+          [
+            1642,
+            2666
+          ],
+          [
+            0,
+            534
+          ]
+        ]
+      },
+      {
+        "name": "cremi_sample_c",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-cremi/crop-003_sampleC_train_padded.zarr",
+        "label_key": "labels/proofread-cell-neuron_ids",
+        "bounding_box": [
+          [
+            913,
+            2162
+          ],
+          [
+            913,
+            2162
+          ],
+          [
+            37,
+            162
+          ]
+        ]
+      },
+      {
+        "name": "flyid49_40xw006",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-drosophila-flyliconn-FlyID49-2ndgel-DUP-BIS-40XW006-20260625/crop-001.zarr",
+        "label_key": "labels/manual_gt-cell-final",
+        "bounding_box": [
+          [
+            912,
+            1392
+          ],
+          [
+            912,
+            1392
+          ],
+          [
+            351,
+            828
+          ]
+        ]
+      },
+      {
+        "name": "cns_mito_crop164",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-cns-mito-gt-v6/crop-164_box163.zarr",
+        "label_key": "labels/proofread-cell-v1.0",
+        "bounding_box": [
+          [
+            0,
+            1152
+          ],
+          [
+            0,
+            1152
+          ],
+          [
+            0,
+            1792
+          ]
+        ]
+      }
+    ],
+    "fit_data_config_path": "/groups/scicompsoft/home/orhane/projects/mia-evals/configs/lmd_ssl_v2_neuron_instance/data/fit.yaml",
+    "fit_volumes": [
+      {
+        "name": "kasthuri15_ac3",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-001_ac3_100slices.zarr",
+        "label_key": "labels/public_gt-cell-kasthuri15",
+        "bounding_box": [
+          [
+            0,
+            1024
+          ],
+          [
+            0,
+            1024
+          ],
+          [
+            0,
+            100
+          ]
+        ]
+      },
+      {
+        "name": "zebrafish_fish2_quadcube1",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-003_quadcube1_x23908_y18314_z0.zarr",
+        "label_key": "labels/proofread-cell-seg230927",
+        "bounding_box": [
+          [
+            0,
+            2000
+          ],
+          [
+            0,
+            2000
+          ],
+          [
+            0,
+            1364
+          ]
+        ]
+      },
+      {
+        "name": "liconn_mouse_dg",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-DG-20250809_ExPID19-02_2ndGel_C5_Atto488_40XW_002/crop-001.zarr",
+        "label_key": "labels/manual_gt-cell-final",
+        "bounding_box": [
+          [
+            1416,
+            1892
+          ],
+          [
+            516,
+            996
+          ],
+          [
+            83,
+            276
+          ]
+        ]
+      },
+      {
+        "name": "hemibrain_ellipsoid_body",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-hemibrain/crop-001_EllipsoidBody_x24000_y23000_z17000.zarr",
+        "label_key": "labels/proofread-cell-hemibrain-v1.2",
+        "bounding_box": [
+          [
+            1988,
+            3012
+          ],
+          [
+            1988,
+            3012
+          ],
+          [
+            1988,
+            3012
+          ]
+        ]
+      },
+      {
+        "name": "cremi_sample_a",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-cremi/crop-001_sampleA_train_padded.zarr",
+        "label_key": "labels/proofread-cell-neuron_ids",
+        "bounding_box": [
+          [
+            913,
+            2162
+          ],
+          [
+            913,
+            2162
+          ],
+          [
+            38,
+            163
+          ]
+        ]
+      },
+      {
+        "name": "cremi_sample_b",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-cremi/crop-002_sampleB_train_padded.zarr",
+        "label_key": "labels/proofread-cell-neuron_ids",
+        "bounding_box": [
+          [
+            913,
+            2162
+          ],
+          [
+            913,
+            2162
+          ],
+          [
+            37,
+            162
+          ]
+        ]
+      },
+      {
+        "name": "flyid49_40xw005",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-drosophila-flyliconn-FlyID49-2ndgel-DUP-BIS-40XW005-20260625/crop-001.zarr",
+        "label_key": "labels/manual_gt-cell-final",
+        "bounding_box": [
+          [
+            912,
+            1392
+          ],
+          [
+            912,
+            1392
+          ],
+          [
+            430,
+            619
+          ]
+        ]
+      },
+      {
+        "name": "cns_mito_crop182",
+        "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-cns-mito-gt-v6/crop-182_box181.zarr",
+        "label_key": "labels/proofread-cell-v1.0",
+        "bounding_box": [
+          [
+            0,
+            2048
+          ],
+          [
+            0,
+            2048
+          ],
+          [
+            0,
+            1024
+          ]
+        ]
+      }
+    ],
+    "notes": "Voxel metrics, not skeleton ones: these volumes ship dense label arrays and no skeletons, so panoptic\nquality ranks. Not comparable with lmd_ssl_v1_neuron_instance, which scores a different volume set (v1's\neight) on a different split.\n\nScored region per volume is mia-train predict.py's lattice-aligned sub-box of the volume's measured\nbounding box, at 8 nm: 10.9 G voxels on the reported half, 10.1 G on the fit half.\n",
+    "route": "mws_size_filter"
+  },
+  "per_volume": {
+    "kasthuri15_ac4": {
+      "voxel_instance": {
+        "pq": 0.677399502170285,
+        "sq": 0.8158246178311693,
+        "rq": 0.8303249097472925,
+        "true_positive": 230.0,
+        "false_positive": 51.0,
+        "false_negative": 43.0,
+        "instances_truth": 273.0,
+        "instances_predicted": 281.0,
+        "voi_split": 0.5829090568746222,
+        "voi_merge": 0.5875500629297825,
+        "voi_sum": 1.1704591198044048,
+        "adapted_rand_error": 0.22327352820712343,
+        "iou_threshold": 0.5
+      }
+    },
+    "zebrafish_fish2_doublecube1": {
+      "voxel_instance": {
+        "pq": 0.18236082043977295,
+        "sq": 0.7350524490636531,
+        "rq": 0.24809225609964755,
+        "true_positive": 3625.0,
+        "false_positive": 12619.0,
+        "false_negative": 9354.0,
+        "instances_truth": 12979.0,
+        "instances_predicted": 16244.0,
+        "voi_split": 1.8158764424160587,
+        "voi_merge": 1.6519328234352155,
+        "voi_sum": 3.4678092658512742,
+        "adapted_rand_error": 0.79316425689207,
+        "iou_threshold": 0.5
+      }
+    },
+    "liconn_mouse_hippocampus": {
+      "voxel_instance": {
+        "pq": 0.29032459688788226,
+        "sq": 0.7069941572362317,
+        "rq": 0.41064638783269963,
+        "true_positive": 108.0,
+        "false_positive": 226.0,
+        "false_negative": 84.0,
+        "instances_truth": 192.0,
+        "instances_predicted": 334.0,
+        "voi_split": 0.6941482985992238,
+        "voi_merge": 0.4398900120501077,
+        "voi_sum": 1.1340383106493315,
+        "adapted_rand_error": 0.08342425644715612,
+        "iou_threshold": 0.5
+      }
+    },
+    "liconn_expid82": {
+      "voxel_instance": {
+        "pq": 0.07919997183012156,
+        "sq": 0.665832321316022,
+        "rq": 0.11894882434301521,
+        "true_positive": 172.0,
+        "false_positive": 1684.0,
+        "false_negative": 864.0,
+        "instances_truth": 1036.0,
+        "instances_predicted": 1856.0,
+        "voi_split": 1.1034352483807615,
+        "voi_merge": 2.248252142740734,
+        "voi_sum": 3.3516873911214953,
+        "adapted_rand_error": 0.4931202552024144,
+        "iou_threshold": 0.5
+      }
+    },
+    "cremi_sample_c": {
+      "voxel_instance": {
+        "pq": 0.2806346833055654,
+        "sq": 0.820029483347251,
+        "rq": 0.34222511385816523,
+        "true_positive": 263.0,
+        "false_positive": 143.0,
+        "false_negative": 868.0,
+        "instances_truth": 1131.0,
+        "instances_predicted": 406.0,
+        "voi_split": 0.8961256507323654,
+        "voi_merge": 0.8292192525294491,
+        "voi_sum": 1.7253449032618144,
+        "adapted_rand_error": 0.17319110765992196,
+        "iou_threshold": 0.5
+      }
+    },
+    "flyid49_40xw006": {
+      "voxel_instance": {
+        "pq": 0.2474631510132569,
+        "sq": 0.710737189538075,
+        "rq": 0.3481781376518219,
+        "true_positive": 43.0,
+        "false_positive": 67.0,
+        "false_negative": 94.0,
+        "instances_truth": 137.0,
+        "instances_predicted": 110.0,
+        "voi_split": 0.8478270638081131,
+        "voi_merge": 1.269885961034439,
+        "voi_sum": 2.117713024842552,
+        "adapted_rand_error": 0.32066035958657213,
+        "iou_threshold": 0.5
+      }
+    },
+    "cns_mito_crop164": {
+      "voxel_instance": {
+        "pq": 0.09074968192499362,
+        "sq": 0.7811208900036304,
+        "rq": 0.1161787926636706,
+        "true_positive": 1913.0,
+        "false_positive": 1765.0,
+        "false_negative": 27341.0,
+        "instances_truth": 29254.0,
+        "instances_predicted": 3678.0,
+        "voi_split": 0.6478977425148535,
+        "voi_merge": 1.2812972669679876,
+        "voi_sum": 1.9291950094828412,
+        "adapted_rand_error": 0.38662852034746364,
+        "iou_threshold": 0.5
+      }
+    }
+  },
+  "provenance": {
+    "mia_evals_commit": "14320e183d8fbe7b964215fc46727ad6d82369e6",
+    "run_dir": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/runs/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125",
+    "resolved_config": {
+      "experiment_name": "lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2",
+      "model": {
+        "name": "dinov3_vit3d",
+        "kwargs": {
+          "img_size": 256,
+          "patch_size": 8,
+          "in_chans": 1,
+          "embed_dim": 1024,
+          "depth": 24,
+          "num_heads": 16,
+          "n_storage_tokens": 4,
+          "layerscale_init": 1e-05,
+          "mask_k_bias": true,
+          "pos_embed_rope_dtype": "fp32",
+          "pos_embed_rope_type": "vanilla",
+          "drop_path_rate": 0.0,
+          "use_fa4": false,
+          "attn_max_score": 100000.0
+        }
+      },
+      "algorithm": {
+        "name": "affinity_seg",
+        "kwargs": {
+          "long_range": 10,
+          "decoder": "unetr",
+          "decoder_skip_layers": [
+            7,
+            15,
+            23
+          ],
+          "decoder_widths": [
+            16,
+            32,
+            64
+          ],
+          "decoder_image_skip": true,
+          "decoder_zero_init_output": false,
+          "split_disconnected": false
+        }
+      },
+      "data": {
+        "name": "miao_volumes",
+        "kwargs": {
+          "volumes": [
+            {
+              "name": "kasthuri15_ac3",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-001_ac3_100slices.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/public_gt-cell-kasthuri15",
+              "label_fill": null,
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  0,
+                  1024
+                ],
+                [
+                  0,
+                  1024
+                ],
+                [
+                  0,
+                  100
+                ]
+              ],
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafish_fish2_quadcube1",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-003_quadcube1_x23908_y18314_z0.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-seg230927",
+              "label_fill": null,
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  0,
+                  2000
+                ],
+                [
+                  0,
+                  2000
+                ],
+                [
+                  0,
+                  1364
+                ]
+              ],
+              "fixed_axes": null
+            },
+            {
+              "name": "liconn_mouse_dg",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-DG-20250809_ExPID19-02_2ndGel_C5_Atto488_40XW_002/crop-001.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/manual_gt-cell-final",
+              "label_fill": null,
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": 301.0,
+              "normalize_max": 1130.0,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  1416,
+                  1892
+                ],
+                [
+                  516,
+                  996
+                ],
+                [
+                  83,
+                  276
+                ]
+              ],
+              "fixed_axes": null
+            },
+            {
+              "name": "hemibrain_ellipsoid_body",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-hemibrain/crop-001_EllipsoidBody_x24000_y23000_z17000.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-hemibrain-v1.2",
+              "label_fill": null,
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  1988,
+                  3012
+                ],
+                [
+                  1988,
+                  3012
+                ],
+                [
+                  1988,
+                  3012
+                ]
+              ],
+              "fixed_axes": null
+            },
+            {
+              "name": "cremi_sample_a",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-cremi/crop-001_sampleA_train_padded.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-neuron_ids",
+              "label_fill": null,
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  913,
+                  2162
+                ],
+                [
+                  913,
+                  2162
+                ],
+                [
+                  38,
+                  163
+                ]
+              ],
+              "fixed_axes": null
+            },
+            {
+              "name": "cremi_sample_b",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-cremi/crop-002_sampleB_train_padded.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-neuron_ids",
+              "label_fill": null,
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  913,
+                  2162
+                ],
+                [
+                  913,
+                  2162
+                ],
+                [
+                  37,
+                  162
+                ]
+              ],
+              "fixed_axes": null
+            },
+            {
+              "name": "flyid49_40xw005",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-drosophila-flyliconn-FlyID49-2ndgel-DUP-BIS-40XW005-20260625/crop-001.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/manual_gt-cell-final",
+              "label_fill": null,
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": 206.0,
+              "normalize_max": 1526.0,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  912,
+                  1392
+                ],
+                [
+                  912,
+                  1392
+                ],
+                [
+                  430,
+                  619
+                ]
+              ],
+              "fixed_axes": null
+            },
+            {
+              "name": "cns_mito_crop182",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-cns-mito-gt-v6/crop-182_box181.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-v1.0",
+              "label_fill": null,
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  0,
+                  2048
+                ],
+                [
+                  0,
+                  2048
+                ],
+                [
+                  0,
+                  1024
+                ]
+              ],
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z255-383_y1407-1663_x1535-1791",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z255-383_y1407-1663_x1535-1791.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z2559-2687_y4991-5247_x4863-5119",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z2559-2687_y4991-5247_x4863-5119.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z2815-2943_y5631-5887_x4607-4863",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z2815-2943_y5631-5887_x4607-4863.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z2834-2984_y5311-5461_x5077-5227",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z2834-2984_y5311-5461_x5077-5227.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z2868-3018_y5744-5894_x5157-5307",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z2868-3018_y5744-5894_x5157-5307.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z2874-3024_y5707-5857_x5304-5454",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z2874-3024_y5707-5857_x5304-5454.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z2934-3084_y5115-5265_x5140-5290",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z2934-3084_y5115-5265_x5140-5290.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3096-3246_y5954-6104_x5813-5963",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3096-3246_y5954-6104_x5813-5963.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3118-3268_y6538-6688_x6100-6250",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3118-3268_y6538-6688_x6100-6250.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3126-3276_y6857-7007_x5694-5844",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3126-3276_y6857-7007_x5694-5844.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3436-3586_y599-749_x2779-2929",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3436-3586_y599-749_x2779-2929.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3438-3588_y2775-2925_x3476-3626",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3438-3588_y2775-2925_x3476-3626.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3456-3606_y3188-3338_x4043-4193",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3456-3606_y3188-3338_x4043-4193.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3492-3642_y7888-8038_x8374-8524",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3492-3642_y7888-8038_x8374-8524.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3492-3642_y841-991_x381-531",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3492-3642_y841-991_x381-531.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3596-3746_y3888-4038_x3661-3811",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3596-3746_y3888-4038_x3661-3811.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3604-3754_y4101-4251_x3493-3643",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3604-3754_y4101-4251_x3493-3643.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3608-3758_y3829-3979_x3423-3573",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3608-3758_y3829-3979_x3423-3573.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3702-3852_y9605-9755_x2244-2394",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3702-3852_y9605-9755_x2244-2394.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3710-3860_y8691-8841_x2889-3039",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3710-3860_y8691-8841_x2889-3039.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3722-3872_y4548-4698_x2879-3029",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3722-3872_y4548-4698_x2879-3029.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3734-3884_y4315-4465_x2209-2359",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3734-3884_y4315-4465_x2209-2359.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3914-4064_y9035-9185_x2573-2723",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3914-4064_y9035-9185_x2573-2723.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z4102-4252_y6330-6480_x1899-2049",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z4102-4252_y6330-6480_x1899-2049.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z4312-4462_y9341-9491_x2419-2569",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z4312-4462_y9341-9491_x2419-2569.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z4440-4590_y7294-7444_x2350-2500",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z4440-4590_y7294-7444_x2350-2500.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z4801-4951_y10154-10304_x1972-2122",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z4801-4951_y10154-10304_x1972-2122.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z4905-5055_y928-1078_x1729-1879",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z4905-5055_y928-1078_x1729-1879.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z4951-5101_y9415-9565_x2272-2422",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z4951-5101_y9415-9565_x2272-2422.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z5001-5151_y9426-9576_x2197-2347",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z5001-5151_y9426-9576_x2197-2347.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z5119-5247_y1023-1279_x1663-1919",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z5119-5247_y1023-1279_x1663-1919.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z5405-5555_y10490-10640_x3406-3556",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z5405-5555_y10490-10640_x3406-3556.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z734-884_y9561-9711_x563-713",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z734-884_y9561-9711_x563-713.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            }
+          ],
+          "augment_fn": null,
+          "resolutions": [
+            [
+              8.0,
+              8.0,
+              8.0
+            ]
+          ],
+          "resolution_sampling": null,
+          "output_axes": "lcxyz",
+          "patch_size": [
+            256,
+            256,
+            256
+          ],
+          "bbox_mode": "absolute",
+          "samples_per_epoch": 1000000,
+          "cache_bytes": 1073741824,
+          "file_io_concurrency": 64,
+          "sampling": "random",
+          "size_weighting_exponent": 0.0,
+          "overlap": 0,
+          "label_margin": [
+            10,
+            10,
+            10
+          ],
+          "label_margin_fill": -1,
+          "sample_windows": false,
+          "image_dtype": "float32",
+          "chunk_aligned": false,
+          "defer_image_ops": true
+        }
+      },
+      "trainer": {
+        "max_steps": 100000,
+        "batch_size": 1,
+        "lr": 0.0003,
+        "weight_decay": 0.05,
+        "beta1": 0.9,
+        "beta2": 0.95,
+        "warmup_steps": 5000,
+        "min_lr_ratio": 0.001,
+        "grad_clip_norm": 1.0,
+        "lr_schedule": "linear",
+        "layerwise_lr_decay": 1.0,
+        "patch_embed_lr_mult": 1.0,
+        "final_weight_decay": null,
+        "zero_weight_decay_on_norm_and_bias": true,
+        "zero_weight_decay_on_lora": true,
+        "activation_checkpointing": false,
+        "peak_tflops": null,
+        "measure_mfu": true,
+        "profile": false,
+        "profile_start_step": 50,
+        "profile_steps": 6,
+        "profile_all_ranks": false,
+        "profile_memory": false,
+        "freeze_backbone_steps": 0,
+        "unfreeze_warmup_steps": 1000,
+        "precision": "bf16",
+        "compile": true,
+        "log_every": 1000,
+        "checkpoint_every": 25000,
+        "val_every": 10000,
+        "num_workers": 8,
+        "persistent_workers": false,
+        "prefetch_factor": 2,
+        "seed": 0
+      },
+      "parallelism": {
+        "dp_replicate": 1,
+        "dp_shard": 8,
+        "tp": 1,
+        "fsdp_unit_budget_gb": "auto"
+      },
+      "val_data": {
+        "name": "miao_volumes",
+        "kwargs": {
+          "volumes": [
+            {
+              "name": "kasthuri15_ac3",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-001_ac3_100slices.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/public_gt-cell-kasthuri15",
+              "label_fill": null,
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  0,
+                  1024
+                ],
+                [
+                  0,
+                  1024
+                ],
+                [
+                  0,
+                  100
+                ]
+              ],
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafish_fish2_quadcube1",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-003_quadcube1_x23908_y18314_z0.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-seg230927",
+              "label_fill": null,
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  0,
+                  2000
+                ],
+                [
+                  0,
+                  2000
+                ],
+                [
+                  0,
+                  1364
+                ]
+              ],
+              "fixed_axes": null
+            },
+            {
+              "name": "liconn_mouse_dg",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-DG-20250809_ExPID19-02_2ndGel_C5_Atto488_40XW_002/crop-001.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/manual_gt-cell-final",
+              "label_fill": null,
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": 301.0,
+              "normalize_max": 1130.0,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  1416,
+                  1892
+                ],
+                [
+                  516,
+                  996
+                ],
+                [
+                  83,
+                  276
+                ]
+              ],
+              "fixed_axes": null
+            },
+            {
+              "name": "hemibrain_ellipsoid_body",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-hemibrain/crop-001_EllipsoidBody_x24000_y23000_z17000.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-hemibrain-v1.2",
+              "label_fill": null,
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  1988,
+                  3012
+                ],
+                [
+                  1988,
+                  3012
+                ],
+                [
+                  1988,
+                  3012
+                ]
+              ],
+              "fixed_axes": null
+            },
+            {
+              "name": "cremi_sample_a",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-cremi/crop-001_sampleA_train_padded.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-neuron_ids",
+              "label_fill": null,
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  913,
+                  2162
+                ],
+                [
+                  913,
+                  2162
+                ],
+                [
+                  38,
+                  163
+                ]
+              ],
+              "fixed_axes": null
+            },
+            {
+              "name": "cremi_sample_b",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-cremi/crop-002_sampleB_train_padded.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-neuron_ids",
+              "label_fill": null,
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  913,
+                  2162
+                ],
+                [
+                  913,
+                  2162
+                ],
+                [
+                  37,
+                  162
+                ]
+              ],
+              "fixed_axes": null
+            },
+            {
+              "name": "flyid49_40xw005",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/exm-drosophila-flyliconn-FlyID49-2ndgel-DUP-BIS-40XW005-20260625/crop-001.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/manual_gt-cell-final",
+              "label_fill": null,
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": 206.0,
+              "normalize_max": 1526.0,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  912,
+                  1392
+                ],
+                [
+                  912,
+                  1392
+                ],
+                [
+                  430,
+                  619
+                ]
+              ],
+              "fixed_axes": null
+            },
+            {
+              "name": "cns_mito_crop182",
+              "path": "/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-cns-mito-gt-v6/crop-182_box181.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr3",
+              "exp_factor": 1.0,
+              "label_key": "labels/proofread-cell-v1.0",
+              "label_fill": null,
+              "weight": 1.0,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": [
+                [
+                  0,
+                  2048
+                ],
+                [
+                  0,
+                  2048
+                ],
+                [
+                  0,
+                  1024
+                ]
+              ],
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z255-383_y1407-1663_x1535-1791",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z255-383_y1407-1663_x1535-1791.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z2559-2687_y4991-5247_x4863-5119",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z2559-2687_y4991-5247_x4863-5119.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z2815-2943_y5631-5887_x4607-4863",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z2815-2943_y5631-5887_x4607-4863.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z2834-2984_y5311-5461_x5077-5227",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z2834-2984_y5311-5461_x5077-5227.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z2868-3018_y5744-5894_x5157-5307",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z2868-3018_y5744-5894_x5157-5307.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z2874-3024_y5707-5857_x5304-5454",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z2874-3024_y5707-5857_x5304-5454.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z2934-3084_y5115-5265_x5140-5290",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z2934-3084_y5115-5265_x5140-5290.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3096-3246_y5954-6104_x5813-5963",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3096-3246_y5954-6104_x5813-5963.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3118-3268_y6538-6688_x6100-6250",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3118-3268_y6538-6688_x6100-6250.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3126-3276_y6857-7007_x5694-5844",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3126-3276_y6857-7007_x5694-5844.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3436-3586_y599-749_x2779-2929",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3436-3586_y599-749_x2779-2929.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3438-3588_y2775-2925_x3476-3626",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3438-3588_y2775-2925_x3476-3626.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3456-3606_y3188-3338_x4043-4193",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3456-3606_y3188-3338_x4043-4193.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3492-3642_y7888-8038_x8374-8524",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3492-3642_y7888-8038_x8374-8524.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3492-3642_y841-991_x381-531",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3492-3642_y841-991_x381-531.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3596-3746_y3888-4038_x3661-3811",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3596-3746_y3888-4038_x3661-3811.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3604-3754_y4101-4251_x3493-3643",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3604-3754_y4101-4251_x3493-3643.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3608-3758_y3829-3979_x3423-3573",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3608-3758_y3829-3979_x3423-3573.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3702-3852_y9605-9755_x2244-2394",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3702-3852_y9605-9755_x2244-2394.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3710-3860_y8691-8841_x2889-3039",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3710-3860_y8691-8841_x2889-3039.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3722-3872_y4548-4698_x2879-3029",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3722-3872_y4548-4698_x2879-3029.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3734-3884_y4315-4465_x2209-2359",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3734-3884_y4315-4465_x2209-2359.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z3914-4064_y9035-9185_x2573-2723",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z3914-4064_y9035-9185_x2573-2723.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z4102-4252_y6330-6480_x1899-2049",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z4102-4252_y6330-6480_x1899-2049.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z4312-4462_y9341-9491_x2419-2569",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z4312-4462_y9341-9491_x2419-2569.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z4440-4590_y7294-7444_x2350-2500",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z4440-4590_y7294-7444_x2350-2500.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z4801-4951_y10154-10304_x1972-2122",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z4801-4951_y10154-10304_x1972-2122.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z4905-5055_y928-1078_x1729-1879",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z4905-5055_y928-1078_x1729-1879.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z4951-5101_y9415-9565_x2272-2422",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z4951-5101_y9415-9565_x2272-2422.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z5001-5151_y9426-9576_x2197-2347",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z5001-5151_y9426-9576_x2197-2347.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z5119-5247_y1023-1279_x1663-1919",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z5119-5247_y1023-1279_x1663-1919.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z5405-5555_y10490-10640_x3406-3556",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z5405-5555_y10490-10640_x3406-3556.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            },
+            {
+              "name": "zebrafinch_z734-884_y9561-9711_x563-713",
+              "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/probes/zebrafinch_labeled/wrappers/gt_z734-884_y9561-9711_x563-713.zarr",
+              "image_key": "raw",
+              "resolutions": null,
+              "resolution_sampling": null,
+              "zarr_version": "zarr2",
+              "exp_factor": 1.0,
+              "label_key": "labels/neuron_ids",
+              "label_fill": -1,
+              "weight": 0.030303030303030304,
+              "normalize": true,
+              "normalize_min": null,
+              "normalize_max": null,
+              "patch_normalize": false,
+              "bounding_box": null,
+              "fixed_axes": null
+            }
+          ],
+          "augment_fn": null,
+          "resolutions": [
+            [
+              8.0,
+              8.0,
+              8.0
+            ]
+          ],
+          "resolution_sampling": null,
+          "output_axes": "lcxyz",
+          "patch_size": [
+            256,
+            256,
+            256
+          ],
+          "bbox_mode": "absolute",
+          "samples_per_epoch": 128,
+          "cache_bytes": 1073741824,
+          "file_io_concurrency": 64,
+          "sampling": "random",
+          "size_weighting_exponent": 0.0,
+          "overlap": 0,
+          "label_margin": [
+            10,
+            10,
+            10
+          ],
+          "label_margin_fill": -1,
+          "sample_windows": false,
+          "image_dtype": "float32",
+          "chunk_aligned": false,
+          "defer_image_ops": true
+        }
+      },
+      "init": {
+        "path": "/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/runs/lmd2__1c_simmim_lvd_b32_mask60_g2_20261018_225155/checkpoints/step_100000",
+        "prefix": "model.",
+        "inflate_2d_to_3d": false,
+        "skip": [],
+        "strict": true,
+        "allow_unused": false,
+        "target": "model",
+        "merge_lora": false
+      },
+      "augment": {
+        "rotate": "inplane",
+        "drop_slice_prob": 0.05,
+        "shift_slice_prob": 0.05,
+        "shift_magnitude": 10,
+        "intensity": true,
+        "mul_intensity": 0.1,
+        "add_intensity": 0.1,
+        "noise_scale": 0.5,
+        "elastic_prob": 0.0,
+        "elastic_spacing": 64,
+        "elastic_sigma": 4.0
+      },
+      "lora": {
+        "rank": 0,
+        "alpha": 0.0,
+        "targets": [
+          "attn_qkv",
+          "attn_proj"
+        ],
+        "train_stem": true,
+        "train_norms": true,
+        "train_tokens": true
+      }
+    },
+    "producer_commit": "d5e9b3e4edf3047b4c0bf95e64d355e57f0464c7"
+  },
+  "views": {
+    "cns_mito_crop164": {
+      "overlay": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-cns-mito-gt-v6/crop-164_box163.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/cns_mito_crop164.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/cns_mito_crop164.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%22gpuMemoryLimit%22%3A4000000000%2C%22systemMemoryLimit%22%3A8000000000%2C%22layout%22%3A%224panel-alt%22%2C%22dimensions%22%3A%7B%22x%22%3A%5B8e-09%2C%22m%22%5D%2C%22y%22%3A%5B8e-09%2C%22m%22%5D%2C%22z%22%3A%5B8e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B46400.0%2C56768.0%2C114944.0%5D%7D",
+      "side_by_side": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-cns-mito-gt-v6/crop-164_box163.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/cns_mito_crop164.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/cns_mito_crop164.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Atrue%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%22gpuMemoryLimit%22%3A4000000000%2C%22systemMemoryLimit%22%3A8000000000%2C%22layout%22%3A%7B%22type%22%3A%22row%22%2C%22children%22%3A%5B%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22truth%22%5D%2C%22layout%22%3A%22xy%22%7D%2C%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%5D%2C%22layout%22%3A%22xy%22%7D%5D%7D%2C%22dimensions%22%3A%7B%22x%22%3A%5B8e-09%2C%22m%22%5D%2C%22y%22%3A%5B8e-09%2C%22m%22%5D%2C%22z%22%3A%5B8e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B46400.0%2C56768.0%2C114944.0%5D%7D",
+      "shows": "scored"
+    },
+    "cremi_sample_c": {
+      "overlay": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-cremi/crop-003_sampleC_train_padded.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/cremi_sample_c.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/cremi_sample_c.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%22gpuMemoryLimit%22%3A4000000000%2C%22systemMemoryLimit%22%3A8000000000%2C%22layout%22%3A%224panel-alt%22%2C%22dimensions%22%3A%7B%22z%22%3A%5B8.125e-09%2C%22m%22%5D%2C%22y%22%3A%5B8e-09%2C%22m%22%5D%2C%22x%22%3A%5B8e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B485.4230769230769%2C768.75%2C768.75%5D%7D",
+      "side_by_side": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-cremi/crop-003_sampleC_train_padded.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/cremi_sample_c.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/cremi_sample_c.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Atrue%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%22gpuMemoryLimit%22%3A4000000000%2C%22systemMemoryLimit%22%3A8000000000%2C%22layout%22%3A%7B%22type%22%3A%22row%22%2C%22children%22%3A%5B%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22truth%22%5D%2C%22layout%22%3A%22xy%22%7D%2C%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%5D%2C%22layout%22%3A%22xy%22%7D%5D%7D%2C%22dimensions%22%3A%7B%22z%22%3A%5B8.125e-09%2C%22m%22%5D%2C%22y%22%3A%5B8e-09%2C%22m%22%5D%2C%22x%22%3A%5B8e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B485.4230769230769%2C768.75%2C768.75%5D%7D",
+      "shows": "scored"
+    },
+    "flyid49_40xw006": {
+      "overlay": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/exm-drosophila-flyliconn-FlyID49-2ndgel-DUP-BIS-40XW006-20260625/crop-001.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%2C%22shaderControls%22%3A%7B%22normalized%22%3A%7B%22range%22%3A%5B210.0%2C1448.0%5D%7D%7D%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/flyid49_40xw006.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/flyid49_40xw006.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%22gpuMemoryLimit%22%3A4000000000%2C%22systemMemoryLimit%22%3A8000000000%2C%22layout%22%3A%224panel-alt%22%2C%22dimensions%22%3A%7B%22z%22%3A%5B8.007812500000001e-09%2C%22m%22%5D%2C%22y%22%3A%5B8.013916215972907e-09%2C%22m%22%5D%2C%22x%22%3A%5B8.013916215972907e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B919.1341463414634%2C730.1633663366335%2C730.1633663366335%5D%7D",
+      "side_by_side": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/exm-drosophila-flyliconn-FlyID49-2ndgel-DUP-BIS-40XW006-20260625/crop-001.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%2C%22shaderControls%22%3A%7B%22normalized%22%3A%7B%22range%22%3A%5B210.0%2C1448.0%5D%7D%7D%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/flyid49_40xw006.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/flyid49_40xw006.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Atrue%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%22gpuMemoryLimit%22%3A4000000000%2C%22systemMemoryLimit%22%3A8000000000%2C%22layout%22%3A%7B%22type%22%3A%22row%22%2C%22children%22%3A%5B%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22truth%22%5D%2C%22layout%22%3A%22xy%22%7D%2C%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%5D%2C%22layout%22%3A%22xy%22%7D%5D%7D%2C%22dimensions%22%3A%7B%22z%22%3A%5B8.007812500000001e-09%2C%22m%22%5D%2C%22y%22%3A%5B8.013916215972907e-09%2C%22m%22%5D%2C%22x%22%3A%5B8.013916215972907e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B919.1341463414634%2C730.1633663366335%2C730.1633663366335%5D%7D",
+      "shows": "scored"
+    },
+    "kasthuri15_ac4": {
+      "overlay": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-002_ac4_100slices.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/kasthuri15_ac4.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/kasthuri15_ac4.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%22gpuMemoryLimit%22%3A4000000000%2C%22systemMemoryLimit%22%3A8000000000%2C%22layout%22%3A%224panel-alt%22%2C%22dimensions%22%3A%7B%22z%22%3A%5B8.15625e-09%2C%22m%22%5D%2C%22y%22%3A%5B8.015625e-09%2C%22m%22%5D%2C%22x%22%3A%5B8.015625e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B176.5%2C383.0029239766082%2C383.0029239766082%5D%7D",
+      "side_by_side": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-002_ac4_100slices.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/kasthuri15_ac4.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/kasthuri15_ac4.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Atrue%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%22gpuMemoryLimit%22%3A4000000000%2C%22systemMemoryLimit%22%3A8000000000%2C%22layout%22%3A%7B%22type%22%3A%22row%22%2C%22children%22%3A%5B%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22truth%22%5D%2C%22layout%22%3A%22xy%22%7D%2C%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%5D%2C%22layout%22%3A%22xy%22%7D%5D%7D%2C%22dimensions%22%3A%7B%22z%22%3A%5B8.15625e-09%2C%22m%22%5D%2C%22y%22%3A%5B8.015625e-09%2C%22m%22%5D%2C%22x%22%3A%5B8.015625e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B176.5%2C383.0029239766082%2C383.0029239766082%5D%7D",
+      "shows": "scored"
+    },
+    "liconn_expid82": {
+      "overlay": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-ExPID82-1/crop-002_sub.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/liconn_expid82.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/liconn_expid82.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%22gpuMemoryLimit%22%3A4000000000%2C%22systemMemoryLimit%22%3A8000000000%2C%22layout%22%3A%224panel-alt%22%2C%22dimensions%22%3A%7B%22z%22%3A%5B8.095855e-09%2C%22m%22%5D%2C%22y%22%3A%5B8.039892402312502e-09%2C%22m%22%5D%2C%22x%22%3A%5B8.039892402312502e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B426.9%2C2600.952830188679%2C2102.235849056604%5D%7D",
+      "side_by_side": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-ExPID82-1/crop-002_sub.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/liconn_expid82.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/liconn_expid82.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Atrue%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%22gpuMemoryLimit%22%3A4000000000%2C%22systemMemoryLimit%22%3A8000000000%2C%22layout%22%3A%7B%22type%22%3A%22row%22%2C%22children%22%3A%5B%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22truth%22%5D%2C%22layout%22%3A%22xy%22%7D%2C%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%5D%2C%22layout%22%3A%22xy%22%7D%5D%7D%2C%22dimensions%22%3A%7B%22z%22%3A%5B8.095855e-09%2C%22m%22%5D%2C%22y%22%3A%5B8.039892402312502e-09%2C%22m%22%5D%2C%22x%22%3A%5B8.039892402312502e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B426.9%2C2600.952830188679%2C2102.235849056604%5D%7D",
+      "shows": "scored"
+    },
+    "liconn_mouse_hippocampus": {
+      "overlay": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-hippocampus-202507013_ExPID10-02_2percentAA_S2_Atto488_40XW_004/crop-001.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%2C%22shaderControls%22%3A%7B%22normalized%22%3A%7B%22range%22%3A%5B219.0%2C919.0%5D%7D%7D%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/liconn_mouse_hippocampus.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/liconn_mouse_hippocampus.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%22gpuMemoryLimit%22%3A4000000000%2C%22systemMemoryLimit%22%3A8000000000%2C%22layout%22%3A%224panel-alt%22%2C%22dimensions%22%3A%7B%22x%22%3A%5B8.046321777343751e-09%2C%22m%22%5D%2C%22y%22%3A%5B8.046321777343751e-09%2C%22m%22%5D%2C%22z%22%3A%5B8.007812500000001e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B914.519417475728%2C914.519417475728%2C436.0121951219512%5D%7D",
+      "side_by_side": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-hippocampus-202507013_ExPID10-02_2percentAA_S2_Atto488_40XW_004/crop-001.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%2C%22shaderControls%22%3A%7B%22normalized%22%3A%7B%22range%22%3A%5B219.0%2C919.0%5D%7D%7D%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/liconn_mouse_hippocampus.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/liconn_mouse_hippocampus.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Atrue%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%22gpuMemoryLimit%22%3A4000000000%2C%22systemMemoryLimit%22%3A8000000000%2C%22layout%22%3A%7B%22type%22%3A%22row%22%2C%22children%22%3A%5B%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22truth%22%5D%2C%22layout%22%3A%22xy%22%7D%2C%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%5D%2C%22layout%22%3A%22xy%22%7D%5D%7D%2C%22dimensions%22%3A%7B%22x%22%3A%5B8.046321777343751e-09%2C%22m%22%5D%2C%22y%22%3A%5B8.046321777343751e-09%2C%22m%22%5D%2C%22z%22%3A%5B8.007812500000001e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B914.519417475728%2C914.519417475728%2C436.0121951219512%5D%7D",
+      "shows": "scored"
+    },
+    "zebrafish_fish2_doublecube1": {
+      "overlay": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/zebrafish_fish2_doublecube1.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Afalse%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%22gpuMemoryLimit%22%3A4000000000%2C%22systemMemoryLimit%22%3A8000000000%2C%22layout%22%3A%224panel-alt%22%2C%22dimensions%22%3A%7B%22x%22%3A%5B8e-09%2C%22m%22%5D%2C%22y%22%3A%5B8e-09%2C%22m%22%5D%2C%22z%22%3A%5B8.027343750000001e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B1000.0%2C1000.0%2C986.1934306569343%5D%7D",
+      "side_by_side": "https://fileglancer.int.janelia.org/neuroglancer/#!%7B%22layers%22%3A%5B%7B%22type%22%3A%22image%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/9CZMteclq1ZasXfp/groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr/raw/%7Czarr3%3A%22%2C%22name%22%3A%22raw%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance/scored/lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter/zebrafish_fish2_doublecube1.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%7B%22type%22%3A%22segmentation%22%2C%22source%22%3A%22https%3A//fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-train-experiments/lmd_ssl_v2/eval/2h_affinity_unetr_simmim_lvd_mask60_g2/step100000/test/zebrafish_fish2_doublecube1.gt.zarr/%7Czarr3%3A%22%2C%22name%22%3A%22truth%22%2C%22visible%22%3Atrue%7D%5D%2C%22selectedLayer%22%3A%7B%22visible%22%3Atrue%2C%22layer%22%3A%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%7D%2C%22gpuMemoryLimit%22%3A4000000000%2C%22systemMemoryLimit%22%3A8000000000%2C%22layout%22%3A%7B%22type%22%3A%22row%22%2C%22children%22%3A%5B%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22truth%22%5D%2C%22layout%22%3A%22xy%22%7D%2C%7B%22type%22%3A%22viewer%22%2C%22layers%22%3A%5B%22raw%22%2C%22lmd2__2h_affinity_unetr_simmim_lvd_mask60_g2_20261021_071125.step100000.mws_size_filter%22%5D%2C%22layout%22%3A%22xy%22%7D%5D%7D%2C%22dimensions%22%3A%7B%22x%22%3A%5B8e-09%2C%22m%22%5D%2C%22y%22%3A%5B8e-09%2C%22m%22%5D%2C%22z%22%3A%5B8.027343750000001e-09%2C%22m%22%5D%7D%2C%22position%22%3A%5B1000.0%2C1000.0%2C986.1934306569343%5D%7D",
+      "shows": "scored"
+    }
+  },
+  "details": {},
+  "versions": {
+    "python": "3.14.6",
+    "numpy": "2.4.4",
+    "zarr": "3.2.1",
+    "miao": "present",
+    "numba": "0.67.0",
+    "networkx": "3.6.1",
+    "funlib.evaluate": "present"
+  },
+  "schema_version": 2,
+  "label": "",
+  "route": "mws_size_filter"
+}
