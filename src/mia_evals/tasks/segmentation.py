@@ -16,7 +16,7 @@ from typing import Any
 import numpy as np
 import zarr
 
-from artifact import Artifact, Geometry
+from mia_evals.artifact import Artifact, Geometry
 
 from .base import BaseTask, Volume
 from .registry import TaskRegistry
@@ -161,7 +161,7 @@ class InstanceSegmentation(BaseTask):
 
     def ground_truth(self, volume: Volume, artifact: Artifact) -> Any:
         if self.truth_kind == "instances_resampled":
-            from artifact import open_artifact
+            from mia_evals.artifact import open_artifact
 
             path = self.truth_artifact_path(volume, artifact)
             if not path.exists():

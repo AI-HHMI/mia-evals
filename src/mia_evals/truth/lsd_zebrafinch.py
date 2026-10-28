@@ -1,6 +1,6 @@
 """The LSD paper's zebra finch (j0126) neurite tracing benchmark, as mia-evals benchmark data.
 
-    python -m truth.lsd_zebrafinch --out /groups/miaai/miaai/mia-evals-data/zebrafinch_j0126
+    python -m mia_evals.truth.lsd_zebrafinch --out /groups/miaai/miaai/mia-evals-data/zebrafinch_j0126
 
 Sheridan et al. 2023 (Nat Methods 20:295) scored every method on the j0126 zebra finch volume with
 hand-traced skeletons: 50 for testing, 12 for choosing thresholds. Their release sits on the Janelia
@@ -240,7 +240,7 @@ def verify(wrapper: Path, ffn: dict[str, dict[str, Any]]) -> dict[str, Any]:
     """Read everything back the way its consumers will: miao for the wrapper, mia-evals for FFN."""
     from miao.zarr_meta import read_ome_metadata
 
-    from artifact import open_artifact
+    from mia_evals.artifact import open_artifact
 
     report: dict[str, Any] = {}
     for key in ("raw", "labels/neuropil_mask"):
@@ -302,12 +302,12 @@ def main() -> None:
     ffn = {volume_name(roi, "test"): ffn_artifact(ffn_dir, roi, wrapper) for roi in args.rois}
     readback = verify(wrapper, ffn)
 
-    from report.record import git_commit
+    from mia_evals.report.record import git_commit
 
     manifest = {
         "built": date.today().isoformat(),
-        "command": [Path(sys.executable).name, "-m", "truth.lsd_zebrafinch", *sys.argv[1:]],
-        "mia_evals_commit": git_commit(Path(__file__).resolve().parents[2]),
+        "command": [Path(sys.executable).name, "-m", "mia_evals.truth.lsd_zebrafinch", *sys.argv[1:]],
+        "mia_evals_commit": git_commit(Path(__file__).resolve().parents[3]),
         "release": str(RELEASE),
         "realigned_volume": str(REALIGNED),
         "public_sources": PUBLIC_SOURCES,
@@ -323,7 +323,7 @@ def main() -> None:
 
 README = """# zebrafinch_j0126 -- mia-evals benchmark data
 
-Built by `python -m truth.lsd_zebrafinch --out {out}` from the mia-evals repository;
+Built by `python -m mia_evals.truth.lsd_zebrafinch --out {out}` from the mia-evals repository;
 `manifest.json` records the exact command, commit, sources and hashes. Nothing here copies the
 release: the image and mask levels and the FFN arrays are symlinks into /nrs/funke/sheridana
 (read-only, not ours). If those disappear, everything is public again from the sources listed in

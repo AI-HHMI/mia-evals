@@ -2,7 +2,7 @@
 #
 # The region is LSD's "benchmark ROI" (Sheridan et al. 2023, Nat Methods 20:295, Supplementary Note D.3):
 # 87.3 x 83.7 x 106 um = 9700 x 9300 x 5300 voxels at 9 x 9 x 20 nm, 478 gigavoxels. The store is mia-evals'
-# wrapper over the LSD authors' realigned volume (`python -m truth.lsd_zebrafinch`; its manifest.json says what
+# wrapper over the LSD authors' realigned volume (`python -m mia_evals.truth.lsd_zebrafinch`; its manifest.json says what
 # was built from what). The ground truth is skeletons/zebrafinch_benchmark_test.pkl inside it: LSD's own node
 # set for the 50 hand-traced test skeletons, cut to this region and the FFN neuropil mask and relabelled into
 # connected components (3,410 pieces, 431,659 nodes, 75.95 mm; a perfect segmentation scores ERL 240.66 um).

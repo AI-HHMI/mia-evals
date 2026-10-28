@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from registry import Registry
+from mia_evals.registry import Registry
 
 from .base import BaseMetric
 

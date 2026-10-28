@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from tasks.base import Volume
+from mia_evals.tasks.base import Volume
 
 #: Fields of a miao volume entry that a score cares about. Anything else in the entry -- weights,
 #: resolutions, normalisation windows -- describes how to *sample* the volume for training and has

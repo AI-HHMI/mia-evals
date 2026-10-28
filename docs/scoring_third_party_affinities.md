@@ -29,7 +29,7 @@ clock, most of it one unattended 5-hour CPU job.
    lattice covers); a prediction on the full 1000^3 corner is welcome but lands in its own group.
 
 2. **Six affinity channels per voxel**, in this order, with these meanings. `mia-evals` hard-codes
-   them (`src/postprocess/mws.py`, `SHORT_OFFSETS` and `LONG_OFFSETS`):
+   them (`src/mia_evals/postprocess/mws.py`, `SHORT_OFFSETS` and `LONG_OFFSETS`):
 
    | channel | offset (in voxels, along the store's axes) | role in the mutex watershed |
    | ---: | --- | --- |

@@ -1,6 +1,6 @@
 # nisb_base_neurite_tracing from a model's affinities, through blockwise mutex watershed in 1024 x 1024 x 1350 blocks.
 #
-#   python -m postprocess.mws_blockwise configs/nisb_base_neurite_tracing/mws_blockwise_1024.toml --test <affinities> \
+#   python -m mia_evals.postprocess.mws_blockwise configs/nisb_base_neurite_tracing/mws_blockwise_1024.toml --test <affinities> \
 #       --val <affinities> --scratch <dir> --worker $((LSB_JOBINDEX - 1)) --workers 9   # 9 elements, 36 slots each
 #   mia-evals score configs/nisb_base_neurite_tracing/mws_blockwise_1024.toml --test <affinities> --val <affinities> \
 #       --scratch <dir>

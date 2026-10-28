@@ -17,9 +17,9 @@ import numpy as np
 import pytest
 import zarr
 
-from artifact import write_artifact
-from report import leaderboard, record
-from report.record import Submission
+from mia_evals.artifact import write_artifact
+from mia_evals.report import leaderboard, record
+from mia_evals.report.record import Submission
 
 pytestmark = pytest.mark.unit
 
@@ -27,8 +27,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def _config_identity(config):
-    import components  # noqa: F401
-    from metrics.registry import MetricRegistry
+    import mia_evals.components  # noqa: F401
+    from mia_evals.metrics.registry import MetricRegistry
 
     key = MetricRegistry.get(config.rank_by).primary
     return record.task_identity(
@@ -40,7 +40,7 @@ def test_task_files_sharing_a_name_agree_on_what_the_task_is():
     """Two scoring configs may share a task_name only as two routes to the same table."""
     from conftest import needs_newer_miao
 
-    from config import load_scoring_config
+    from mia_evals.config import load_scoring_config
 
     by_name: dict[str, list[tuple[str, dict]]] = {}
     for path in sorted(glob.glob(str(ROOT / "configs" / "*" / "*.toml"))):
@@ -222,7 +222,7 @@ def test_scoring_refuses_a_record_that_would_redefine_the_task(tmp_path):
     for name in ("alpha", "beta"):
         write_artifact(artifacts / f"{name}.zarr", truth.copy(), "instances", background_id=0)
 
-    import evaluate
+    from mia_evals import evaluate
 
     def args(config, test=artifacts):
         return type("Args", (), {

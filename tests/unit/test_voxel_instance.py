@@ -12,7 +12,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from metrics.voxel_instance import (
+from mia_evals.metrics.voxel_instance import (
     adapted_rand_error,
     panoptic_quality,
     variation_of_information,
@@ -129,7 +129,7 @@ def test_factorize_table_and_sort_paths_agree():
     run on the same input here. The sort path is reached by an id space too wide for a table --
     genuine in this corpus, where MICrONS segment ids run past 2**40.
     """
-    from metrics.voxel_instance import _factorize
+    from mia_evals.metrics.voxel_instance import _factorize
 
     packed = np.array([5, 5, 9, 1, 9, 1, 5], dtype=np.int64)
     wide = np.array([2**41, 2**41, 2**45, 7, 2**45, 7, 2**41], dtype=np.int64)
@@ -155,7 +155,7 @@ def test_contingency_dense_and_sparse_paths_agree(monkeypatch):
     The fallback is not hypothetical: it is the branch an over-fragmented prediction takes, which is
     exactly what a badly thresholded model produces.
     """
-    from metrics import voxel_instance
+    from mia_evals.metrics import voxel_instance
 
     rng = np.random.default_rng(7)
     truth = rng.integers(0, 12, size=4000, dtype=np.int64)
@@ -180,7 +180,7 @@ def test_the_contingency_table_is_computed_once_per_call(monkeypatch):
     key: the scoring job was killed by LSF's memory limit part-way through the reported half. The
     waste is invisible at test sizes, so it is counted here rather than measured.
     """
-    from metrics import voxel_instance
+    from mia_evals.metrics import voxel_instance
 
     calls = []
     real = voxel_instance.contingency
@@ -199,7 +199,7 @@ def test_the_contingency_table_is_computed_once_per_call(monkeypatch):
 
 def test_table_consuming_cores_agree_with_the_array_wrappers():
     """The public array-taking functions and the `*_from_table` cores must not diverge."""
-    from metrics.voxel_instance import (
+    from mia_evals.metrics.voxel_instance import (
         contingency,
         pq_from_table,
         rand_error_from_table,

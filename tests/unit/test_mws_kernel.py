@@ -22,8 +22,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-from postprocess.mws import mutex_watershed_reference  # noqa: E402
-from postprocess.mws_kernel import mutex_watershed_kernel  # noqa: E402
+from mia_evals.postprocess.mws import mutex_watershed_reference  # noqa: E402
+from mia_evals.postprocess.mws_kernel import mutex_watershed_kernel  # noqa: E402
 
 pytestmark = pytest.mark.unit
 
@@ -125,7 +125,7 @@ def test_a_table_that_starts_far_too_small_grows_and_keeps_the_partition(seed, r
 def test_growth_resumes_exactly_where_the_kernel_stopped():
     """`process_edges` stops before the edge it has no room for, reports the headroom, and the run
     continues from that edge once the state has grown."""
-    from postprocess.mws_kernel import make_state, process_edges, run_edges
+    from mia_evals.postprocess.mws_kernel import make_state, process_edges, run_edges
 
     u = np.array([0, 2, 0], dtype=np.int64)
     v = np.array([1, 3, 3], dtype=np.int64)

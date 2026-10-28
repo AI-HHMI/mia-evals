@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from report.record import Submission
+from mia_evals.report.record import Submission
 
 
 def _submission(**overrides) -> Submission:
@@ -38,7 +38,7 @@ def test_a_legacy_label_still_names_its_record():
 
 @pytest.mark.unit
 def test_route_is_the_scoring_config_s_file_name(tmp_path):
-    from config import load_scoring_config
+    from mia_evals.config import load_scoring_config
     data = tmp_path / "d.yaml"
     data.write_text(
         "resolutions: [[8, 8, 8]]\npatch_size: [8, 8, 8]\noutput_axes: lcxyz\n"
@@ -60,7 +60,7 @@ def test_route_is_the_scoring_config_s_file_name(tmp_path):
 
 @pytest.mark.unit
 def test_mws_runs_the_watershed_once_per_stride_across_the_size_sweep(monkeypatch):
-    from postprocess import mws as module
+    from mia_evals.postprocess import mws as module
     calls = []
     real = module.segment
     def counted(affinities, stride, **options):

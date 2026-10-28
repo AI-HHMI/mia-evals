@@ -2,7 +2,7 @@
 #
 # Sheridan et al. 2023 (Nat Methods 20:295, Supplementary Note E): cubes of 12, 22 and 17 um (the release's roi_1,
 # roi_2, roi_3) at 8 nm, 3.2, 20.2 and 9.3 gigavoxels. Each store is mia-evals' wrapper over the region's release
-# arrays (`python -m truth.lsd_hemibrain`; its manifest.json says what was built from what): `raw` is the release's
+# arrays (`python -m mia_evals.truth.lsd_hemibrain`; its manifest.json says what was built from what): `raw` is the release's
 # own raw -- the scored core plus a context margin around it -- and each bounding box below is that core in raw's
 # voxels. The ground truth is skeletons/<volume>.pkl in the store, derived from the release's whitelisted proofread
 # neurons (consolidated_ids) and asserted to lie inside them. No validation set exists (the paper chose thresholds on

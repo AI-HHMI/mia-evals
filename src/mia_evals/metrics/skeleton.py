@@ -128,7 +128,7 @@ class SkeletonExpectedRunLength(BaseMetric):
     point_lookups = True
 
     def __call__(self, prediction: Any, truth: Any, **context: Any) -> dict[str, float]:
-        from utils.instance_metrics import compute_metrics
+        from mia_evals.utils.instance_metrics import compute_metrics
 
         shape = tuple(int(s) for s in prediction.shape)
         origin = tuple(int(o) for o in context.get("origin", (0,) * len(shape)))

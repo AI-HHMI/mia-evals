@@ -14,10 +14,10 @@ from typing import Any
 
 import pytest
 
-from report import leaderboard, page
-from report.common import views_link
-from report.record import Submission, load_task, task_names
-from report.table import LINKS_NOTE, MIXED_REGIONS, NO_RECORDS, REGION_LABEL, build
+from mia_evals.report import leaderboard, page
+from mia_evals.report.common import views_link
+from mia_evals.report.record import Submission, load_task, task_names
+from mia_evals.report.table import LINKS_NOTE, MIXED_REGIONS, NO_RECORDS, REGION_LABEL, build
 
 ROOT = Path(__file__).resolve().parents[2] / "leaderboard"
 LINK = re.compile(r"\[(?P<name>[^\]]+)\]\((?P<url>[^)]+)\)")
@@ -221,8 +221,8 @@ def test_an_empty_task_reads_the_same_in_both():
 def test_every_metric_declares_the_direction_and_meaning_of_its_table_keys():
     """The page's arrows, highlight and glossary come from `key_info`, so every key a metric can
     put in a table needs one, and its ranking key must agree with `higher_is_better`."""
-    import components  # noqa: F401  (populates the registry)
-    from metrics.registry import MetricRegistry
+    import mia_evals.components  # noqa: F401  (populates the registry)
+    from mia_evals.metrics.registry import MetricRegistry
 
     for name in MetricRegistry.available():
         metric = MetricRegistry.get(name)

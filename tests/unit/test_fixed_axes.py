@@ -17,13 +17,13 @@ import zarr
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-import components  # noqa: F401,E402  (populates the registries)
-from artifact import open_artifact, write_artifact  # noqa: E402
-from config import _volume_record, load_data_config  # noqa: E402
-from evaluate import check_same_volume  # noqa: E402
-from report.record import identity_differences, task_identity  # noqa: E402
-from tasks.base import Volume  # noqa: E402
-from tasks.segmentation import read_labels  # noqa: E402
+import mia_evals.components  # noqa: F401,E402  (populates the registries)
+from mia_evals.artifact import open_artifact, write_artifact  # noqa: E402
+from mia_evals.config import _volume_record, load_data_config  # noqa: E402
+from mia_evals.evaluate import check_same_volume  # noqa: E402
+from mia_evals.report.record import identity_differences, task_identity  # noqa: E402
+from mia_evals.tasks.base import Volume  # noqa: E402
+from mia_evals.tasks.segmentation import read_labels  # noqa: E402
 
 
 def needs_fixed_axes() -> None:

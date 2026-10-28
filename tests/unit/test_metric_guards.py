@@ -22,7 +22,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from metrics.voxel_instance import panoptic_quality
+from mia_evals.metrics.voxel_instance import panoptic_quality
 
 pytestmark = pytest.mark.unit
 

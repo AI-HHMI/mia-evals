@@ -83,7 +83,7 @@ class Identity(BasePostprocess):
         add-on is to change it, which needs every voxel."""
         if params.get("min_size") or params.get("fill_distance"):
             return None
-        from artifact import LazyLabelling
+        from mia_evals.artifact import LazyLabelling
 
         return LazyLabelling(artifact, origin, shape)
 

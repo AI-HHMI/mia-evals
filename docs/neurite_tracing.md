@@ -37,7 +37,7 @@ The LSD authors' (Supplementary Note D.4, and their `05_evaluate_annotations_zfi
    single candidate, so nothing is fitted yet.
 
 The ground truth is LSD's own per-region node sets from their release, not a re-derivation from the
-traced NML files. `python -m truth.lsd_zebrafinch` asserts the properties the metric relies on:
+traced NML files. `python -m mia_evals.truth.lsd_zebrafinch` asserts the properties the metric relies on:
 whole-voxel positions, pieces equal to the connected components of the kept graph, no piece
 numbered 0.
 
@@ -66,7 +66,7 @@ paper reports voxel VOI only. The erosion removes every voxel within one voxel, 
 boundary: 2 voxels (16 nm) come off every surface, and touching neurons end up 4 voxels apart
 (measured on roi_1 against LSD's own pre-erosion labels; 99.97% of voxels follow that rule). The
 skeletons are derived here
-(`python -m truth.lsd_hemibrain`): kimimaro's TEASAR on every object of at least 1,000 voxels, in
+(`python -m mia_evals.truth.lsd_hemibrain`): kimimaro's TEASAR on every object of at least 1,000 voxels, in
 1024^3 blocks, each branch end cut back inside its object (below), thinned to ~150 nm between
 nodes, with every node inside its own object. The unit of run length is the object, not a
 connected piece of its skeleton: the erosion leaves many objects in pieces (425 pieces for roi_1's
@@ -122,7 +122,7 @@ boundaries, and every error left in FFN is one the proofreaders fixed. Its nERL 
 `hemibrain_al_neurite_tracing` scores one cube of the hemibrain's right alpha lobe: lmd's crop-004,
 1000^3 at 8 nm, its first voxel at x 16000, y 28000, z 6000 in hemibrain voxels. Its skeletons are
 derived from the proofread v1.2 segmentation by the ellipsoid-body task's rules, with the same code
-(`python -m truth.lmd_hemibrain`, which documents each step):
+(`python -m mia_evals.truth.lmd_hemibrain`, which documents each step):
 
 - **Neurons:** the bodies on hemibrain v1.2's Traced list (the release's `traced-neurons.csv`). That
   is LSD's rule on the current release: their ellipsoid-body whitelist was exactly the bodies whose
@@ -165,10 +165,10 @@ measure `mws`; `cc_threshold`, the benchmark's own post-processing, has no block
 ## Data
 
 `/groups/miaai/miaai/mia-evals-data/zebrafinch_j0126/` and `.../hemibrain_eb_lsd/`, built by
-`python -m truth.lsd_zebrafinch` and `python -m truth.lsd_hemibrain` (`--out <that dir>`); each
+`python -m mia_evals.truth.lsd_zebrafinch` and `python -m mia_evals.truth.lsd_hemibrain` (`--out <that dir>`); each
 `manifest.json` records sources, hashes and the command. The image, mask, label and FFN arrays
 are symlinks into the LSD release on the Janelia cluster; the public copies are listed in the
-manifests. `.../hemibrain_al_lmd/` is built by `python -m truth.lmd_hemibrain` from lmd's crop-004
+manifests. `.../hemibrain_al_lmd/` is built by `python -m mia_evals.truth.lmd_hemibrain` from lmd's crop-004
 and the public hemibrain image; its raw is a copy (1400^3), the only image array here that is.
 
 ## Submitting
@@ -198,7 +198,7 @@ and the public hemibrain image; its raw is a copy (1400^3), the only image array
 Exact mutex watershed (`mws`, streamed through disk above 8 G edges) holds every voxel of the region
 in one union-find, so it ends at the largest node's memory: the 7-gigavoxel zebrafish doublecube
 needed 1.7 TB. The benchmark region is 478 gigavoxels. The `mws_blockwise` route
-(`src/postprocess/mws_blockwise.py`) is mutex watershed with one change of order: edges inside a
+(`src/mia_evals/postprocess/mws_blockwise.py`) is mutex watershed with one change of order: edges inside a
 block are decided before edges crossing a block face.
 
 - Every block runs the same compiled kernel, independently.
@@ -255,7 +255,7 @@ and took 5.3 h, so a whole NISB cube, 12.15 G voxels, would need about 2.25 TB.
 - **Running it.** The scorer builds the labelling under `<--scratch>/mws_blockwise/` when it first
   needs it, with a pool of `processes`. For the benchmark region, run the per-block watershed --
   nearly all of the work -- on an LSF array first:
-  `python -m postprocess.mws_blockwise <config> --test <affinities> --scratch <scratch>
+  `python -m mia_evals.postprocess.mws_blockwise <config> --test <affinities> --scratch <scratch>
   --worker $((LSB_JOBINDEX - 1)) --workers <N>`. The scorer, given the same `--scratch`, then only
   stitches and relabels. A process holds one block, up to ~300 bytes a voxel (20 GB at the default
   256 x 512 x 512). On the gate a 256^3 block took 13 s, about 0.8 us a voxel: on the order of 100

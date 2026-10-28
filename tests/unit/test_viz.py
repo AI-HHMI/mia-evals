@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import zarr
 
-from artifact import write_artifact
+from mia_evals.artifact import write_artifact
 
 pytestmark = pytest.mark.unit
 
@@ -33,7 +33,7 @@ def test_viz_affinities_draws_a_six_channel_block_artifact(tmp_path, monkeypatch
     writes. The origin offset is exercised too: the region shown is inside a block that does not
     start at the cube's corner.
     """
-    from viz import affinities
+    from mia_evals.viz import affinities
 
     cube = _nisb_like_cube(tmp_path)
     block = np.random.default_rng(1).random((6, 12, 12, 12), dtype=np.float32).astype(np.float16)

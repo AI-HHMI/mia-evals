@@ -1,6 +1,6 @@
 """Mutex watershed over a region too large for one process: blocks, then one stitch across faces.
 
-    python -m postprocess.mws_blockwise configs/<task>/<route>.toml --test <dir> --scratch <dir> \\
+    python -m mia_evals.postprocess.mws_blockwise configs/<task>/<route>.toml --test <dir> --scratch <dir> \\
         [--worker K --workers N] [--processes P]
 
 Exact mutex watershed is one global pass over every edge, and its union-find holds every voxel --
@@ -112,7 +112,7 @@ class Source:
     def _artifact(self) -> Any:
         from dataclasses import replace
 
-        from artifact import open_artifact
+        from mia_evals.artifact import open_artifact
 
         artifact = open_artifact(self.affinities)
         if self.placed_at is None:
@@ -675,7 +675,7 @@ class BlockwiseRun:
         return self._complete(group)
 
     def _complete(self, group: Any) -> Path:
-        from artifact import _shifted_ome
+        from mia_evals.artifact import _shifted_ome
 
         provenance = {"kind": "instances", "background_id": 0, **self.attrs,
                       "mws_blockwise": {**self.plan, **{k: v for k, v in self.stats.items()}}}
@@ -748,7 +748,7 @@ class BlockwiseMutexWatershed(BasePostprocess):
 
     The labelling is built (or finished) in `<--scratch>/mws_blockwise/repulsive_stride<s>/<volume>.zarr`
     with a pool of `processes`, each reading its own block of the artifact, which is also where
-    `python -m postprocess.mws_blockwise` workers build it ahead of the scorer. For a skeleton
+    `python -m mia_evals.postprocess.mws_blockwise` workers build it ahead of the scorer. For a skeleton
     metric the scorer reads back only the chunks under the skeleton's nodes (`lazy`); for a voxel
     metric it reads the whole labelling (`from_artifact`), never the affinities.
 
@@ -826,7 +826,7 @@ class BlockwiseMutexWatershed(BasePostprocess):
 
     def lazy(self, artifact: Any, origin: tuple[int, ...], shape: tuple[int, ...],
              **params: Any) -> Any:
-        from artifact import LazyLabelling, open_artifact
+        from mia_evals.artifact import LazyLabelling, open_artifact
 
         if int(params.get("min_size", 0)):
             raise ValueError(
@@ -885,9 +885,9 @@ class BlockwiseMutexWatershed(BasePostprocess):
 
 def main() -> None:
     """Build a scoring config's blockwise labellings ahead of `mia-evals score`, in parallel."""
-    import components  # noqa: F401  (populates the registries)
-    from config import load_scoring_config
-    from evaluate import build, resolve_artifacts
+    import mia_evals.components  # noqa: F401  (populates the registries)
+    from mia_evals.config import load_scoring_config
+    from mia_evals.evaluate import build, resolve_artifacts
 
     parser = argparse.ArgumentParser(description=main.__doc__)
     parser.add_argument("config", type=Path, help="the scoring config the labellings are for")

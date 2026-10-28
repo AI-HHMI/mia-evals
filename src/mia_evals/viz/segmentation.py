@@ -150,9 +150,9 @@ def main() -> None:
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
 
-    import components  # noqa: F401  (populates the registries)
-    from artifact import open_artifact
-    from postprocess.registry import PostprocessRegistry
+    import mia_evals.components  # noqa: F401  (populates the registries)
+    from mia_evals.artifact import open_artifact
+    from mia_evals.postprocess.registry import PostprocessRegistry
 
     prediction_artifact = open_artifact(args.prediction)
     truth_path = args.prediction.parent / f"{args.prediction.name.removesuffix('.zarr')}.gt.zarr"
@@ -189,7 +189,7 @@ def main() -> None:
     print(f"postprocessing with {note} (3D, then sliced)", flush=True)
     predicted = np.asarray(processor(raw, **params))
     if args.min_size:
-        from postprocess.size_filter import drop_small_components
+        from mia_evals.postprocess.size_filter import drop_small_components
         predicted = drop_small_components(predicted.copy(), args.min_size)
     truth = truth_artifact.read(origin, shape)
 

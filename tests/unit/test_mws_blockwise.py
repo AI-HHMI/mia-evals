@@ -24,9 +24,9 @@ import numpy as np
 import pytest
 import zarr
 
-from artifact import write_artifact
-from postprocess.mws import build_edges, mutex_watershed_reference, segment
-from postprocess.mws_blockwise import (
+from mia_evals.artifact import write_artifact
+from mia_evals.postprocess.mws import build_edges, mutex_watershed_reference, segment
+from mia_evals.postprocess.mws_blockwise import (
     OFFSETS,
     ArraySource,
     BlockwiseRun,
@@ -153,7 +153,7 @@ def _ome_group(path, array, axes, scale, translation, channel=False):
 def test_a_mask_is_placed_by_both_sides_ome_geometry(tmp_path):
     """A 20 x 18 x 18 nm mask on a 20 x 9 x 9 nm lattice that starts two z planes into it: each
     lattice voxel takes the mask voxel its centre falls in, as the zebrafinch neuropil mask is."""
-    from artifact import open_artifact
+    from mia_evals.artifact import open_artifact
 
     rng = np.random.default_rng(0)
     mask = (rng.random((12, 8, 8)) > 0.5).astype(np.uint8)
@@ -235,7 +235,7 @@ def test_the_plan_is_written_once_and_never_replaced(tmp_path):
     """Every worker that finds no plan writes one. Replacing a plan that is there would swap the
     file under a worker on another node reading it, which NFS answers with ESTALE (seen in the
     stress test, 2026-10-05): the first plan stays, the same file, and no temporary is left."""
-    from postprocess.mws_blockwise import _write_json_once
+    from mia_evals.postprocess.mws_blockwise import _write_json_once
 
     path = tmp_path / "plan.json"
     _write_json_once(path, {"plan": 1})
@@ -303,8 +303,8 @@ def test_the_scorer_builds_the_labelling_once_and_reads_only_what_the_skeleton_t
     mia-train's predict.py writes them, as `native_box` (`BaseTask.place`), which the pool
     processes that reopen them must honour too."""
     pytest.importorskip("funlib.evaluate")
-    import evaluate
-    from metrics.skeleton import SkeletonExpectedRunLength
+    from mia_evals import evaluate
+    from mia_evals.metrics.skeleton import SkeletonExpectedRunLength
 
     affinities = _affinities(seed=4)
     origin, box = (5, 6, 7), [[9, 33], [8, 40], [7, 39]]       # the region: inside the artifact
@@ -390,9 +390,9 @@ def test_a_size_filter_is_swept_over_one_watershed_per_region(tmp_path, monkeypa
     """`from_artifact`, the voxel-metric path: every `min_size` candidate reuses the one run on disk,
     so each block is segmented once per region, not once per candidate, and each candidate is the
     unfiltered labelling through `drop_small_components`. A lazy read refuses a size filter."""
-    import postprocess.mws_blockwise as blockwise
-    from artifact import open_artifact
-    from postprocess.size_filter import drop_small_components
+    import mia_evals.postprocess.mws_blockwise as blockwise
+    from mia_evals.artifact import open_artifact
+    from mia_evals.postprocess.size_filter import drop_small_components
 
     processor = blockwise.BlockwiseMutexWatershed(block=(12, 12, 12), min_sizes=[40, 0],
                                                   chunk=CHUNK)
@@ -438,9 +438,9 @@ def test_the_scorer_fits_a_size_filter_over_blockwise_labellings_built_once(tmp_
     """`mia-evals score` on a voxel metric with route mws_blockwise: the labellings are built under
     the scratch directory from the artifacts (never read in memory by the scorer), once per volume
     for the whole sweep, and the scored labelling is the fitted candidate's."""
-    import evaluate
-    import postprocess.mws_blockwise as blockwise
-    from postprocess.size_filter import drop_small_components
+    import mia_evals.postprocess.mws_blockwise as blockwise
+    from mia_evals import evaluate
+    from mia_evals.postprocess.size_filter import drop_small_components
 
     grid = np.indices(SHAPE)
     truth = (grid[0] // 7) * 10_000 + (grid[1] // 9) * 100 + grid[2] // 6   # _affinities' objects

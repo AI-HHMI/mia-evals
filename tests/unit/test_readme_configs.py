@@ -50,8 +50,8 @@ def task_config_blocks() -> list[tuple[int, str]]:
     "line, body", task_config_blocks(), ids=lambda v: f"L{v}" if isinstance(v, int) else ""
 )
 def test_readme_task_config_loads(line, body, tmp_path):
-    import components  # noqa: F401  (populates the registries)
-    from config import load_scoring_config
+    import mia_evals.components  # noqa: F401  (populates the registries)
+    from mia_evals.config import load_scoring_config
 
     # `config_path` in the README is `data/test.yaml`, relative to a task directory, so the example is
     # written into the task directory it describes.

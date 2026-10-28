@@ -5,8 +5,13 @@ Run with `python examples/library_usage.py` after `pip install -e .`.
 
 import numpy as np
 
-from metrics.voxel_instance import contingency, pq_from_table, rand_error_from_table, voi_from_table
-from postprocess.mws import LONG, segment
+from mia_evals.metrics.voxel_instance import (
+    contingency,
+    pq_from_table,
+    rand_error_from_table,
+    voi_from_table,
+)
+from mia_evals.postprocess.mws import LONG, segment
 
 # Ground truth: two slabs along X, 32 X 16 Y 16 Z.
 truth = np.ones((32, 16, 16), dtype=np.int64)

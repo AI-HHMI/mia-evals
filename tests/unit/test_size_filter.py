@@ -18,10 +18,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-import components  # noqa: F401,E402  (populates the registries)
-from postprocess.labellings import Identity  # noqa: E402
-from postprocess.registry import PostprocessRegistry  # noqa: E402
-from postprocess.size_filter import (  # noqa: E402
+import mia_evals.components  # noqa: F401,E402  (populates the registries)
+from mia_evals.postprocess.labellings import Identity  # noqa: E402
+from mia_evals.postprocess.registry import PostprocessRegistry  # noqa: E402
+from mia_evals.postprocess.size_filter import (  # noqa: E402
     FillBases,
     drop_small_components,
     fill_holes,
@@ -38,7 +38,7 @@ def test_size_filter_is_no_longer_a_post_processor_of_its_own():
 
 def test_plain_identity_is_unchanged(tmp_path):
     """Nothing to fit, empty params, both labelling kinds, the unread path for huge labellings."""
-    from artifact import open_artifact, write_artifact
+    from mia_evals.artifact import open_artifact, write_artifact
 
     plain = Identity()
     assert plain.search_space() == [{}]

@@ -6,7 +6,7 @@
 # A cube is 12.2 G voxels, past what exact mutex watershed holds in one process, so the watershed runs in blocks
 # (src/postprocess/mws_blockwise.py; docs/neurite_tracing.md has how far that moves the result from exact). The
 # scorer builds each labelling under <scratch>/mws_blockwise/ when it first needs it; the per-block stage can run on
-# an LSF array beforehand (python -m postprocess.mws_blockwise ... --worker/--workers). NISB is annotated
+# an LSF array beforehand (python -m mia_evals.postprocess.mws_blockwise ... --worker/--workers). NISB is annotated
 # throughout, so no mask. The affinities must cover the whole cube (mia-train's predict.py --cover-box): the box is the
 # cube, as the benchmark scores it.
 # One candidate, so nothing is fitted; [data.fit] is the task's own declaration.
