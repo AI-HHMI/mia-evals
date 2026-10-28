@@ -7,7 +7,7 @@
 # under <scratch>/mws_blockwise/ the first time it is needed; run the per-block stage on an LSF array beforehand to
 # make that fast:
 #
-#   python -m postprocess.mws_blockwise configs/zebrafinch_neurite_tracing/mws_blockwise.toml \
+#   python -m mia_evals.postprocess.mws_blockwise configs/zebrafinch_neurite_tracing/mws_blockwise.toml \
 #       --test <affinities> --scratch <dir> --worker $((LSB_JOBINDEX - 1)) --workers <N>
 #
 # The neuropil mask is applied inside the watershed, so the labelling scored is the protocol's: restricted to the

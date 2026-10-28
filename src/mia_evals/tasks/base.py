@@ -21,7 +21,7 @@ from typing import Any
 
 import numpy as np
 
-from artifact import CANONICAL_FORMS, Artifact
+from mia_evals.artifact import CANONICAL_FORMS, Artifact
 
 
 @dataclass(frozen=True)

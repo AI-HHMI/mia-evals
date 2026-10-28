@@ -21,7 +21,7 @@ import numpy as np
 import pytest
 import zarr
 
-from artifact import LazyLabelling, open_artifact, write_artifact
+from mia_evals.artifact import LazyLabelling, open_artifact, write_artifact
 
 pytestmark = pytest.mark.unit
 
@@ -63,7 +63,7 @@ def _context(tmp_path, axes="zyx"):
 
 def test_positions_are_absolute_and_cropped_to_a_region_not_at_the_origin(tmp_path):
     pytest.importorskip("funlib.evaluate")
-    from metrics.skeleton import SkeletonExpectedRunLength
+    from mia_evals.metrics.skeleton import SkeletonExpectedRunLength
 
     metric = SkeletonExpectedRunLength()
     perfect = metric(_labelling(), _skeleton(), **_context(tmp_path))
@@ -77,7 +77,7 @@ def test_positions_are_absolute_and_cropped_to_a_region_not_at_the_origin(tmp_pa
 
 
 def test_axes_are_compared_before_anything_is_looked_up(tmp_path):
-    from metrics.skeleton import SkeletonExpectedRunLength
+    from mia_evals.metrics.skeleton import SkeletonExpectedRunLength
 
     with pytest.raises(ValueError, match="'zyx' order but the artifact's axes are 'xyz'"):
         SkeletonExpectedRunLength()(_labelling(), _skeleton(), **_context(tmp_path, axes="xyz"))
@@ -104,7 +104,7 @@ def test_a_lazy_labelling_looks_up_exactly_what_the_array_holds(tmp_path):
 
 def test_a_lazy_labelling_scores_exactly_as_the_array_does(tmp_path):
     pytest.importorskip("funlib.evaluate")
-    from metrics.skeleton import SkeletonExpectedRunLength
+    from mia_evals.metrics.skeleton import SkeletonExpectedRunLength
 
     labels = _labelling(split=True)
     lazy = LazyLabelling(open_artifact(_stored(tmp_path, labels)), ORIGIN, SHAPE)
@@ -132,8 +132,8 @@ def _data_config(root: Path, store: Path, name: str) -> Path:
 
 def test_scoring_a_stored_labelling_never_reads_the_region(tmp_path, monkeypatch):
     pytest.importorskip("funlib.evaluate")
-    import artifact as artifact_module
-    import evaluate
+    import mia_evals.artifact as artifact_module
+    from mia_evals import evaluate
 
     name = "cube_test"
     store = tmp_path / "store.zarr"
@@ -186,7 +186,7 @@ def test_scoring_a_stored_labelling_never_reads_the_region(tmp_path, monkeypatch
 
 def _score_stored(tmp_path, write) -> dict:
     """`mia-evals score` over one volume whose artifact `write(directory, name)` puts there."""
-    import evaluate
+    from mia_evals import evaluate
 
     name = "cube_test"
     store = tmp_path / "store.zarr"
@@ -251,8 +251,8 @@ def test_a_prediction_is_scored_where_it_was_predicted(tmp_path, margin):
 
 
 def test_only_a_prediction_on_the_stores_lattice_has_a_place_in_the_volume(tmp_path):
-    from tasks.base import Volume
-    from tasks.segmentation import InstanceSegmentation
+    from mia_evals.tasks.base import Volume
+    from mia_evals.tasks.segmentation import InstanceSegmentation
 
     def stored(name, **attrs):
         return open_artifact(write_artifact(tmp_path / f"{name}.zarr",
@@ -287,7 +287,7 @@ def _funlib_array(path: Path, shape, resolution, offset=(0, 0, 0)):
 def test_a_wrapper_gives_miao_the_geometry_the_release_lacks(tmp_path):
     from miao.zarr_meta import read_ome_metadata
 
-    from truth.common import link, wrap_pyramid
+    from mia_evals.truth.common import link, wrap_pyramid
 
     source = tmp_path / "release"
     _funlib_array(source / "s0", (4, 8, 8), (20, 9, 9))
@@ -309,7 +309,7 @@ def test_a_wrapped_array_keeps_its_world_offset(tmp_path):
     """Hemibrain arrays sit at their place in the brain: the translation carries the offset."""
     from miao.zarr_meta import read_ome_metadata
 
-    from truth.common import wrap_pyramid
+    from mia_evals.truth.common import wrap_pyramid
 
     _funlib_array(tmp_path / "raw", (4, 4, 4), (8, 8, 8), offset=(1600, 800, 8))
     _funlib_array(tmp_path / "mask", (1, 1, 1), (256, 256, 256), offset=(1024, 512, 0))
@@ -323,7 +323,7 @@ def test_a_wrapped_array_keeps_its_world_offset(tmp_path):
 def test_hemibrain_skeletons_lie_inside_their_objects_on_raw_voxels(tmp_path, monkeypatch):
     """Two tubes in a core offset (2, 3, 4) voxels inside its raw: one piece each, nodes inside."""
     pytest.importorskip("kimimaro")
-    import truth.lsd_hemibrain as hb
+    import mia_evals.truth.lsd_hemibrain as hb
 
     roi = tmp_path / "roi_1"
     _funlib_array(roi / "raw", (24, 28, 70), (8, 8, 8), offset=(800, 1600, 3200))
@@ -365,7 +365,7 @@ def test_a_branch_end_is_cut_back_to_its_first_voxel_inside_its_object():
     """Else to its most interior voxel within reach; never past a branch point or an array face."""
     import networkx as nx
 
-    from truth.lsd_hemibrain import inset_tips
+    from mia_evals.truth.lsd_hemibrain import inset_tips
 
     main = [(4, 4, x) for x in range(5, 40)]
     # Thick: the object fills the array from x = 5 on, so x = 4 is its only surface. The end at
@@ -389,7 +389,7 @@ def test_a_branch_end_is_cut_back_to_its_first_voxel_inside_its_object():
 
 def _synthetic_release(monkeypatch, component_ids):
     """LSD's dumps for two 3-node pieces inside the 11 um region, with the given component ids."""
-    import truth.lsd_zebrafinch as zf
+    import mia_evals.truth.lsd_zebrafinch as zf
 
     z0, y0, x0 = (lo for lo, _ in zf.roi_box("11um"))
     nodes = [{"id": i, "z": (z0 + 1) * 20, "y": (y0 + 1 + i // 3 * 5) * 9, "x": (x0 + i % 3) * 9,

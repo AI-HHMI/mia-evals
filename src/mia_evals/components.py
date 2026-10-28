@@ -1,0 +1,21 @@
+"""Imports every concrete implementation so the registries are populated.
+
+A registry decorator only runs when its module is imported, so a scoring config naming
+"cc_threshold" resolves only once this module has been. `evaluate.py` imports it before building
+anything. Adding a component means adding one line here -- the engine and the registries never
+change.
+
+Mirrors `mia-train/src/components.py` deliberately: the two repositories are read by the same
+people, and a convention that holds across both is one less thing to learn.
+"""
+
+from __future__ import annotations
+
+import mia_evals.metrics.semantic  # noqa: F401  (imported for its registration side effect)
+import mia_evals.metrics.skeleton  # noqa: F401  (imported for its registration side effect)
+import mia_evals.metrics.voxel_instance  # noqa: F401  (imported for its registration side effect)
+import mia_evals.postprocess.cc_threshold  # noqa: F401  (imported for its registration side effect)
+import mia_evals.postprocess.labellings  # noqa: F401  (imported for its registration side effect)
+import mia_evals.postprocess.mws  # noqa: F401  (imported for its registration side effect)
+import mia_evals.postprocess.mws_blockwise  # noqa: F401  (imported for its registration side effect)
+import mia_evals.tasks.segmentation  # noqa: F401  (imported for its registration side effect)

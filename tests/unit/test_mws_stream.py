@@ -20,9 +20,9 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-from postprocess.mws import build_edges, mutex_watershed_reference  # noqa: E402
-from postprocess.mws_kernel import mutex_watershed_kernel  # noqa: E402
-from postprocess.mws_stream import (  # noqa: E402
+from mia_evals.postprocess.mws import build_edges, mutex_watershed_reference  # noqa: E402
+from mia_evals.postprocess.mws_kernel import mutex_watershed_kernel  # noqa: E402
+from mia_evals.postprocess.mws_stream import (  # noqa: E402
     EDGE,
     block_records,
     offset_steps,

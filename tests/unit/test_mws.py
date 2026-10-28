@@ -14,8 +14,12 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from postprocess.mws import (
-    LONG, build_edges, count_edges, mutex_watershed_reference, segment,
+from mia_evals.postprocess.mws import (
+    LONG,
+    build_edges,
+    count_edges,
+    mutex_watershed_reference,
+    segment,
 )
 
 pytestmark = pytest.mark.unit
@@ -81,7 +85,7 @@ def test_mws_search_space_is_the_cross_product_and_names_min_size():
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
-    from postprocess.mws import MutexWatershed
+    from mia_evals.postprocess.mws import MutexWatershed
 
     processor = MutexWatershed(repulsive_strides=[1, 2], min_sizes=[500, 0])
     assert processor.search_space() == [
@@ -98,7 +102,7 @@ def test_mws_default_applies_no_size_filter():
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
-    from postprocess.mws import MutexWatershed
+    from mia_evals.postprocess.mws import MutexWatershed
 
     assert MutexWatershed(repulsive_strides=[1]).search_space() == [
         {"repulsive_stride": 1, "min_size": 0}
@@ -153,7 +157,7 @@ def test_segment_reproduces_the_reference_partition(monkeypatch, tmp_path, seed,
     else:
         # Small blocks, so every volume here is several blocks per axis and the per-block stride
         # subsampling has to line up with the whole-volume one (the block is a multiple of it).
-        from postprocess import mws as module
+        from mia_evals.postprocess import mws as module
         monkeypatch.setattr(module, "STREAM_BLOCK", 8)
         labels = segment(aff, stride, max_in_memory_edges=0, scratch=tmp_path, info=info)
         assert info["implementation"] == "compiled kernel, edges streamed through disk"
@@ -183,7 +187,7 @@ def test_streaming_without_a_scratch_directory_is_refused():
 
 
 def test_the_postprocessor_streams_through_its_scratch_and_says_so(tmp_path):
-    from postprocess.mws import MutexWatershed
+    from mia_evals.postprocess.mws import MutexWatershed
 
     aff = _float16_affinities((10, 10, 10), 1)
     in_memory = MutexWatershed(repulsive_strides=[1])
@@ -199,8 +203,8 @@ def test_the_postprocessor_streams_through_its_scratch_and_says_so(tmp_path):
 
 # --- growing the segments back into the size filter's holes --------------------------------------
 
-from postprocess import mws as mws_module  # noqa: E402
-from postprocess.mws import MutexWatershed  # noqa: E402
+from mia_evals.postprocess import mws as mws_module  # noqa: E402
+from mia_evals.postprocess.mws import MutexWatershed  # noqa: E402
 
 
 def test_fill_distances_join_the_sweep_innermost_and_name_themselves():
@@ -245,10 +249,10 @@ def test_affinities_declaring_another_layout_are_refused(tmp_path):
     routes read channel i as one fixed offset; a different neighbourhood, or the same one in another
     order -- what a transposed prediction would declare -- must be refused, not watershed as the
     wrong edges. An artifact declaring nothing is read as before."""
-    from artifact import open_artifact, write_artifact
-    from postprocess.cc_threshold import ConnectedComponentThreshold
-    from postprocess.mws import MutexWatershed
-    from postprocess.mws_blockwise import BlockwiseMutexWatershed
+    from mia_evals.artifact import open_artifact, write_artifact
+    from mia_evals.postprocess.cc_threshold import ConnectedComponentThreshold
+    from mia_evals.postprocess.mws import MutexWatershed
+    from mia_evals.postprocess.mws_blockwise import BlockwiseMutexWatershed
 
     affinities = np.zeros((6, 4, 4, 4), dtype=np.float16)
     six = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [10, 0, 0], [0, 10, 0], [0, 0, 10]]

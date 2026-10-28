@@ -1,6 +1,6 @@
 """The LSD paper's hemibrain ellipsoid-body neurite tracing benchmark, as mia-evals benchmark data.
 
-    python -m truth.lsd_hemibrain --out /groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd
+    python -m mia_evals.truth.lsd_hemibrain --out /groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd
 
 Sheridan et al. 2023 (Nat Methods 20:295) scored hemibrain segmentations on three cubes in the
 ellipsoid body -- 12, 22 and 17 um, the release's roi_1, roi_2 and roi_3 -- against voxel ground
@@ -266,7 +266,7 @@ def skeletonise(
     """Every object of a label array, skeletonised; `id` is the object.
 
     `box` is where the array lies in the image the skeletons index ([lo, hi) per axis, z, y, x),
-    so node positions count in that image's voxels. truth.lmd_hemibrain uses it too.
+    so node positions count in that image's voxels. mia_evals.truth.lmd_hemibrain uses it too.
     """
     import itertools
     from collections import defaultdict
@@ -426,7 +426,7 @@ def verify(wrappers: dict[str, Path], ffn: dict[str, dict[str, Any]]) -> dict[st
     """Read everything back the way its consumers will: miao for the wrappers, mia-evals for FFN."""
     from miao.zarr_meta import read_ome_metadata
 
-    from artifact import open_artifact
+    from mia_evals.artifact import open_artifact
 
     report: dict[str, Any] = {}
     for roi, wrapper in wrappers.items():
@@ -470,14 +470,14 @@ def main() -> None:
               f"{stats['nodes']} nodes, {stats['components']} pieces, {stats['cable_mm']:.3f} mm, "
               f"perfect ERL {stats['perfect_erl_um']:.2f} um", flush=True)
 
-    from report.record import git_commit
+    from mia_evals.report.record import git_commit
 
     manifest_path = out / "manifest.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
     manifest.update({
         "built": date.today().isoformat(),
-        "command": [Path(sys.executable).name, "-m", "truth.lsd_hemibrain", *sys.argv[1:]],
-        "mia_evals_commit": git_commit(Path(__file__).resolve().parents[2]),
+        "command": [Path(sys.executable).name, "-m", "mia_evals.truth.lsd_hemibrain", *sys.argv[1:]],
+        "mia_evals_commit": git_commit(Path(__file__).resolve().parents[3]),
         "release": str(RELEASE),
         "public_sources": {"everything": "s3://open-neurodata/funke/hemi/ (the 'Data download' "
                                          "notebook of https://github.com/funkelab/lsd)"},
@@ -496,7 +496,7 @@ def main() -> None:
 
 README = """# hemibrain_eb_lsd -- mia-evals benchmark data
 
-Built by `python -m truth.lsd_hemibrain --out {out}` from the mia-evals repository;
+Built by `python -m mia_evals.truth.lsd_hemibrain --out {out}` from the mia-evals repository;
 `manifest.json` records the command, commit, sources, kimimaro settings and hashes. Nothing here
 copies the release: raw, labels and mask are symlinks into /nrs/funke/sheridana (read-only, not
 ours); the public copy is listed in the manifest.

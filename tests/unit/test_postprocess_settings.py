@@ -14,8 +14,8 @@ SCORING = sorted(glob.glob(str(ROOT / "configs" / "*" / "*.toml")))
 def test_a_setting_of_another_route_is_refused():
     """`repulsive_strides` is mws's. cc_threshold once kept a key it did not take (`fill_distances`,
     before it took one) and ran without it (2026-09-29)."""
-    import components  # noqa: F401
-    from postprocess.registry import PostprocessRegistry
+    import mia_evals.components  # noqa: F401
+    from mia_evals.postprocess.registry import PostprocessRegistry
 
     with pytest.raises(ValueError, match=r"unknown key\(s\) \['repulsive_strides'\]"):
         PostprocessRegistry.build("cc_threshold", repulsive_strides=[1])
@@ -23,8 +23,8 @@ def test_a_setting_of_another_route_is_refused():
 
 @pytest.mark.unit
 def test_a_postprocessor_without_settings_refuses_any():
-    import components  # noqa: F401
-    from postprocess.registry import PostprocessRegistry
+    import mia_evals.components  # noqa: F401
+    from mia_evals.postprocess.registry import PostprocessRegistry
 
     with pytest.raises(ValueError, match="it takes none"):
         PostprocessRegistry.build("argmax", min_sizes=[0])
@@ -35,9 +35,9 @@ def test_a_postprocessor_without_settings_refuses_any():
 def test_every_scoring_config_builds_its_postprocessor(path):
     from conftest import needs_newer_miao
 
-    import components  # noqa: F401
-    from config import load_scoring_config
-    from postprocess.registry import PostprocessRegistry
+    import mia_evals.components  # noqa: F401
+    from mia_evals.config import load_scoring_config
+    from mia_evals.postprocess.registry import PostprocessRegistry
 
     try:
         config = load_scoring_config(Path(path))

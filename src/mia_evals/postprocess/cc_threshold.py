@@ -146,7 +146,7 @@ class ConnectedComponentThreshold(BasePostprocess):
         """The thresholded, size-filtered components, before any fill."""
         # Imported here, not at module scope: numba compiles the pass on first call, which neither
         # `--help` nor a test that only checks the search space should pay for.
-        from utils.connected_components import compute_connected_component_segmentation
+        from mia_evals.utils.connected_components import compute_connected_component_segmentation
 
         logit = float(params["logit"])
         if array.shape[0] < self.short_range_channels:

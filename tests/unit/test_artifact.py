@@ -5,14 +5,14 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from artifact import KINDS, open_artifact, write_artifact
+from mia_evals.artifact import KINDS, open_artifact, write_artifact
 
 pytestmark = pytest.mark.unit
 
 
 def test_every_kind_declares_a_canonical_form():
     """A kind with no canonical form could be postprocessed into either, unchecked."""
-    from artifact import CANONICAL_FORMS
+    from mia_evals.artifact import CANONICAL_FORMS
 
     for kind, spec in KINDS.items():
         assert spec["canonical"] in CANONICAL_FORMS, kind
@@ -233,7 +233,7 @@ def test_a_plain_labelling_is_kept_with_the_stores_geometry(tmp_path):
     """
     import zarr
 
-    from artifact import store_ome, write_scored
+    from mia_evals.artifact import store_ome, write_scored
 
     raw = zarr.open_group(str(tmp_path / "ts.zarr"), mode="w", zarr_format=3).create_group("raw")
     axes = [{"name": "t", "type": "time", "unit": "millisecond"}, {"name": "c", "type": "channel"}]
@@ -262,7 +262,7 @@ def test_a_plain_labelling_is_kept_with_the_stores_geometry(tmp_path):
 
 def test_a_scored_labelling_keeps_the_source_geometry_and_shifts_to_its_region(tmp_path):
     """The voxels a row was scored on, written so a viewer places them where the artifact was."""
-    from artifact import open_artifact, write_scored
+    from mia_evals.artifact import open_artifact, write_scored
 
     labels = np.arange(4 * 6 * 8, dtype=np.int64).reshape(4, 6, 8) % 7
     like = _ome_group(tmp_path / "pred.zarr", np.ones((4, 6, 8), dtype=np.uint32),

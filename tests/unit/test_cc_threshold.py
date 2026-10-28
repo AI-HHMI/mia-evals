@@ -15,7 +15,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-from postprocess.cc_threshold import (  # noqa: E402
+from mia_evals.postprocess.cc_threshold import (  # noqa: E402
     ConnectedComponentThreshold,
     drop_small_components,
 )
@@ -137,7 +137,7 @@ def test_describe_names_the_fill_when_it_is_active():
 
 
 def test_a_fill_grows_the_components_and_computes_them_once_for_every_distance(monkeypatch):
-    from postprocess.size_filter import fill_holes
+    from mia_evals.postprocess.size_filter import fill_holes
 
     components = np.zeros((1, 3, 9), dtype=np.uint32)
     components[0, :, 0:3] = 1

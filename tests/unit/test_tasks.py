@@ -15,10 +15,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-import components  # noqa: F401,E402  (populates the registries)
-from artifact import write_artifact  # noqa: E402
-from tasks.base import Volume  # noqa: E402
-from tasks.registry import TaskRegistry  # noqa: E402
+import mia_evals.components  # noqa: F401,E402  (populates the registries)
+from mia_evals.artifact import write_artifact  # noqa: E402
+from mia_evals.tasks.base import Volume  # noqa: E402
+from mia_evals.tasks.registry import TaskRegistry  # noqa: E402
 
 CUBE = "/groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/val/seed100.zarr"
 
@@ -35,7 +35,7 @@ def make_artifact(tmp_path: Path, origin=(1024, 1024, 384), shape=(64, 64, 64), 
 
 
 def context_for(tmp_path, volume, **attrs):
-    from artifact import open_artifact
+    from mia_evals.artifact import open_artifact
 
     path = make_artifact(tmp_path, **attrs)
     task = TaskRegistry.build("instance_seg", truth_kind="skeleton")

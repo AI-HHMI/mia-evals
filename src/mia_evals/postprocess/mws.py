@@ -51,8 +51,8 @@ from typing import Any
 import numpy as np
 
 from .base import BasePostprocess
-from .registry import PostprocessRegistry
 from .mws_kernel import compact_roots, finalize, initial_capacities, make_state, run_edges
+from .registry import PostprocessRegistry
 from .size_filter import drop_small_components, fill_holes, nearest_segment
 
 SHORT_OFFSETS = ((1, 0, 0), (0, 1, 0), (0, 0, 1))
@@ -238,7 +238,7 @@ def _streamed(
     affinities: np.ndarray, repulsive_stride: int, scratch: Path
 ) -> tuple[np.ndarray, dict[str, Any]]:
     """The edges written to disk in priority bands and fed to the same kernel band by band."""
-    from .mws_stream import segment_streaming      # imports this module's offsets
+    from .mws_stream import segment_streaming  # imports this module's offsets
 
     shape = tuple(int(s) for s in affinities.shape[1:])
     block = max(repulsive_stride, (STREAM_BLOCK // repulsive_stride) * repulsive_stride)

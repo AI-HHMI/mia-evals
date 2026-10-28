@@ -1,6 +1,6 @@
 # hemibrain_al_neurite_tracing -- lmd's hemibrain crop-004 in the right alpha lobe, reported as [data].
 #
-# One 8 um cube at 8 nm (1000^3, 1.0 gigavoxels). The store is built by `python -m truth.lmd_hemibrain` (its
+# One 8 um cube at 8 nm (1000^3, 1.0 gigavoxels). The store is built by `python -m mia_evals.truth.lmd_hemibrain` (its
 # manifest.json says what was built from what): `raw` is the hemibrain image over the cube plus 200 voxels of
 # context on every side, and the bounding box is the cube in raw's voxels. The ground truth is each listed
 # neuron's largest piece (skeletons/<volume>_largest_piece.pkl in the store). No validation set, so nothing is

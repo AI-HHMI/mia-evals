@@ -93,7 +93,7 @@ glycogen, actin, centrioles, insulin granules, plant organelles).
 
 ## Splits
 
-`python -m truth.cellmap --configs configs` regenerates every data and scoring config of both tasks
+`python -m mia_evals.truth.cellmap --configs configs` regenerates every data and scoring config of both tasks
 from the stores. The split is deterministic given its seed (0), and the builder states its rules.
 
 - **Complete crops only in test.** 224 of the 287 crops annotate all 48 classes. In the others, a 0

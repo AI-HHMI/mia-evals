@@ -16,8 +16,8 @@ SCORING = sorted(glob.glob(str(ROOT / "configs" / "*" / "*.toml")))
 def test_scoring_config_lives_in_its_task_directory_named_for_what_it_runs(path):
     from conftest import needs_newer_miao
 
-    import components  # noqa: F401
-    from config import load_scoring_config
+    import mia_evals.components  # noqa: F401
+    from mia_evals.config import load_scoring_config
 
     try:
         config = load_scoring_config(Path(path))

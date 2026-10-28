@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from report.links import (
+from mia_evals.report.links import (
     FALLBACK_RULES,
     FILEGLANCER,
     NEUROGLANCER,
@@ -97,7 +97,7 @@ def test_the_cell_links_what_exists_marks_what_is_gone_and_omits_what_was_never_
 
 @pytest.mark.unit
 def test_absence_counts_as_missing_only_where_the_storage_is_mounted(tmp_path):
-    from report.links import known_missing, mount_root
+    from mia_evals.report.links import known_missing, mount_root
 
     assert mount_root("/nrs/scicompsoft/orhane/x/y.zarr") == Path("/nrs/scicompsoft")
     assert mount_root("/groups/scicompsoft/home/orhane/p") == Path("/groups/scicompsoft/home")
@@ -166,7 +166,7 @@ def test_the_state_places_three_layers_and_centres_on_the_prediction(tmp_path):
     assert state["dimensions"] == {"z": [8e-9, "m"], "y": [8e-9, "m"], "x": [8e-9, "m"]}
     # Raised memory budgets travel with every view: at the viewer's 1 GB / 2 GB defaults our
     # single-level 256^3 segmentation chunks do not all fit and show as holes.
-    from report.links import GPU_MEMORY_LIMIT, SYSTEM_MEMORY_LIMIT
+    from mia_evals.report.links import GPU_MEMORY_LIMIT, SYSTEM_MEMORY_LIMIT
     assert (state["gpuMemoryLimit"], state["systemMemoryLimit"]) == (
         GPU_MEMORY_LIMIT, SYSTEM_MEMORY_LIMIT) == (4_000_000_000, 8_000_000_000)
     # centre = translation / voxel + shape / 2, in the state's own (voxel) units
@@ -323,8 +323,8 @@ def test_share_keys_come_from_the_untracked_file(tmp_path):
 
 @pytest.mark.unit
 def test_html_views_page_has_clickable_links_in_leaderboard_order(tmp_path):
-    from report.leaderboard import render_views
-    from report.record import Submission
+    from mia_evals.report.leaderboard import render_views
+    from mia_evals.report.record import Submission
 
     def submission(label, value, artifact):
         return Submission(
@@ -336,7 +336,7 @@ def test_html_views_page_has_clickable_links_in_leaderboard_order(tmp_path):
             label=label,
         )
 
-    from report.links import record_views
+    from mia_evals.report.links import record_views
 
     covered = _ome_artifact(tmp_path / "vol.zarr")
     keys = {**KEYS, str(tmp_path): "TMPKEY"}
@@ -363,8 +363,8 @@ def test_views_dir_task_placeholder_puts_each_page_in_its_task_directory(tmp_pat
     mia-evals/<task>/, its HTML views page included."""
     import json
 
-    from report.leaderboard import write_views
-    from report.record import Submission
+    from mia_evals.report.leaderboard import write_views
+    from mia_evals.report.record import Submission
 
     covered = _ome_artifact(tmp_path / "vol.zarr")
     (tmp_path / "fileglancer_shares.json").write_text(json.dumps({
@@ -389,8 +389,8 @@ def test_the_task_page_links_its_views_page_and_check_agrees(tmp_path):
     `--check` renders the same text `leaderboard` wrote; without a page there is no link."""
     import json
 
-    from report import leaderboard
-    from report.record import Submission
+    from mia_evals.report import leaderboard
+    from mia_evals.report.record import Submission
 
     covered = _ome_artifact(tmp_path / "vol.zarr")
     (tmp_path / "fileglancer_shares.json").write_text(json.dumps({
@@ -425,8 +425,8 @@ def test_the_task_page_links_its_views_page_and_check_agrees(tmp_path):
 def test_html_page_is_written_checked_and_notices_staleness(tmp_path):
     """`write` then `check` agree; a changed page or a new record makes the page stale; the page
     has a model column and falls back to the first task on an unknown #hash."""
-    from report import leaderboard
-    from report.record import Submission
+    from mia_evals.report import leaderboard
+    from mia_evals.report.record import Submission
 
     def add(label, value):
         Submission(
@@ -456,8 +456,8 @@ def test_refresh_views_fills_records_from_the_local_keys(tmp_path):
     keys cover their artifacts; nothing is removed where they do not."""
     import json
 
-    from report import leaderboard
-    from report.record import Submission, load_record
+    from mia_evals.report import leaderboard
+    from mia_evals.report.record import Submission, load_record
 
     covered = _ome_artifact(tmp_path / "vol.zarr")
     row = Submission(

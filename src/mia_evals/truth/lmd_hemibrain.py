@@ -1,10 +1,10 @@
 """lmd's hemibrain crop in the right alpha lobe, as neurite tracing benchmark data.
 
-    python -m truth.lmd_hemibrain --out /groups/miaai/miaai/mia-evals-data/hemibrain_al_lmd
+    python -m mia_evals.truth.lmd_hemibrain --out /groups/miaai/miaai/mia-evals-data/hemibrain_al_lmd
 
 lmd's `crop-004_aL_R_x16000_y28000_z6000` is a 1000^3 cube at 8 nm (8 um) of the hemibrain's right
 alpha lobe, its first voxel at x 16000, y 28000, z 6000 in hemibrain voxels, with the proofread v1.2
-segmentation. This builds its skeleton ground truth the way truth.lsd_hemibrain built the
+segmentation. This builds its skeleton ground truth the way mia_evals.truth.lsd_hemibrain built the
 ellipsoid body's, with the same code for the skeletons:
 
     hemibrain_al_crop004.zarr/         OME-Zarr 0.4 (zarr v2), z, y, x at 8 nm, placed in the brain
@@ -38,7 +38,7 @@ cube has no way to join. Each piece is eroded as LSD's erode_blockwise_3d.py did
 binary_erosion, 2 iterations, border value 1: 2 voxels off every surface, none off the cube's
 faces), here in its bounding box grown by 2 voxels, which holds everything that erosion reads; the
 result is their whole-array loop's (tests/unit/test_lmd_hemibrain.py). Then
-truth.lsd_hemibrain.skeletonise, unchanged: kimimaro's TEASAR, pieces under 1,000 voxels dropped,
+mia_evals.truth.lsd_hemibrain.skeletonise, unchanged: kimimaro's TEASAR, pieces under 1,000 voxels dropped,
 branch ends inset 2 voxels, a node every 16 path voxels. The cube is one 1024^3 block, so nothing
 is stitched. Every node also carries `body_id`, its hemibrain body.
 
@@ -221,7 +221,7 @@ def largest_pieces(graph: nx.Graph, voxels: dict[int, int]) -> nx.Graph:
 
 
 def statistics(graph: nx.Graph) -> dict[str, Any]:
-    """truth.lsd_hemibrain.skeletonise's statistics of a skeleton set, from the graph alone."""
+    """mia_evals.truth.lsd_hemibrain.skeletonise's statistics of a skeleton set, from the graph alone."""
     lengths: dict[int, float] = defaultdict(float)
     for u, v in graph.edges:
         a, b = graph.nodes[u], graph.nodes[v]
@@ -378,12 +378,12 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
     built = build(out)
 
-    from report.record import git_commit
+    from mia_evals.report.record import git_commit
 
     manifest = {
         "built": date.today().isoformat(),
-        "command": [Path(sys.executable).name, "-m", "truth.lmd_hemibrain", *sys.argv[1:]],
-        "mia_evals_commit": git_commit(Path(__file__).resolve().parents[2]),
+        "command": [Path(sys.executable).name, "-m", "mia_evals.truth.lmd_hemibrain", *sys.argv[1:]],
+        "mia_evals_commit": git_commit(Path(__file__).resolve().parents[3]),
         "sources": {"lmd_store": str(STORE), "lmd_labels": str(LABELS), "image": IMAGE,
                     "image_as_lmd_names_it": SOURCE_URL, "traced_list": TRACED_URL,
                     "traced_list_sha256": TRACED_SHA256},
@@ -406,7 +406,7 @@ def main() -> None:
 
 README = """# hemibrain_al_lmd -- mia-evals benchmark data
 
-Built by `python -m truth.lmd_hemibrain --out {out}` from the mia-evals
+Built by `python -m mia_evals.truth.lmd_hemibrain --out {out}` from the mia-evals
 repository; `manifest.json` records the command, commit, sources, settings and hashes, and the
 builder's docstring explains each choice. Used by the mia-evals task `hemibrain_al_neurite_tracing`.
 
@@ -414,7 +414,7 @@ builder's docstring explains each choice. Used by the mia-evals task `hemibrain_
 `crop-004_aL_R_x16000_y28000_z6000`: a 1000^3 cube at 8 nm (8 um) in the right alpha lobe of the
 mushroom body, its first voxel at x 16000, y 28000, z 6000 in hemibrain voxels. The neurons are the
 hemibrain v1.2 proofread segmentation's bodies with status Traced, and the skeletons are made the
-way `hemibrain_eb_lsd`'s were, by the same code (`truth.lsd_hemibrain.skeletonise`).
+way `hemibrain_eb_lsd`'s were, by the same code (`mia_evals.truth.lsd_hemibrain.skeletonise`).
 
 ## Files
 

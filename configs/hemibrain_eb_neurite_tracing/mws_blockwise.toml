@@ -5,7 +5,7 @@
 # The three regions are 3.2, 20.2 and 9.3 gigavoxels, past what one process can watershed exactly for the larger two,
 # so the watershed runs in blocks (src/postprocess/mws_blockwise.py; measured against exact mutex watershed in
 # docs/neurite_tracing.md). The scorer builds each labelling under <scratch>/mws_blockwise/ the first time it is
-# needed; `python -m postprocess.mws_blockwise` runs the per-block stage on an LSF array beforehand. The
+# needed; `python -m mia_evals.postprocess.mws_blockwise` runs the per-block stage on an LSF array beforehand. The
 # ellipsoid-body mask is applied inside the watershed, as the release's ground truth and FFN's reference are
 # restricted to it. Predict over each region plus a margin of at least 3/4 of a patch per side (the stores' raw
 # carries 200 voxels of context). One candidate, so nothing is fitted.

@@ -362,7 +362,7 @@ A new task, meaning a new leaderboard table, needs no code if it uses an existin
    task's data config must have exactly the same entry; `pytest -m unit` checks these rules.
 2. **Check the ground truth:** It must be where the task's `truth_kind` reads it (see [Tasks](#tasks)),
    for example a `label_key` and `bounding_box` for each volume when `truth_kind = "instances"`. Data
-   that cannot be read as released gets a builder under `src/truth/` (`python -m truth.<dataset>`).
+   that cannot be read as released gets a builder under `src/mia_evals/truth/` (`python -m mia_evals.truth.<dataset>`).
 3. **Settle the task before scoring it:** The first record fixes the task: its test volumes with their
    ground truth, its ranking metric, and the region scored in each volume, which follows from how the
    predictions were tiled. Later records that differ are refused, so changing any of these afterwards
@@ -380,17 +380,17 @@ A task that needs a new task type, post-processor or metric also needs code; see
 
 | path | contents |
 | --- | --- |
-| `src/artifact.py` | reads a prediction artifact and its self-describing attributes |
-| `src/config.py` | parses and validates a scoring config |
-| `src/evaluate.py` | the `mia-evals` command: the scoring engine and the CLI |
-| `src/components.py` | imports every implementation so the registries populate |
-| `src/tasks/` | ground truth and scored region, per task type |
-| `src/postprocess/` | artifact kind to canonical form, including the mutex watershed |
-| `src/metrics/` | the metrics, each declaring its own primary key and direction |
-| `src/report/` | the record format, the leaderboard renderer, and the fileglancer / neuroglancer links |
-| `src/viz/` | the two figure commands |
-| `src/truth/` | builds a task's benchmark data from a public release (`python -m truth.<dataset>`) |
-| `src/utils/` | two modules recycled verbatim from BANIS; see `ACKNOWLEDGEMENTS.md` |
+| `src/mia_evals/artifact.py` | reads a prediction artifact and its self-describing attributes |
+| `src/mia_evals/config.py` | parses and validates a scoring config |
+| `src/mia_evals/evaluate.py` | the `mia-evals` command: the scoring engine and the CLI |
+| `src/mia_evals/components.py` | imports every implementation so the registries populate |
+| `src/mia_evals/tasks/` | ground truth and scored region, per task type |
+| `src/mia_evals/postprocess/` | artifact kind to canonical form, including the mutex watershed |
+| `src/mia_evals/metrics/` | the metrics, each declaring its own primary key and direction |
+| `src/mia_evals/report/` | the record format, the leaderboard renderer, and the fileglancer / neuroglancer links |
+| `src/mia_evals/viz/` | the two figure commands |
+| `src/mia_evals/truth/` | builds a task's benchmark data from a public release (`python -m mia_evals.truth.<dataset>`) |
+| `src/mia_evals/utils/` | two modules recycled verbatim from BANIS; see `ACKNOWLEDGEMENTS.md` |
 | `configs/<task_name>/` | one directory per task: `<route>.toml` scoring configs (task + splits + post-processing route) and `data/{test,fit}.yaml`, the `miao` data configs of that task |
 | `docs/controls.md` | control experiments: baseline task metric scores without a model |
 | `docs/neurite_tracing.md` | the zebrafinch neurite tracing tasks: protocol, published numbers, data, how to submit |
@@ -400,7 +400,7 @@ A task that needs a new task type, post-processor or metric also needs code; see
 ## Extending `mia-evals`
 
 Adding a post-processor, a metric or a task requires writing one class, decorating it with the 
-relevant registry, and adding one import line to `src/components.py`. The engine and the registries
+relevant registry, and adding one import line to `src/mia_evals/components.py`. The engine and the registries
 themselves never change. A post-processor declares which artifact kinds it `accepts` and which
 canonical form it `produces`, and returns its parameter sweep from `search_space()`; the runner
 handles fitting that sweep on validation. A metric declares its canonical form, its `primary` key
@@ -416,7 +416,7 @@ pytest -m parity        # pins voxel_instance's VOI to funlib.evaluate's numbers
 
 ## Licence
 
-MIT, and MIT upstream. Two modules in `src/utils/` are used verbatim from BANIS, whose notice travels
+MIT, and MIT upstream. Two modules in `src/mia_evals/utils/` are used verbatim from BANIS, whose notice travels
 with them in [`third_party_licenses/banis-MIT.txt`](third_party_licenses/banis-MIT.txt). See
 [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md) for what was recycled, from whom, and why those two files
 must not be tidied.

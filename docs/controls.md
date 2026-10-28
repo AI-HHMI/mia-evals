@@ -138,7 +138,7 @@ four decimals — and independently re-fitted `min_size` to the same 50000 the p
 **Mutex watershed contributes nothing on its own.** Its entire value is reading a model's output
 better than thresholded components does: 0.2287 against 0.1420 on *identical* affinities, and
 0.0000 with none. Concretely it exploits the three long-range channels that a threshold discards,
-which is the argument in `src/postprocess/mws.py`, now with a floor under it.
+which is the argument in `src/mia_evals/postprocess/mws.py`, now with a floor under it.
 
 **`rolled` clears panoptic quality of the charge that mattered.** Its field carries the model's
 exact per-channel distribution and yields 58,473 and 33,984 segments against the model's 57,542 and

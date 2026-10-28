@@ -9,8 +9,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-import components  # noqa: F401  (populates the registries)
-from metrics.semantic import Semantic
+import mia_evals.components  # noqa: F401  (populates the registries)
+from mia_evals.metrics.semantic import Semantic
 
 pytestmark = pytest.mark.unit
 

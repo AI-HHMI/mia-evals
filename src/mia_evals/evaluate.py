@@ -28,26 +28,26 @@ from typing import Any
 
 import numpy as np
 
-from artifact import Artifact, open_artifact, store_ome, write_scored
-from config import ScoringConfig, load_scoring_config
-from metrics.base import BaseMetric
-from postprocess.base import BasePostprocess
-from report import leaderboard, record
-from report.record import Submission, git_commit
-from tasks.base import BaseTask, Volume
+from mia_evals.artifact import Artifact, open_artifact, store_ome, write_scored
+from mia_evals.config import ScoringConfig, load_scoring_config
+from mia_evals.metrics.base import BaseMetric
+from mia_evals.postprocess.base import BasePostprocess
+from mia_evals.report import leaderboard, record
+from mia_evals.report.record import Submission, git_commit
+from mia_evals.tasks.base import BaseTask, Volume
 
 #: Where this module was installed from. Used only to look up `mia-evals`' own git commit for a
 #: record's provenance, which is a property of the source and not of the working directory. There
 #: is no `.git` under a non-editable install, and `git_commit` reports "unavailable" for that.
-_REPO_ROOT = Path(__file__).resolve().parents[1]
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _leaderboard_root() -> Path:
     """The `leaderboard/` directory the CLI defaults to, for records and the rendered table.
 
-    This used to be `Path(__file__).parents[1] / "leaderboard"` unconditionally, which is correct
+    This used to be `Path(__file__).parents[2] / "leaderboard"` unconditionally, which is correct
     for a source checkout or an editable install but wrong for a plain `pip install .`: there
-    `__file__` is `<venv>/lib/pythonX.Y/site-packages/evaluate.py`, so the default became
+    `__file__` is `<venv>/lib/pythonX.Y/site-packages/mia_evals/evaluate.py`, so the default became
     `<venv>/lib/pythonX.Y/leaderboard`. `mia-evals leaderboard` then compared a table that did not
     exist, and `mia-evals score` would have written git-tracked records into site-packages.
 
@@ -55,7 +55,7 @@ def _leaderboard_root() -> Path:
     the right fallback. The checkout still wins when this module is running from one, which keeps
     an editable install usable from any directory.
     """
-    beside_source = Path(__file__).resolve().parents[1] / "leaderboard"
+    beside_source = Path(__file__).resolve().parents[2] / "leaderboard"
     return beside_source if beside_source.is_dir() else Path.cwd() / "leaderboard"
 
 
@@ -64,10 +64,10 @@ DEFAULT_LEADERBOARD = _leaderboard_root()
 
 def build(config: ScoringConfig) -> tuple[BaseTask, BasePostprocess, dict[str, BaseMetric]]:
     """Instantiate the task, postprocessor and metrics the config names, and check they compose."""
-    import components  # noqa: F401  (populates the registries)
-    from metrics.registry import MetricRegistry
-    from postprocess.registry import PostprocessRegistry
-    from tasks.registry import TaskRegistry
+    import mia_evals.components  # noqa: F401  (populates the registries)
+    from mia_evals.metrics.registry import MetricRegistry
+    from mia_evals.postprocess.registry import PostprocessRegistry
+    from mia_evals.tasks.registry import TaskRegistry
 
     task = TaskRegistry.build(config.task.name, **config.task.kwargs)
     processor = PostprocessRegistry.build(config.postprocess.name, **config.postprocess.kwargs)
@@ -453,7 +453,7 @@ def cmd_score(args: argparse.Namespace) -> None:
     # The row's neuroglancer views, from this machine's fileglancer key file, into the record --
     # so the task's views page can be rendered from records by whoever hosts it. No keys, no
     # links: the page then marks this row's volumes as missing.
-    from report.links import SHARE_KEYS, load_share_keys, record_views
+    from mia_evals.report.links import SHARE_KEYS, load_share_keys, record_views
 
     keys = load_share_keys(root / SHARE_KEYS)
     if keys:

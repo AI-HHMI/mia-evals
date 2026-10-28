@@ -16,7 +16,7 @@ import numpy as np
 import pytest
 import zarr
 
-from artifact import write_artifact
+from mia_evals.artifact import write_artifact
 
 pytestmark = pytest.mark.unit
 
@@ -107,7 +107,7 @@ def test_scores_an_instance_submission_and_writes_a_record(instances, monkeypatc
         rank_by = "voxel_instance"
         """))
 
-    import evaluate
+    from mia_evals import evaluate
 
     records = tmp_path / "records"
     args = type("Args", (), {
@@ -155,7 +155,7 @@ def test_a_sweep_cannot_be_fitted_on_the_reported_split(instances, tmp_path):
         names = ["voxel_instance"]
         """))
 
-    import evaluate
+    from mia_evals import evaluate
 
     args = type("Args", (), {
         "config": config, "test": affinities, "val": None, "leaderboard": tmp_path / "r",
@@ -188,7 +188,7 @@ def test_an_artifact_predicted_over_another_volume_is_refused(instances, tmp_pat
         rank_by = "voxel_instance"
         """))
 
-    import evaluate
+    from mia_evals import evaluate
 
     def args(test):
         return type("Args", (), {
@@ -231,7 +231,7 @@ def test_incompatible_kind_and_postprocessor_are_refused(instances, tmp_path):
         names = ["voxel_instance"]
         """))
 
-    import evaluate
+    from mia_evals import evaluate
 
     args = type("Args", (), {
         "config": config, "test": scores, "val": None, "leaderboard": tmp_path / "r",
@@ -255,8 +255,8 @@ def test_task_and_metric_canonical_forms_must_agree(instances, tmp_path):
         names = ["voxel_instance"]
         """))
 
-    from config import load_scoring_config
-    from evaluate import build
+    from mia_evals.config import load_scoring_config
+    from mia_evals.evaluate import build
 
     with pytest.raises(ValueError, match="consume something else"):
         build(load_scoring_config(config))
@@ -276,8 +276,8 @@ def test_leaderboard_renders_and_detects_drift(instances, tmp_path):
         names = ["voxel_instance"]
         """))
 
-    import evaluate
-    from report import leaderboard
+    from mia_evals import evaluate
+    from mia_evals.report import leaderboard
 
     root = tmp_path_ / "leaderboard2"
     evaluate.cmd_score(type("Args", (), {
@@ -296,7 +296,7 @@ def test_leaderboard_renders_and_detects_drift(instances, tmp_path):
     record_ = _json.loads(record_path.read_text())
     scored = record_["postprocess"]["scored_artifacts"]
     assert scored and all(Path(p).is_dir() for p in scored.values())
-    from artifact import open_artifact as _open
+    from mia_evals.artifact import open_artifact as _open
     kept = _open(next(iter(scored.values())))
     assert kept.kind == "instances"      # a bare array here, since the fixture's source is one
     output = root / "unit_task" / "README.md"
@@ -346,7 +346,7 @@ def test_a_plain_submission_is_kept_on_the_stores_grid(instances):
         names = ["voxel_instance"]
         """))
 
-    import evaluate
+    from mia_evals import evaluate
 
     root = tmp_path / "board"
     evaluate.cmd_score(type("Args", (), {
@@ -402,7 +402,7 @@ def two_volumes(tmp_path):
 
 def test_each_volume_is_scored_against_its_own_artifact(two_volumes):
     root, config, artifacts = two_volumes
-    import evaluate
+    from mia_evals import evaluate
 
     records = root / "records"
     evaluate.cmd_score(type("Args", (), {
@@ -433,7 +433,7 @@ def test_a_missing_per_volume_artifact_is_refused(two_volumes):
     root, config, artifacts = two_volumes
     import shutil
 
-    import evaluate
+    from mia_evals import evaluate
     shutil.rmtree(artifacts / "beta.zarr")
     with pytest.raises(SystemExit, match="missing an artifact"):
         evaluate.cmd_score(type("Args", (), {
@@ -445,7 +445,7 @@ def test_a_missing_per_volume_artifact_is_refused(two_volumes):
 
 def test_a_single_artifact_is_refused_for_a_multi_volume_task(two_volumes):
     root, config, artifacts = two_volumes
-    import evaluate
+    from mia_evals import evaluate
 
     with pytest.raises(SystemExit, match="single artifact but this task has 2 volumes"):
         evaluate.cmd_score(type("Args", (), {
@@ -458,12 +458,12 @@ def test_a_single_artifact_is_refused_for_a_multi_volume_task(two_volumes):
 
 def test_leaderboard_root_prefers_a_checkout(tmp_path, monkeypatch):
     """A source checkout beside the module wins, so an editable install works from anywhere."""
-    import evaluate
+    from mia_evals import evaluate
 
     monkeypatch.chdir(tmp_path)
     root = evaluate._leaderboard_root()
     # This test suite runs against the checkout, where `<repo>/leaderboard/` exists.
-    assert root == Path(evaluate.__file__).resolve().parents[1] / "leaderboard"
+    assert root == Path(evaluate.__file__).resolve().parents[2] / "leaderboard"
     assert root.is_dir()
     assert root != tmp_path / "leaderboard"
 
@@ -476,7 +476,7 @@ def test_leaderboard_root_falls_back_to_cwd_when_installed(tmp_path, monkeypatch
     `<venv>/lib/pythonX.Y/leaderboard`, so `score` would write git-tracked records into
     site-packages and `leaderboard --check` compared a table that did not exist.
     """
-    import evaluate
+    from mia_evals import evaluate
 
     fake_site_packages = tmp_path / "venv" / "lib" / "python3.14" / "site-packages"
     fake_site_packages.mkdir(parents=True)
@@ -521,7 +521,7 @@ SIZE_FILTER_BODY = textwrap.dedent("""\
 
 
 def test_the_fit_split_is_declared_in_the_task_and_may_not_overlap_the_reported_one(tmp_path):
-    from config import load_scoring_config
+    from mia_evals.config import load_scoring_config
 
     truth, _ = _truth_and_split()
     a = _volume(tmp_path, "alpha", truth)
@@ -574,7 +574,7 @@ def test_a_sweep_is_fitted_on_the_declared_fit_split_and_applied_to_the_test_spl
     write_artifact(val_dir / "beta.zarr", fit_prediction, "instances", background_id=0)
     write_artifact(test_dir / "alpha.zarr", truth.copy(), "instances", background_id=0)
 
-    import evaluate
+    from mia_evals import evaluate
 
     records = tmp_path / "records"
     args = type("Args", (), {
@@ -617,7 +617,7 @@ def test_identity_fits_a_size_filter_and_a_fill_together_over_two_fit_volumes(tm
     """The truth tiles the cube, as cells tile the zebrafish frames, so a fill has no background to
     flood: on both fit volumes only the size filter (the specks) and the fill (the holes, each
     bordered by its own object only) together recover the truth, so the fit must choose both."""
-    import evaluate
+    from mia_evals import evaluate
 
     truth = np.zeros((4, 4, 4), dtype=np.int64)
     truth[:2] = 1

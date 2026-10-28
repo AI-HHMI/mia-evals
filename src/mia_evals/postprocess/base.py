@@ -24,7 +24,7 @@ from typing import Any
 
 import numpy as np
 
-from artifact import CANONICAL_FORMS, KINDS
+from mia_evals.artifact import CANONICAL_FORMS, KINDS
 
 
 class BasePostprocess(abc.ABC):

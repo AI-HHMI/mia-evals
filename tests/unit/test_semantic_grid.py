@@ -16,10 +16,10 @@ import numpy as np
 import pytest
 import zarr
 
-import components  # noqa: F401  (populates the registries)
-from artifact import open_artifact, write_artifact
-from tasks.base import Volume
-from tasks.registry import TaskRegistry
+import mia_evals.components  # noqa: F401  (populates the registries)
+from mia_evals.artifact import open_artifact, write_artifact
+from mia_evals.tasks.base import Volume
+from mia_evals.tasks.registry import TaskRegistry
 
 pytestmark = pytest.mark.unit
 
@@ -222,7 +222,7 @@ def _write_configs(root: Path, store: Path, route: str, postprocess: str) -> Pat
 
 
 def _score(config: Path, artifacts: Path, root: Path) -> dict:
-    import evaluate
+    from mia_evals import evaluate
 
     args = type("Args", (), {
         "config": config, "test": artifacts, "val": None, "leaderboard": root / "board",

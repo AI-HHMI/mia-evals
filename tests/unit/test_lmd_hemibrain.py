@@ -24,7 +24,7 @@ def lsd_erode(labels: np.ndarray) -> np.ndarray:
 @pytest.mark.unit
 def test_erosion_in_grown_bounding_boxes_is_lsds_whole_array_loop():
     """Pieces touching each other, the array's faces and background, thick and one voxel thin."""
-    from truth.lmd_hemibrain import erode, pieces_of
+    from mia_evals.truth.lmd_hemibrain import erode, pieces_of
 
     rng = np.random.default_rng(0)
     labels = np.kron(rng.integers(1, 5, size=(6, 6, 6)), np.ones((5, 5, 5), dtype=np.int64))
@@ -41,7 +41,7 @@ def test_erosion_in_grown_bounding_boxes_is_lsds_whole_array_loop():
 @pytest.mark.unit
 def test_pieces_are_each_bodys_face_connected_components():
     """Corner contact does not join; another body cutting through splits."""
-    from truth.lmd_hemibrain import pieces_of
+    from mia_evals.truth.lmd_hemibrain import pieces_of
 
     labels = np.zeros((8, 8, 8), dtype=np.uint64)
     labels[1:3, 1:3, 1:3] = 7_000_000_007                   # one body, two cubes at a corner
@@ -62,7 +62,7 @@ def test_pieces_are_each_bodys_face_connected_components():
 def test_largest_piece_per_neuron_keeps_one_skeleton_each_unchanged():
     import networkx as nx
 
-    from truth.lmd_hemibrain import largest_pieces
+    from mia_evals.truth.lmd_hemibrain import largest_pieces
 
     graph = nx.Graph()
     graph.graph.update(source="kimimaro", region_box=[[0, 9]] * 3)

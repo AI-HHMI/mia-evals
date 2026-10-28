@@ -17,9 +17,9 @@ dependencies = [
 ]
 
 [project.scripts]
-mia-evals = "evaluate:main"
-mia-evals-viz-affinities = "viz.affinities:main"
-mia-evals-viz-segmentation = "viz.segmentation:main"
+mia-evals = "mia_evals.evaluate:main"
+mia-evals-viz-affinities = "mia_evals.viz.affinities:main"
+mia-evals-viz-segmentation = "mia_evals.viz.segmentation:main"
 
 [project.optional-dependencies]
 dev = [
@@ -40,9 +40,6 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.setuptools]
-py-modules = ["artifact", "components", "config", "evaluate", "registry"]
-
 [tool.pytest.ini_options]
 minversion = "7.0"
 testpaths = ["tests"]
@@ -62,8 +59,8 @@ src = ["src", "tests"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 exclude = [
-    "src/utils/connected_components.py",
-    "src/utils/instance_metrics.py",
+    "src/mia_evals/utils/connected_components.py",
+    "src/mia_evals/utils/instance_metrics.py",
 ]
 
 [tool.mypy]
@@ -75,7 +72,7 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 
 [[tool.mypy.overrides]]
-module = ["utils.connected_components", "utils.instance_metrics"]
+module = ["mia_evals.utils.connected_components", "mia_evals.utils.instance_metrics"]
 ignore_errors = true
 
 [[tool.mypy.overrides]]
