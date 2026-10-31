@@ -23,9 +23,14 @@ fileglancer_shares.json` maps shared directories to their keys; with a share cov
 store and one covering the artifacts, `view_links` emits one neuroglancer state per volume that
 opens the raw image, the prediction and the ground truth together. Alignment is the OME-Zarr
 metadata's job (predict.py writes it; the raw stores have it), so the state carries no transform.
+
+A semantic row's labels are classes, not objects, so its segmentation layers are compared by colour:
+each class gets one colour, the same in the prediction and the truth (`class_colors`), and its name
+from a segment-properties `info` written beside the task's views page (`segment_properties`).
 """
 from __future__ import annotations
 
+import colorsys
 import json
 import os
 import re
@@ -53,6 +58,8 @@ NEUROGLANCER = f"{FILEGLANCER}/neuroglancer/#!"
 GPU_MEMORY_LIMIT = 4_000_000_000
 SYSTEM_MEMORY_LIMIT = 8_000_000_000
 SHARE_KEYS = "fileglancer_shares.json"     # untracked, beside the leaderboard's task directories
+#: Beside a semantic task's views page: the precomputed segment properties naming its classes.
+SEGMENT_PROPERTIES = "segment_properties"
 MISSING = "missing"
 
 #: `(regex over the absolute path, share-name template)` -- the naming rule the published list
@@ -221,6 +228,62 @@ def views_directory(path: Path) -> Path | None:
     return Path(str(target)) if target else None
 
 
+def segment_properties_dir(views_dir: Path, task_name: str) -> Path:
+    """Where a semantic task's class names are written: beside its views page."""
+    return Path(str(views_dir).replace("{task}", task_name)) / SEGMENT_PROPERTIES
+
+
+def semantic_classes(config: dict[str, Any]) -> dict[str, list[int]] | None:
+    """A semantic row's classes as its scoring config states them (name -> the ids its voxels may
+    carry), or None for any other task."""
+    if (config.get("task") or {}).get("name") != "semantic_seg":
+        return None
+    classes = ((config.get("metric_kwargs") or {}).get("semantic") or {}).get("classes")
+    return {str(name): [int(i) for i in ids] for name, ids in classes.items()} if classes else None
+
+
+def class_names(classes: dict[str, list[int]]) -> dict[int, str]:
+    """Each id's name: the class that is that id alone, else the smallest class holding it, which
+    is where a composite's own id sits (CellMap's mito id in `mito`, not in `cell`)."""
+    names: dict[int, str] = {}
+    for name, ids in sorted(classes.items(), key=lambda item: (len(item[1]), item[0])):
+        for i in ids:
+            names.setdefault(i, name)
+    return names
+
+
+def class_colors(classes: dict[str, list[int]]) -> dict[int, str]:
+    """One colour per id, the same in every layer that shows it. Ids are grouped by the smallest
+    class of several ids holding them (`mito` for its membrane, lumen and ribosomes); each group
+    takes a hue a golden angle from the previous one and its ids step through lightness."""
+    by_size = sorted(classes.items(), key=lambda item: (len(item[1]), item[0]))
+    group_of: dict[int, str] = {}
+    for name, ids in [*(c for c in by_size if len(c[1]) > 1), *by_size]:
+        for i in ids:
+            group_of.setdefault(i, name)
+    groups: dict[str, list[int]] = {}
+    for i in sorted(group_of):
+        groups.setdefault(group_of[i], []).append(i)
+    colors = {}
+    for index, members in enumerate(groups.values()):
+        hue = (index * 137.508) % 360 / 360
+        for step, i in enumerate(members):
+            lightness = 0.5 if len(members) == 1 else 0.35 + 0.35 * step / (len(members) - 1)
+            rgb = colorsys.hls_to_rgb(hue, lightness, 0.75)
+            colors[i] = "#" + "".join(f"{round(c * 255):02x}" for c in rgb)
+    return colors
+
+
+def segment_properties(classes: dict[str, list[int]]) -> dict[str, Any]:
+    """Neuroglancer's precomputed segment-properties `info`: each class id's name."""
+    names = class_names(classes)
+    ids = sorted(names)
+    return {"@type": "neuroglancer_segment_properties", "inline": {
+        "ids": [str(i) for i in ids],
+        "properties": [{"id": "label", "type": "label", "values": [names[i] for i in ids]}],
+    }}
+
+
 def share_url(path: str | os.PathLike[str], keys: dict[str, str]) -> str | None:
     """The fileglancer data URL of a file under a shared directory, or None if none covers it.
 
@@ -342,7 +405,9 @@ def neuroglancer_state(raw: str, prediction: str, truth: str | None,
                        name: str, mode: str = "overlay",
                        window: tuple[float, float] | None = None,
                        unfiltered: str | None = None,
-                       pinned: dict[str, tuple[list[Any], float]] | None = None) -> str:
+                       pinned: dict[str, tuple[list[Any], float]] | None = None,
+                       colors: dict[int, str] | None = None,
+                       properties: str | None = None) -> str:
     """A viewer URL over three layers: the raw image, the prediction, the ground truth.
 
     `overlay`: one viewer, the prediction drawn over the raw, the truth present but hidden until
@@ -350,21 +415,27 @@ def neuroglancer_state(raw: str, prediction: str, truth: str | None,
     the left and prediction over raw on the right. Centred on the prediction when its OME
     metadata is readable. Sources use fileglancer's `<url>/|zarr3:` form. `unfiltered`, when
     given, is the producer's output before post-processing, added as a hidden layer. The viewer's
-    memory budgets are raised to `GPU_MEMORY_LIMIT` / `SYSTEM_MEMORY_LIMIT`.
+    memory budgets are raised to `GPU_MEMORY_LIMIT` / `SYSTEM_MEMORY_LIMIT`. `colors` (id -> hex)
+    and `properties` (a segment-properties directory's URL) are a semantic row's: every
+    segmentation layer draws a class in its one colour and names it.
     """
+    def segmentation(source: str, layer: str, **more: Any) -> dict[str, Any]:
+        state: dict[str, Any] = {"type": "segmentation", "source": f"{source}/|zarr3:",
+                                 "name": layer, **more}
+        if properties:
+            state["source"] = [state["source"], f"{properties}/|neuroglancer-precomputed:"]
+        if colors:
+            state["segmentColors"] = {str(i): c for i, c in sorted(colors.items())}
+        return state
+
     image: dict[str, Any] = {"type": "image", "source": f"{raw}/|zarr3:", "name": "raw"}
     if window is not None:
         image["shaderControls"] = {"normalized": {"range": [window[0], window[1]]}}
-    layers: list[dict[str, Any]] = [
-        image,
-        {"type": "segmentation", "source": f"{prediction}/|zarr3:", "name": name},
-    ]
+    layers: list[dict[str, Any]] = [image, segmentation(prediction, name)]
     if truth:
-        layers.append({"type": "segmentation", "source": f"{truth}/|zarr3:", "name": "truth",
-                       "visible": mode == "side_by_side"})
+        layers.append(segmentation(truth, "truth", visible=mode == "side_by_side"))
     if unfiltered:
-        layers.append({"type": "segmentation", "source": f"{unfiltered}/|zarr3:",
-                       "name": "unfiltered", "visible": False})
+        layers.append(segmentation(unfiltered, "unfiltered", visible=False))
     state: dict[str, Any] = {"layers": layers, "selectedLayer": {"visible": True, "layer": name},
                              "gpuMemoryLimit": GPU_MEMORY_LIMIT,
                              "systemMemoryLimit": SYSTEM_MEMORY_LIMIT}
@@ -388,8 +459,8 @@ def neuroglancer_state(raw: str, prediction: str, truth: str | None,
 
 
 def view_entries(producer: dict[str, Any], postprocess: dict[str, Any], config: dict[str, Any],
-                 keys: dict[str, str], label: str, exists: Any = os.path.exists
-                 ) -> list[tuple[str, str, str, bool]]:
+                 keys: dict[str, str], label: str, exists: Any = os.path.exists,
+                 properties: str | None = None) -> list[tuple[str, str, str, bool]]:
     """Per volume: (volume, overlay URL, side-by-side URL, scored?), for the volumes the shares
     cover. The labelling shown is the post-processed one the row was scored on when the record
     names it and it still exists (`scored` True); otherwise the producer's output as written,
@@ -399,12 +470,16 @@ def view_entries(producer: dict[str, Any], postprocess: dict[str, Any], config: 
     task that reads its truth from the store (`truth_kind = "instances"`). A `.gt.zarr` a producer
     left beside its artifact is not what such a task scored, and may carry no geometry to place
     it by. Any other task shows the `<volume>.gt.zarr` beside the producer's artifact, the
-    resampled truth an `instances_resampled` task scores against."""
+    resampled truth an `instances_resampled` task scores against. A semantic row's layers also
+    take its class colours, and `properties`, the URL of its task's class names."""
     volumes = {v["name"]: v for v in (config.get("volumes") or []) if isinstance(v, dict)}
     image_key = (producer.get("artifact_attrs") or {}).get("source_image_key") or "raw"
     scored_paths = postprocess.get("scored_artifacts") or {}
     truth_kind = ((config.get("task") or {}).get("kwargs") or {}).get("truth_kind")
     semantic = (config.get("task") or {}).get("name") == "semantic_seg"
+    classes = semantic_classes(config)
+    colors = class_colors(classes) if classes else None
+    properties = properties if classes else None
     out = []
     for volume, artifact in sorted((producer.get("artifacts") or {}).items()):
         entry = volumes.get(volume) or {}
@@ -440,22 +515,28 @@ def view_entries(producer: dict[str, Any], postprocess: dict[str, Any], config: 
         out.append((
             volume,
             neuroglancer_state(raw, prediction, truth, transform, label, "overlay", window,
-                               unfiltered, pinned),
+                               unfiltered, pinned, colors, properties),
             neuroglancer_state(raw, prediction, truth, transform, label, "side_by_side", window,
-                               unfiltered, pinned),
+                               unfiltered, pinned, colors, properties),
             shown != artifact,
         ))
     return out
 
 
 def record_views(producer: dict[str, Any], postprocess: dict[str, Any], config: dict[str, Any],
-                 keys: dict[str, str], label: str) -> dict[str, dict[str, Any]]:
+                 keys: dict[str, str], label: str,
+                 views_dir: Path | None = None) -> dict[str, dict[str, Any]]:
     """`view_entries` in the form a record stores: volume -> overlay, side-by-side, what is shown.
 
     Computed at scoring time from the *scorer's* key file, because that is the machine whose data
     links cover the artifacts being scored. Empty when no key covers them, which the views page
-    reports as missing rather than inventing a link that would not resolve.
+    reports as missing rather than inventing a link that would not resolve. `views_dir`, the key
+    file's, locates a semantic task's class names (`write_views` writes them there).
     """
+    properties = None
+    if views_dir is not None and semantic_classes(config):
+        names = segment_properties_dir(views_dir, str(config.get("task_name")))
+        properties = share_url(names, keys)
     return {
         volume: {
             "overlay": overlay,
@@ -463,6 +544,6 @@ def record_views(producer: dict[str, Any], postprocess: dict[str, Any], config: 
             "shows": "scored" if is_scored else "before size filter",
         }
         for volume, overlay, side, is_scored in view_entries(
-            producer, postprocess, config, keys, label
+            producer, postprocess, config, keys, label, properties=properties
         )
     }

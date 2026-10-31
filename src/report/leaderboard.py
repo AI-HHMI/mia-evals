@@ -39,6 +39,9 @@ from .links import (
     load_share_keys,
     markdown_links,
     record_views,
+    segment_properties,
+    segment_properties_dir,
+    semantic_classes,
     share_url,
     views_directory,
 )
@@ -193,12 +196,13 @@ def refresh_views(root: Path, task_name: str | None = None) -> list[Path]:
     keys = load_share_keys(root / SHARE_KEYS)
     if not keys:
         return []
+    views_dir = views_directory(root / SHARE_KEYS)
     rewritten = []
     for name in ([task_name] if task_name else task_names(root)):
         for path in sorted(records_dir(root, name).glob("*.json")):
             submission = load_record(path)
             views = record_views(submission.producer, submission.postprocess, submission.config,
-                                 keys, submission.identifier())
+                                 keys, submission.identifier(), views_dir)
             if views and views != submission.views:
                 submission.views = views
                 path.write_text(json.dumps(asdict(submission), indent=2, sort_keys=False) + "\n")
@@ -220,6 +224,12 @@ def write_views(root: Path, task_name: str, submissions: list[Submission]) -> st
     target.mkdir(parents=True, exist_ok=True)
     path = target / f"{task_name}.html"
     path.write_text(page)
+    # A semantic task's views name its classes from here (`links.record_views` points them at it).
+    classes = next((c for s in submissions if (c := semantic_classes(s.config))), None)
+    if classes:
+        names = segment_properties_dir(target, task_name)
+        names.mkdir(parents=True, exist_ok=True)
+        (names / "info").write_text(json.dumps(segment_properties(classes), indent=1) + "\n")
     return share_url(path, keys)
 
 

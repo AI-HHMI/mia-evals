@@ -480,3 +480,95 @@ def test_refresh_views_fills_records_from_the_local_keys(tmp_path):
     assert set(views) == {"vol"} and views["vol"]["shows"] == "before size filter"
     assert views["vol"]["overlay"].startswith("https://fileglancer.int.janelia.org/neuroglancer/#!")
     assert leaderboard.refresh_views(tmp_path) == []          # already current: not rewritten
+
+
+SEMANTIC_CLASSES = {"ecs": [1], "mito_mem": [3], "mito_lum": [4], "mito": [3, 4, 50],
+                    "cell": [3, 4, 50, 60]}
+
+
+def _semantic_config(task: str = "semantic_seg") -> dict:
+    return {"task_name": "t1", "task": {"name": task, "kwargs": {}},
+            "metric_kwargs": {"semantic": {"classes": SEMANTIC_CLASSES}},
+            "volumes": [{"name": "vol", "path": "/groups/miaai/miaai/lmd-v0.0.1/data/s.zarr",
+                         "label_key": "labels/all"}]}
+
+
+@pytest.mark.unit
+def test_a_composites_own_id_is_named_after_the_smallest_class_holding_it():
+    from report.links import class_names, segment_properties
+
+    assert class_names(SEMANTIC_CLASSES) == {1: "ecs", 3: "mito_mem", 4: "mito_lum", 50: "mito",
+                                             60: "cell"}
+    info = segment_properties(SEMANTIC_CLASSES)
+    assert info["@type"] == "neuroglancer_segment_properties"
+    assert info["inline"] == {"ids": ["1", "3", "4", "50", "60"], "properties": [
+        {"id": "label", "type": "label",
+         "values": ["ecs", "mito_mem", "mito_lum", "mito", "cell"]}]}
+
+
+@pytest.mark.unit
+def test_a_semantic_rows_layers_share_one_colour_per_class_and_its_names():
+    """Prediction and truth draw a class alike, an organelle's parts in one hue, and both read the
+    task's class names; any other task's layers stay plain."""
+    import colorsys
+    import json
+    import urllib.parse
+
+    from report.links import class_colors
+
+    artifacts = {"vol": "/nrs/scicompsoft/orhane/mia-train-scratch/x/test/vol.zarr"}
+    names = "https://fileglancer.int.janelia.org/files/K/nrs/x/views/segment_properties"
+    no_gt = lambda p: not str(p).endswith(".gt.zarr")  # noqa: E731
+    (entry,) = view_entries({"artifacts": artifacts, "kind": "class_labels"}, {},
+                            _semantic_config(), KEYS, "arm", exists=no_gt, properties=names)
+    for url in entry[1:3]:
+        state = json.loads(urllib.parse.unquote(url[len(NEUROGLANCER):]))
+        segmentation = [layer for layer in state["layers"] if layer["type"] == "segmentation"]
+        assert [layer["name"] for layer in segmentation] == ["arm", "truth"]
+        for layer in segmentation:
+            assert layer["source"][1] == f"{names}/|neuroglancer-precomputed:"
+            assert layer["segmentColors"] == segmentation[0]["segmentColors"]
+    colors = class_colors(SEMANTIC_CLASSES)
+    assert set(colors) == {1, 3, 4, 50, 60} and len(set(colors.values())) == 5
+    hue = {i: colorsys.rgb_to_hls(*(int(c[k:k + 2], 16) / 255 for k in (1, 3, 5)))[0]
+           for i, c in colors.items()}
+    assert hue[3] == pytest.approx(hue[4], abs=0.01) and hue[3] == pytest.approx(hue[50], abs=0.01)
+    assert abs(hue[3] - hue[1]) > 0.05 and abs(hue[3] - hue[60]) > 0.05
+
+    (entry,) = view_entries({"artifacts": artifacts, "kind": "instances"}, {},
+                            _semantic_config("instance_seg"), KEYS, "arm", exists=no_gt,
+                            properties=names)
+    state = json.loads(urllib.parse.unquote(entry[1][len(NEUROGLANCER):]))
+    assert all("segmentColors" not in layer and isinstance(layer["source"], str)
+               for layer in state["layers"])
+
+
+@pytest.mark.unit
+def test_a_semantic_task_writes_its_class_names_where_its_views_read_them(tmp_path):
+    import json
+    import urllib.parse
+
+    from report.leaderboard import write_views
+    from report.links import record_views, segment_properties_dir
+    from report.record import Submission
+
+    covered = _ome_artifact(tmp_path / "vol.zarr")
+    views_dir = tmp_path / "mia-evals" / "{task}" / "views"
+    keys = {**KEYS, str(tmp_path): "TMPKEY"}
+    (tmp_path / "fileglancer_shares.json").write_text(json.dumps(
+        {"shares": keys, "views_dir": str(views_dir)}))
+    producer = {"artifacts": {"vol": str(covered)}, "kind": "class_labels"}
+    views = record_views(producer, {}, _semantic_config(), keys, "row", views_dir)
+    row = Submission(
+        task_name="t1", producer=producer, scores={},
+        ranking={"metric": "m", "key": "k", "value": 1.0, "higher_is_better": True},
+        postprocess={}, region={}, config=_semantic_config(), label="row", views=views,
+    )
+    write_views(tmp_path, "t1", [row])
+    info = segment_properties_dir(views_dir, "t1") / "info"
+    assert info.parent == tmp_path / "mia-evals" / "t1" / "views" / "segment_properties"
+    assert json.loads(info.read_text())["inline"]["ids"] == ["1", "3", "4", "50", "60"]
+    state = json.loads(urllib.parse.unquote(views["vol"]["overlay"].split("#!", 1)[1]))
+    assert state["layers"][1]["source"][1] == (
+        f"https://fileglancer.int.janelia.org/files/TMPKEY/{str(info.parent).lstrip('/')}"
+        "/|neuroglancer-precomputed:")

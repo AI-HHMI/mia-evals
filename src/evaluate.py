@@ -453,13 +453,13 @@ def cmd_score(args: argparse.Namespace) -> None:
     # The row's neuroglancer views, from this machine's fileglancer key file, into the record --
     # so the task's views page can be rendered from records by whoever hosts it. No keys, no
     # links: the page then marks this row's volumes as missing.
-    from report.links import SHARE_KEYS, load_share_keys, record_views
+    from report.links import SHARE_KEYS, load_share_keys, record_views, views_directory
 
     keys = load_share_keys(root / SHARE_KEYS)
     if keys:
         submission.views = record_views(
             submission.producer, submission.postprocess, submission.config, keys,
-            submission.identifier(),
+            submission.identifier(), views_directory(root / SHARE_KEYS),
         )
     # A task is its test set and its ranking metric. Before this record joins a table, it must be
     # scored on the same thing as the records already there -- otherwise it is a different task
