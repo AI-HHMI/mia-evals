@@ -7,6 +7,7 @@ Every task's table on one sortable page: [https://ai-hhmi.github.io/mia-evals/](
 
 | task | entries | table |
 | --- | --- | --- |
+| `cellmap_organelle_semantic` | 32 | [cellmap_organelle_semantic/README.md](cellmap_organelle_semantic/README.md) |
 | `gary_comparison_neuron_instance` | 23 | [gary_comparison_neuron_instance/README.md](gary_comparison_neuron_instance/README.md) |
 | `hemibrain_eb_neurite_tracing` | 1 | [hemibrain_eb_neurite_tracing/README.md](hemibrain_eb_neurite_tracing/README.md) |
 | `lm_zebrafish_cell_instance` | 6 | [lm_zebrafish_cell_instance/README.md](lm_zebrafish_cell_instance/README.md) |
