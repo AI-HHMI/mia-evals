@@ -7,11 +7,13 @@ one another. Getting it wrong does not look like an error, it looks like a compa
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
 import numpy as np
 import pytest
+import zarr
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
@@ -19,6 +21,7 @@ import components  # noqa: F401,E402  (populates the registries)
 from artifact import write_artifact  # noqa: E402
 from tasks.base import Volume  # noqa: E402
 from tasks.registry import TaskRegistry  # noqa: E402
+from tasks.segmentation import read_labels  # noqa: E402
 
 CUBE = "/groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/val/seed100.zarr"
 
@@ -85,3 +88,15 @@ def test_a_declaration_outranks_a_matching_bounding_box(tmp_path):
 def test_bounding_box_is_compared_when_nothing_is_declared(tmp_path, box, expected):
     volume = Volume(name="v", path=Path(CUBE), bounding_box=box)
     assert context_for(tmp_path, volume)["whole_region"] is expected
+
+
+def test_read_labels_ignores_unknown_keys_in_the_stores_root_metadata(tmp_path):
+    store = tmp_path / "vol.zarr"
+    labels = np.arange(64, dtype=np.uint64).reshape(4, 4, 4)
+    zarr.open_group(str(store), mode="w", zarr_format=3)
+    zarr.create_array(str(store / "labels/inst/s0"), data=labels, zarr_format=3)
+    root = json.loads((store / "zarr.json").read_text())
+    root["_source"] = {"dataset": "hemibrain"}  # the hemibrain crops' root zarr.json has this
+    (store / "zarr.json").write_text(json.dumps(root))
+    volume = Volume(name="v", path=store, label_key="labels/inst")
+    assert np.array_equal(read_labels(volume, (1, 0, 0), (2, 4, 4)), labels[1:3])
