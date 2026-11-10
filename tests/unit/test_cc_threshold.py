@@ -20,6 +20,8 @@ from postprocess.cc_threshold import (  # noqa: E402
     drop_small_components,
 )
 
+pytestmark = pytest.mark.unit
+
 
 def test_min_size_zero_is_the_identity():
     """The default must reproduce records written before the filter existed."""

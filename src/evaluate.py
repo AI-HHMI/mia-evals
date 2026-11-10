@@ -238,7 +238,14 @@ def score_once(
     the truth's grid. Both are the region itself, untouched, except for a task whose truth has a
     grid of its own (`semantic_seg`); its kept copy is the post-processed labelling on the
     prediction's grid, placed by the prediction's geometry.
+
+    Every volume's truth is checked before any volume is post-processed (`BaseTask.check_truth`).
     """
+    for volume in volumes:
+        # Before the first post-processing, not after it: `ground_truth` runs once a volume is
+        # post-processed, which is late to learn that a skeleton is missing or a label array does
+        # not open.
+        task.check_truth(volume, artifacts[volume.name])
     for metric in metric_objects.values():
         # A metric that accumulates must start clean for each candidate, or the second candidate
         # scores against the first one's counts as well as its own.
@@ -348,6 +355,9 @@ def cmd_score(args: argparse.Namespace) -> None:
     for volume in config.volumes:
         check_compatible(test_artifacts[volume.name], processor, task)
         check_same_volume(volume, test_artifacts[volume.name], "--test")
+        # Here as well as in `score_once`, which checks only the split it is scoring: the reported
+        # split's truth should fail before a sweep is fitted on --val, not after it.
+        task.check_truth(volume, test_artifacts[volume.name])
     representative = next(iter(test_artifacts.values()))
     candidates = processor.search_space()
     scratch = Path(args.scratch or (Path(args.test).parent / ".mia_evals_scratch"))

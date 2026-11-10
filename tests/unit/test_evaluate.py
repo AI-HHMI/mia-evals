@@ -9,6 +9,7 @@ fitted on the reported split, and that the rendered table is reproducible from t
 from __future__ import annotations
 
 import json
+import shutil
 import textwrap
 from pathlib import Path
 
@@ -260,6 +261,57 @@ def test_task_and_metric_canonical_forms_must_agree(instances, tmp_path):
 
     with pytest.raises(ValueError, match="consume something else"):
         build(load_scoring_config(config))
+
+
+def _refuse_post_processing(monkeypatch) -> None:
+    """Fail the test at either call `score_once` starts post-processing with."""
+    from postprocess.labellings import Identity
+
+    def refuse(*args, **kwargs):
+        raise AssertionError("post-processing started before the truth was checked")
+
+    for hook in ("lazy", "from_artifact"):
+        monkeypatch.setattr(Identity, hook, refuse)
+
+
+@pytest.mark.parametrize(("truth_kind", "metric", "missing"), [
+    ("instances", "voxel_instance", "labels/gt/s0"),                           # the label array
+    ("skeleton", "skeleton_erl", "has no skeleton at"),                        # the skeleton file
+    ("instances_resampled", "voxel_instance", "no ground-truth artifact at"),  # <volume>.gt.zarr
+])
+def test_truth_that_cannot_be_read_is_reported_before_anything_is_post_processed(
+    instances, monkeypatch, truth_kind, metric, missing
+):
+    """`ground_truth` runs after post-processing, so its errors used to cost a whole watershed.
+
+    `score_once` now asks the task to check every volume's truth first (`check_truth`): whichever
+    kind of truth is missing, the error arrives and no post-processing has started.
+    """
+    import evaluate
+    from artifact import open_artifact
+    from config import load_scoring_config
+
+    tmp_path, data, artifact = instances
+    shutil.rmtree(tmp_path / "cube.zarr" / "labels" / "gt" / "s0")    # what `instances` reads
+    scoring = load_scoring_config(_task_config(tmp_path, data, textwrap.dedent(f"""\
+        [task]
+        name = "instance_seg"
+        truth_kind = "{truth_kind}"
+
+        [postprocess]
+        name = "identity"
+
+        [metric]
+        names = ["{metric}"]
+        """)))
+    task, processor, metrics = evaluate.build(scoring)
+    artifacts = {"cube": task.place(open_artifact(artifact))}
+    _refuse_post_processing(monkeypatch)
+
+    with pytest.raises(FileNotFoundError, match=missing):
+        evaluate.score_once(
+            artifacts, scoring.volumes, task, processor, metrics, {}, tmp_path / "scratch"
+        )
 
 
 def test_leaderboard_renders_and_detects_drift(instances, tmp_path):
@@ -592,6 +644,39 @@ def test_a_sweep_is_fitted_on_the_declared_fit_split_and_applied_to_the_test_spl
     plain = _task_config(tmp_path, both, SIZE_FILTER_BODY)
     args.config = plain
     with pytest.raises(SystemExit, match="declares no fit split"):
+        evaluate.cmd_score(args)
+
+
+def test_the_reported_splits_truth_is_checked_before_a_sweep_is_fitted(tmp_path, monkeypatch):
+    """With `--val`, truth the test split cannot read must fail before the sweep, not after it.
+
+    `score_once` checks the split it is scoring, and the test split is scored last.
+    """
+    import evaluate
+
+    truth, _ = _truth_and_split()
+    a = _volume(tmp_path, "alpha", truth)
+    b = _volume(tmp_path, "beta", truth)
+    both = _data_config(tmp_path, [("alpha", a, truth.shape), ("beta", b, truth.shape)])
+    config = _split_task_config(
+        tmp_path, both, both, SIZE_FILTER_BODY, test_volumes=["alpha"], fit_volumes=["beta"],
+    )
+    val_dir, test_dir = tmp_path / "val", tmp_path / "test"
+    val_dir.mkdir()
+    test_dir.mkdir()
+    write_artifact(val_dir / "beta.zarr", truth.copy(), "instances", background_id=0)
+    write_artifact(test_dir / "alpha.zarr", truth.copy(), "instances", background_id=0)
+    shutil.rmtree(Path(a) / "labels" / "gt" / "s0")               # the reported volume's truth
+
+    def refuse(*args, **kwargs):
+        raise AssertionError("a sweep was fitted before the reported split's truth was checked")
+
+    monkeypatch.setattr(evaluate, "fit", refuse)
+    args = type("Args", (), {
+        "config": config, "test": test_dir, "val": val_dir, "leaderboard": tmp_path / "records",
+        "run_dir": None, "scored_out": None, "no_scored": False, "scratch": tmp_path / "scratch",
+    })()
+    with pytest.raises(FileNotFoundError, match="alpha.zarr/labels/gt/s0"):
         evaluate.cmd_score(args)
 
 

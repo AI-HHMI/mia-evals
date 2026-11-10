@@ -384,6 +384,7 @@ def test_views_dir_task_placeholder_puts_each_page_in_its_task_directory(tmp_pat
     assert url is not None and url.endswith("/mia-evals/t1/views/t1.html")
 
 
+@pytest.mark.unit
 def test_the_task_page_links_its_views_page_and_check_agrees(tmp_path):
     """The table links the views page through the data link that serves it, once it exists, so
     `--check` renders the same text `leaderboard` wrote; without a page there is no link."""

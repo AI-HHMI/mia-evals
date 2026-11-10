@@ -81,6 +81,14 @@ class BaseTask(abc.ABC):
         Whatever the task's metrics expect: an array for a voxel metric, a path for a skeleton one.
         """
 
+    def check_truth(self, volume: Volume, artifact: Artifact) -> None:
+        """Raise if this volume's truth cannot be read: what `ground_truth` does, short of reading.
+
+        The runner calls this for every volume before it post-processes any of them. `ground_truth`
+        runs after post-processing, so a truth that is missing or does not open would otherwise be
+        reported only once a mutex watershed had finished. Nothing is checked by default.
+        """
+
     def in_volume_frame(self) -> bool:
         """Whether this task's truth and boxes count the source volume's own voxels.
 

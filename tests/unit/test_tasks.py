@@ -23,6 +23,8 @@ from tasks.base import Volume  # noqa: E402
 from tasks.registry import TaskRegistry  # noqa: E402
 from tasks.segmentation import read_labels  # noqa: E402
 
+pytestmark = pytest.mark.unit
+
 CUBE = "/groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/val/seed100.zarr"
 
 

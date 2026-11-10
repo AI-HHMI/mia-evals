@@ -25,6 +25,8 @@ from report.record import identity_differences, task_identity  # noqa: E402
 from tasks.base import Volume  # noqa: E402
 from tasks.segmentation import read_labels  # noqa: E402
 
+pytestmark = pytest.mark.unit
+
 
 def needs_fixed_axes() -> None:
     miao_config = pytest.importorskip("miao.config")

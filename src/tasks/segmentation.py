@@ -37,6 +37,19 @@ def read_labels(
     for scoring, where the ids *are* the answer. When miao gains a nearest-neighbour label path this
     becomes a call into it.
     """
+    array, window = label_window(volume, origin, shape, level)
+    return np.asarray(array[window]).astype(np.int64)
+
+
+def label_window(
+    volume: Volume, origin: tuple[int, ...], shape: tuple[int, ...], level: str = NATIVE_LEVEL
+) -> tuple[zarr.Array, tuple[Any, ...]]:
+    """A volume's label array and the index of one block in it: `read_labels`, short of reading.
+
+    Everything that can fail before a voxel is read fails here -- no label key, an array that does
+    not open, a pinned axis that does not resolve -- so a task can check its truth before anything
+    is post-processed (`BaseTask.check_truth`).
+    """
     if volume.label_key is None:
         raise ValueError(
             f"volume {volume.name!r} has no label_key, so there is no voxel ground truth to score "
@@ -48,7 +61,7 @@ def read_labels(
     window: tuple[Any, ...] = tuple(slice(o, o + s) for o, s in zip(origin, shape, strict=True))
     if volume.fixed_axes:
         window = pinned_window(volume, level, window)
-    return np.asarray(array[window]).astype(np.int64)
+    return array, window
 
 
 def pinned_window(volume: Volume, level: str, window: tuple[Any, ...]) -> tuple[Any, ...]:
@@ -159,41 +172,57 @@ class InstanceSegmentation(BaseTask):
             return None
         return hashlib.sha256(path.read_bytes()).hexdigest()
 
+    def _resampled_truth(self, volume: Volume, artifact: Artifact) -> Artifact:
+        """`<volume>.gt.zarr`, opened and checked against the prediction beside it; not read."""
+        from artifact import open_artifact
+
+        path = self.truth_artifact_path(volume, artifact)
+        if not path.exists():
+            raise FileNotFoundError(
+                f"no ground-truth artifact at {path}. `truth_kind = \"instances_resampled\"` "
+                "scores against the labelling the producer wrote on the prediction's own "
+                "grid -- mia-train's src/predict.py emits it beside each prediction, "
+                "and it cannot be reconstructed here without redoing that resampling."
+            )
+        truth = open_artifact(path)
+        if truth.spatial_shape != artifact.spatial_shape:
+            raise ValueError(
+                f"{path.name} is {truth.spatial_shape} but the prediction is "
+                f"{artifact.spatial_shape}; they were not written on the same grid"
+            )
+        for key in ("native_box", "read_shape", "image_level", "label_level"):
+            if truth.attrs.get(key) != artifact.attrs.get(key):
+                raise ValueError(
+                    f"{path.name} and {artifact.path.name} disagree about {key!r}: "
+                    f"{truth.attrs.get(key)} vs {artifact.attrs.get(key)}. They describe "
+                    "different regions, so one of them is stale -- re-run prediction."
+                )
+        return truth
+
+    def _skeleton_file(self, volume: Volume) -> Path:
+        """`skeleton_path`, which must be a file."""
+        path = self.skeleton_path(volume)
+        if not path.is_file():
+            raise FileNotFoundError(
+                f"volume {volume.name!r} has no skeleton at {path} (skeleton_name = "
+                f"{self.skeleton_name!r}, relative to the volume's store). Volumes with dense "
+                'voxel truth instead need truth_kind = "instances".'
+            )
+        return path
+
+    def check_truth(self, volume: Volume, artifact: Artifact) -> None:
+        if self.truth_kind == "instances_resampled":
+            self._resampled_truth(volume, artifact)
+        elif self.truth_kind == "skeleton":
+            self._skeleton_file(volume)
+        else:
+            label_window(volume, *self.region(volume, artifact))
+
     def ground_truth(self, volume: Volume, artifact: Artifact) -> Any:
         if self.truth_kind == "instances_resampled":
-            from artifact import open_artifact
-
-            path = self.truth_artifact_path(volume, artifact)
-            if not path.exists():
-                raise FileNotFoundError(
-                    f"no ground-truth artifact at {path}. `truth_kind = \"instances_resampled\"` "
-                    "scores against the labelling the producer wrote on the prediction's own "
-                    "grid -- mia-train's src/predict.py emits it beside each prediction, "
-                    "and it cannot be reconstructed here without redoing that resampling."
-                )
-            truth = open_artifact(path)
-            if truth.spatial_shape != artifact.spatial_shape:
-                raise ValueError(
-                    f"{path.name} is {truth.spatial_shape} but the prediction is "
-                    f"{artifact.spatial_shape}; they were not written on the same grid"
-                )
-            for key in ("native_box", "read_shape", "image_level", "label_level"):
-                if truth.attrs.get(key) != artifact.attrs.get(key):
-                    raise ValueError(
-                        f"{path.name} and {artifact.path.name} disagree about {key!r}: "
-                        f"{truth.attrs.get(key)} vs {artifact.attrs.get(key)}. They describe "
-                        "different regions, so one of them is stale -- re-run prediction."
-                    )
-            return truth.load()
+            return self._resampled_truth(volume, artifact).load()
         if self.truth_kind == "skeleton":
-            path = self.skeleton_path(volume)
-            if not path.is_file():
-                raise FileNotFoundError(
-                    f"volume {volume.name!r} has no skeleton at {path} (skeleton_name = "
-                    f"{self.skeleton_name!r}, relative to the volume's store). Volumes with dense "
-                    'voxel truth instead need truth_kind = "instances".'
-                )
-            return path
+            return self._skeleton_file(volume)
         origin, shape = self.region(volume, artifact)
         return read_labels(volume, origin, shape)
 
@@ -420,6 +449,9 @@ class SemanticSegmentation(BaseTask):
             "volume": volume.name,
             "axes": artifact.axes,
         }
+
+    def check_truth(self, volume: Volume, artifact: Artifact) -> None:
+        label_window(volume, *self.region(volume, artifact))
 
     def ground_truth(self, volume: Volume, artifact: Artifact) -> Any:
         origin, shape = self.region(volume, artifact)
