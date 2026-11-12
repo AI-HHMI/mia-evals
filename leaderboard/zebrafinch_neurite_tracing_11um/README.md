@@ -8,7 +8,7 @@ The artifact/checkpoint/view links below point to locations on the Janelia clust
 
 **Views:** [neuroglancer views for every row below](https://fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/zebrafinch_neurite_tracing_11um/views/zebrafinch_neurite_tracing_11um.html)
 
-**Region:** zebrafinch_11um_test 540x1200x1200
+**Test crops:** zebrafinch_11um_test 540x1200x1200
 
 | # | model | links | skeleton_erl.nerl (higher is better) | postprocess | skeleton_erl.erl_um | skeleton_erl.voi_sum | skeleton_erl.voi_split | skeleton_erl.voi_merge | skeleton_erl.n_non0_mergers | skeleton_erl.n_splits |
 |---|---|---|---|---|---|---|---|---|---|---|

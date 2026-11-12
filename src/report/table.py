@@ -4,10 +4,10 @@
 of leaderboard/index.html. Both format a `TaskTable` from `build` and neither reads records itself,
 so the two cannot drift apart: the same rows in the same order, the same columns under the same
 headers, the same cell text, the same links and the same preamble. The page adds presentation only
--- sortable columns, each column's best value highlighted, task cards, a glossary of the metric
-keys -- and takes that from here as well; the directions and descriptions are the metrics' own
-(`BaseMetric.key_info`). tests/unit/test_leaderboard_sync.py reads both outputs back and holds them
-to the same content.
+-- sortable columns, each column's best value highlighted, the list of benchmarks, a glossary of
+the metric keys -- and takes that from here as well; the directions and descriptions are the
+metrics' own (`BaseMetric.key_info`). tests/unit/test_leaderboard_sync.py reads both outputs back
+and holds them to the same content.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ LINKS_NOTE = ("The artifact/checkpoint/view links below point to locations on th
 VIEWS_TEXT = "neuroglancer views for every row below"
 MIXED_REGIONS = ("Scored over different regions, so the groups below are **not** comparable with "
                  "one another. Several of these metrics change with extent.")
-REGION_LABEL = "Region:"
+REGION_LABEL = "Test crops:"
 NO_RECORDS = "No records yet."
 
 #: Secondary metric columns per table, beyond the ranking one. A metric names its own, in order

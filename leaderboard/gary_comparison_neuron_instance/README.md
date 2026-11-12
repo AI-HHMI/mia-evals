@@ -8,7 +8,7 @@ The artifact/checkpoint/view links below point to locations on the Janelia clust
 
 **Views:** [neuroglancer views for every row below](https://fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/gary_comparison_neuron_instance/views/gary_comparison_neuron_instance.html)
 
-**Region:** hemibrain_eb_test 896x896x896 (sub-region)
+**Test crops:** hemibrain_eb_test 896x896x896 (sub-region)
 
 | # | model | links | voxel_instance.pq (higher is better) | postprocess | voxel_instance.voi_merge | voxel_instance.voi_split | voxel_instance.sq | voxel_instance.rq | voxel_instance.adapted_rand_error |
 |---|---|---|---|---|---|---|---|---|---|

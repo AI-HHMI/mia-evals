@@ -8,7 +8,7 @@ The artifact/checkpoint/view links below point to locations on the Janelia clust
 
 **Views:** [neuroglancer views for every row below](https://fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/nisb_base_neurite_tracing/views/nisb_base_neurite_tracing.html)
 
-**Region:** nisb_base_seed101 3000x3000x1350
+**Test crops:** nisb_base_seed101 3000x3000x1350
 
 | # | model | links | skeleton_erl.nerl (higher is better) | postprocess | skeleton_erl.erl_um | skeleton_erl.voi_sum | skeleton_erl.voi_split | skeleton_erl.voi_merge | skeleton_erl.n_non0_mergers | skeleton_erl.n_splits |
 |---|---|---|---|---|---|---|---|---|---|---|

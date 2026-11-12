@@ -3,11 +3,13 @@
 Both renderings are read back -- the markdown by its lines, the page by an HTML parser -- into the
 same plain content (preamble, regions, headers, cell text, link entries) and compared, so a
 renderer that shows something the other does not fails here, whoever adds it. Highlighting,
-sorting, the task cards and the glossary are the page's presentation and are not compared.
+sorting, the list of benchmarks (test_page_index.py) and the glossary are the page's presentation
+and are not compared.
 """
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
@@ -17,7 +19,14 @@ import pytest
 from report import leaderboard, page
 from report.common import views_link
 from report.record import Submission, load_task, task_names
-from report.table import LINKS_NOTE, MIXED_REGIONS, NO_RECORDS, REGION_LABEL, build
+from report.table import (
+    LINKS_NOTE,
+    MIXED_REGIONS,
+    NO_RECORDS,
+    REGION_LABEL,
+    TaskTable,
+    build,
+)
 
 ROOT = Path(__file__).resolve().parents[2] / "leaderboard"
 LINK = re.compile(r"\[(?P<name>[^\]]+)\]\((?P<url>[^)]+)\)")
@@ -90,7 +99,7 @@ class PageReader(HTMLParser):
             self.text, self.reading, self.closes = [], name, "p"
         elif tag == "a" and self.reading == "views":
             self.section["views"] = a["href"]
-        elif tag == "div" and name == "region":
+        elif tag == "details" and name == "region":
             self.section["groups"].append({"region": [], "headers": [], "rows": []})
         elif tag == "li":
             self.text, self.reading, self.closes = [], "region", "li"
@@ -207,6 +216,34 @@ def test_links_truth_regions_and_missing_values_read_the_same_in_both():
     assert [r.cells[at["voxel_instance.pq (higher is better)"]].best for r in group.rows] == \
         [True, False]
     assert [r.cells[at["voxel_instance.voi_split"]].best for r in group.rows] == [False, True]
+
+
+@pytest.mark.unit
+def test_a_long_region_list_is_set_in_columns_and_still_reads_the_same():
+    """Up to `page.REGION_ROWS` volumes the page lists one per row; above that it sets the list in
+    columns. The README names the same volumes either way."""
+    def table(count: int) -> TaskTable:
+        volumes = {f"v{i:02d}": {"origin": [0, 0, 0], "shape": [4, 4, 4], "whole_region": True}
+                   for i in range(count)}
+        return build("t", [replace(_row("a", 0.5), region={"volumes": volumes})], None, None)
+
+    at, above = table(page.REGION_ROWS), table(page.REGION_ROWS + 1)
+    assert "<ul>" in page.section(at) and '<ul class="cols">' not in page.section(at)
+    assert '<ul class="cols">' in page.section(above) and "<ul>" not in page.section(above)
+    for each, count in ((at, page.REGION_ROWS), (above, page.REGION_ROWS + 1)):
+        content = read_markdown(leaderboard.markdown(each))
+        assert content == read_page(page.section(each))["t"]
+        assert len(content["groups"][0]["region"].split("; ")) == count
+
+
+@pytest.mark.unit
+def test_every_region_list_can_be_folded_away_and_starts_unfolded():
+    """Each table's list is a `<details>` under its label, open until the reader closes it."""
+    table = build("t", [_row("a", 0.5), _row("c", 0.6, shape=8)], None, None)   # two regions
+    html = page.section(table)
+    assert len(table.groups) == 2
+    assert html.count(f'<details class="region" open><summary>{REGION_LABEL}</summary><ul>') == 2
+    assert html.count("</ul></details>") == 2
 
 
 @pytest.mark.unit

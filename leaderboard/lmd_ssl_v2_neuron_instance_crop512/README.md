@@ -8,7 +8,7 @@ The artifact/checkpoint/view links below point to locations on the Janelia clust
 
 **Views:** [neuroglancer views for every row below](https://fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance_crop512/views/lmd_ssl_v2_neuron_instance_crop512.html)
 
-**Region:** cns_mito_crop164_crop512 512x512x512; cremi_sample_c_crop512 512x256x256 (sub-region); flyid49_40xw006_crop512 640x256x256 (sub-region); kasthuri15_ac4_crop512 256x256x256 (sub-region); liconn_expid82_crop512 768x512x512 (sub-region); liconn_mouse_hippocampus_crop512 512x512x512 (sub-region); zebrafish_fish2_doublecube1_crop512 512x512x384 (sub-region)
+**Test crops:** cns_mito_crop164_crop512 512x512x512; cremi_sample_c_crop512 512x256x256 (sub-region); flyid49_40xw006_crop512 640x256x256 (sub-region); kasthuri15_ac4_crop512 256x256x256 (sub-region); liconn_expid82_crop512 768x512x512 (sub-region); liconn_mouse_hippocampus_crop512 512x512x512 (sub-region); zebrafish_fish2_doublecube1_crop512 512x512x384 (sub-region)
 
 | # | model | links | voxel_instance.pq (higher is better) | postprocess | voxel_instance.voi_merge | voxel_instance.voi_split | voxel_instance.sq | voxel_instance.rq | voxel_instance.adapted_rand_error |
 |---|---|---|---|---|---|---|---|---|---|

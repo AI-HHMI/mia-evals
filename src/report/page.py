@@ -2,8 +2,12 @@
 
 Each task's section shows exactly what the task's README.md shows -- both are `table.build`'s
 content, written once as markdown (`leaderboard.markdown`) and once here -- with presentation on
-top: the task cards to switch between tasks, sortable columns, each column's best value highlighted
-in the metric's own direction, and a glossary of the metric keys.
+top: sortable columns, each column's best value highlighted in the metric's own direction, a
+region list that folds away, and a glossary of the metric keys.
+
+One task is shown at a time, the one the URL's `#task` names. Without one the page shows the list of
+benchmarks (`index`), and above a task that same list is the menu its header's one button opens,
+so the header is one row however many tasks there are.
 """
 
 from __future__ import annotations
@@ -37,42 +41,67 @@ PAGE = """<!doctype html>
  :root { --bg: #f6f7f9; --card: #fff; --ink: #14181f; --muted: #5d6675; --line: #e3e6eb;
   --head: #f1f3f6; --hover: #f5f8ff; --accent: #2557d6; --accent-soft: #e8eefc;
   --best: #0a7d4f; --best-soft: #e3f4ec; --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px
-   rgba(16,24,40,.08); }
+   rgba(16,24,40,.08); --pop: 0 12px 32px rgba(16,24,40,.18); }
  @media (prefers-color-scheme: dark) { :root { --bg: #0e1116; --card: #161b22; --ink: #e6e9ee;
   --muted: #9aa4b2; --line: #262d38; --head: #1b212b; --hover: #1a2230; --accent: #7aa2ff;
-  --accent-soft: #1b2842; --best: #4cc38a; --best-soft: #143324; --shadow: none; } }
+  --accent-soft: #1b2842; --best: #4cc38a; --best-soft: #143324; --shadow: none;
+  --pop: 0 12px 32px rgba(0,0,0,.6); } }
  * { box-sizing: border-box; }
  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 -apple-system,
   BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
  a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
- .mono, .run, .sfx, code, dl.legend dt { font-family: ui-monospace, SFMono-Regular, Menlo,
-  Consolas, monospace; }
+ .mono, .run, .sfx, code, dl.legend dt, .group b { font-family: ui-monospace, SFMono-Regular,
+  Menlo, Consolas, monospace; }
  header { background: var(--card); border-bottom: 1px solid var(--line); }
  .wrap { max-width: 1400px; margin: 0 auto; padding: 0 24px; }
- header .wrap { padding-top: 28px; }
- h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
- .lede { margin: 6px 0 36px; color: var(--muted); max-width: 70ch; }
- nav { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px;
-  padding-bottom: 20px; }
- nav a { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border: 1px solid
-  var(--line);
-  border-radius: 10px; background: var(--card); color: var(--ink); }
- nav a:hover { border-color: var(--accent); text-decoration: none; }
- nav a.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1px
-  var(--accent); }
- nav b { font: 600 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; overflow-wrap:
-  anywhere; }
- nav small { color: var(--muted); font-size: 12px; }
- nav a.on b { color: var(--accent); }
+ header .wrap { padding-top: 28px; padding-bottom: 24px; }
+ .bar { display: flex; align-items: center; gap: 16px; }
+ h1 { flex: 1; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+ h1 a { color: inherit; } h1 a:hover { text-decoration: none; }
+ .lede { margin: 6px 0 0; color: var(--muted); max-width: 70ch; }
+ #menu { display: none; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid
+  var(--line); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit;
+  font-size: 13px; font-weight: 600; cursor: pointer; }
+ #menu::after { content: "\\25BE"; color: var(--muted); }
+ #menu:hover, #menu[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+ nav { max-width: 1400px; margin: 0 auto; padding: 28px 24px 0; }
+ .groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
+  gap: 16px; align-items: start; }
+ .group { overflow: hidden; }
+ .group h2 { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  margin: 0; padding: 12px 14px; font-size: 14px; letter-spacing: 0; }
+ .group small { color: var(--muted); font-size: 12px; font-weight: 400; white-space: nowrap; }
+ .group ul { margin: 0; padding: 0; list-style: none; }
+ .group a { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  padding: 7px 14px; border-top: 1px solid var(--line); color: var(--ink); }
+ .group b { font-size: 12.5px; font-weight: 500; overflow-wrap: anywhere; }
+ .group a:hover { background: var(--hover); text-decoration: none; }
+ .group a:hover b, .group a.on b { color: var(--accent); }
+ .group a.on { background: var(--accent-soft); }
+ /* a benchmark is open: the header is one row, and the list is the menu its button opens */
+ .board header .wrap { padding-top: 12px; padding-bottom: 12px; }
+ .board h1 { font-size: 17px; letter-spacing: -.01em; }
+ .board h1 a:hover { color: var(--accent); }
+ .board .lede { display: none; }
+ .board #menu { display: inline-flex; }
+ .board nav { display: none; position: absolute; left: 0; right: 0; z-index: 10; padding-top: 8px; }
+ .board nav.open { display: block; }
+ .board .groups { gap: 6px 16px; padding: 6px; max-height: calc(100vh - 80px); overflow: auto;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: var(--pop); }
+ .board .group { border: 0; box-shadow: none; background: none; }
  main.wrap { padding-bottom: 56px; }
- section { padding-top: 32px; }
+ section { padding-top: 32px; scroll-margin-top: 120px; }
  h2 { margin: 0 0 4px; font-size: 20px; font-weight: 650; letter-spacing: -.01em; }
  .note, .empty { margin: 0 0 16px; color: var(--muted); }
  .views { margin: 0 0 20px; }
  .mixed { margin: 0 0 20px; padding: 10px 14px; border-left: 3px solid var(--line);
   color: var(--muted); }
  .region { margin: 28px 0 10px; color: var(--muted); font-size: 13px; }
+ .region summary { width: fit-content; cursor: pointer; user-select: none; }
+ .region summary:hover { color: var(--ink); }
  .region ul { margin: 4px 0 0; padding-left: 20px; color: var(--ink); }
+ .region ul.cols { columns: 300px; column-gap: 32px; } .region ul.cols li { break-inside: avoid; }
  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
   box-shadow: var(--shadow); }
  .scroll { overflow: auto; max-height: 75vh; border-radius: 12px; }
@@ -106,14 +135,17 @@ PAGE = """<!doctype html>
  .arrow { color: var(--accent); }
  .foot { margin-top: 32px; color: var(--muted); font-size: 12.5px; }
  @media (max-width: 640px) { .wrap { padding: 0 14px; } h1 { font-size: 22px; }
-  dl.legend { grid-template-columns: 1fr; } }
+  nav { padding-left: 14px; padding-right: 14px; } dl.legend { grid-template-columns: 1fr; } }
 </style></head><body>
 <header><div class="wrap">
- <h1>mia-evals leaderboard</h1>
- <p class="lede">Model predictions scored on volumetric segmentation benchmarks. Select a benchmark
- below; click any column header to sort.</p>
- <nav>__NAV__</nav>
+ <div class="bar"><h1><a href="#">mia-evals leaderboard</a></h1>
+ <button id="menu" type="button" aria-expanded="false" aria-controls="benchmarks">All benchmarks
+ </button></div>
+ <p class="lede">Model predictions scored on volumetric segmentation benchmarks.</p>
 </div></header>
+<nav id="benchmarks" aria-label="Benchmarks"><div class="groups">
+__NAV__
+</div></nav>
 <main class="wrap">
 __BODY__
 <p class="foot">Generated from the records under <span class="mono">leaderboard/</span> by
@@ -121,15 +153,26 @@ __BODY__
 </main>
 <script>
 const sections = [...document.querySelectorAll("section")];
-// one benchmark at a time, chosen by #hash
+const nav = document.querySelector("nav"), menu = document.getElementById("menu");
+const drop = on => { nav.classList.toggle("open", on); menu.setAttribute("aria-expanded", on); };
+// the one benchmark the #hash names; with an unknown or empty hash, the list of benchmarks
 function show() {
-  let id = decodeURIComponent(location.hash.slice(1));
-  if (!sections.some(s => s.id === id)) id = sections[0].id;   // unknown or empty hash: first task
+  const id = decodeURIComponent(location.hash.slice(1));
+  const board = sections.some(s => s.id === id);
   for (const s of sections) s.hidden = s.id !== id;
-  for (const a of document.querySelectorAll("nav a"))
-   a.classList.toggle("on", a.hash.slice(1) === id);
+  for (const a of nav.querySelectorAll("a"))
+   a.classList.toggle("on", board && a.hash.slice(1) === id);
+  document.body.classList.toggle("board", board);
+  drop(false);
 }
 addEventListener("hashchange", show); show();
+menu.onclick = () => drop(!nav.classList.contains("open"));
+nav.onclick = e => { if (e.target.closest("a")) { drop(false); scrollTo(0, 0); } };
+addEventListener("click", e => { if (!e.target.closest(".groups, #menu")) drop(false); });
+addEventListener("keydown", e => {
+  if (e.key === "Escape" && nav.classList.contains("open")) { drop(false); menu.focus(); }
+});
+for (const th of document.querySelectorAll("th")) th.title = "Click to sort";
 for (const th of document.querySelectorAll("th")) th.onclick = () => {
   const table = th.closest("table"), col = th.cellIndex;
   const dir = th.classList.contains("desc") ? 1 : -1;      // first click is descending
@@ -146,6 +189,18 @@ for (const th of document.querySelectorAll("th")) th.onclick = () => {
 """
 
 ARROWS = {True: "↑", False: "↓", None: ""}
+
+#: A table's region list is one volume per row up to this many volumes, and set in columns above
+#: it: the CellMap task scores 43 crops.
+REGION_ROWS = 10
+
+#: What the list of benchmarks calls the tasks ranked on each metric, in the order it shows them.
+#: Tasks ranked on any other metric follow, under the metric's own name.
+KINDS = {
+    "voxel_instance": "Instance segmentation",
+    "skeleton_erl": "Neurite tracing",
+    "semantic": "Semantic segmentation",
+}
 
 
 def _bold(text: str) -> str:
@@ -211,7 +266,9 @@ def _legend(columns: tuple[Column, ...]) -> str:
 
 
 def _group(group: Group) -> str:
-    items = "".join(f"<li>{escape(volume)}</li>" for volume in group.region.split("; "))
+    volumes = group.region.split("; ")
+    items = "".join(f"<li>{escape(volume)}</li>" for volume in volumes)
+    columns = ' class="cols"' if len(volumes) > REGION_ROWS else ""
     header = "".join(_header(column) for column in group.columns)
     rows = "".join(
         f'<tr data-id="{escape(row.identifier)}">'
@@ -219,7 +276,9 @@ def _group(group: Group) -> str:
         + "</tr>"
         for row in group.rows
     )
-    return (f'<div class="region">{escape(REGION_LABEL)}<ul>{items}</ul></div>'
+    # <details open>: the list can be folded away under its label, and starts unfolded.
+    return (f'<details class="region" open><summary>{escape(REGION_LABEL)}</summary>'
+            f"<ul{columns}>{items}</ul></details>"
             f'<div class="card"><div class="scroll"><table><thead><tr>{header}</tr></thead>'
             f"<tbody>{rows}</tbody></table></div></div>" + _legend(group.columns))
 
@@ -242,14 +301,51 @@ def section(table: TaskTable) -> str:
     return "\n".join(parts)
 
 
+def _metric(table: TaskTable) -> str:
+    """The metric a task ranks on, its tables' first metric column; empty if it has no records."""
+    for group in table.groups:
+        for column in group.columns:
+            if column.kind == "metric":
+                return column.metric
+    return ""
+
+
+def index(tables: list[TaskTable]) -> str:
+    """The list of benchmarks: every task once, with its number of entries, under what it ranks on.
+
+    Shown as the page itself when no task is open, and as the menu above an open one. The groups
+    are the `KINDS`, then any other metric, then the tasks without records.
+    """
+    by_ranking: dict[tuple[str, str], list[TaskTable]] = {}
+    for table in tables:
+        by_ranking.setdefault((_metric(table), table.ranking_key), []).append(table)
+    kinds = list(KINDS)
+
+    def position(ranking: tuple[str, str]) -> tuple[bool, int, tuple[str, str]]:
+        metric = ranking[0]
+        return not metric, kinds.index(metric) if metric in kinds else len(kinds), ranking
+
+    groups = []
+    for metric, key in sorted(by_ranking, key=position):
+        title = KINDS.get(metric, metric) if metric else NO_RECORDS.rstrip(".")
+        ranked = f"<small>ranked by {escape(key)}</small>" if metric else ""
+        # <wbr>: a name too long for its column wraps after an underscore, not inside a word.
+        items = "".join(
+            f'<li><a href="#{escape(table.name)}"><b>{escape(table.name).replace("_", "_<wbr>")}'
+            f"</b><small>{table.entries} {'entry' if table.entries == 1 else 'entries'}</small>"
+            "</a></li>"
+            for table in by_ranking[metric, key]
+        )
+        groups.append(f'<div class="group card"><h2>{escape(title)}{ranked}</h2>'
+                      f"<ul>{items}</ul></div>")
+    return "\n".join(groups)
+
+
 def render_page(root: Path) -> str:
-    """Every task's section, each from the same `table.build` as that task's README.md."""
+    """The list of benchmarks and every task's section, each section from the same `table.build`
+    as that task's README.md."""
     shares = default_shares()
-    nav, parts = [], []
-    for task in task_names(root):
-        table = build(task, load_task(root, task), views_link(root, task), shares)
-        name = escape(task)
-        nav.append(f'<a href="#{name}"><b>{name}</b><small>{table.entries} submissions &middot; '
-                   f"ranked by {escape(table.ranking_key)}</small></a>")
-        parts.append(section(table))
-    return PAGE.replace("__NAV__", "".join(nav)).replace("__BODY__", "\n".join(parts))
+    tables = [build(task, load_task(root, task), views_link(root, task), shares)
+              for task in task_names(root)]
+    return (PAGE.replace("__NAV__", index(tables))
+            .replace("__BODY__", "\n".join(section(table) for table in tables)))

@@ -8,7 +8,7 @@ The artifact/checkpoint/view links below point to locations on the Janelia clust
 
 **Views:** [neuroglancer views for every row below](https://fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v1_neuron_instance/views/lmd_ssl_v1_neuron_instance.html)
 
-**Region:** kasthuri15_ac4 256x640x640 (sub-region); liconn_expid82 768x1152x1152 (sub-region); liconn_mouse_hippocampus 512x512x512 (sub-region); zebrafish_fish2_doublecube1 1920x1920x1920 (sub-region)
+**Test crops:** kasthuri15_ac4 256x640x640 (sub-region); liconn_expid82 768x1152x1152 (sub-region); liconn_mouse_hippocampus 512x512x512 (sub-region); zebrafish_fish2_doublecube1 1920x1920x1920 (sub-region)
 
 | # | model | links | voxel_instance.pq (higher is better) | postprocess | voxel_instance.voi_merge | voxel_instance.voi_split | voxel_instance.sq | voxel_instance.rq | voxel_instance.adapted_rand_error |
 |---|---|---|---|---|---|---|---|---|---|

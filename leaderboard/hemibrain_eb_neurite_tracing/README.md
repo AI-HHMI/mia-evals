@@ -8,7 +8,7 @@ The artifact/checkpoint/view links below point to locations on the Janelia clust
 
 **Views:** [neuroglancer views for every row below](https://fileglancer.int.janelia.org/files/dLLjve-fpPGXhnVi/nrs/scicompsoft/orhane/mia-evals/hemibrain_eb_neurite_tracing/views/hemibrain_eb_neurite_tracing.html)
 
-**Region:** hemibrain_eb_roi_1 1475x1475x1475; hemibrain_eb_roi_2 2725x2725x2725; hemibrain_eb_roi_3 2100x2100x2100
+**Test crops:** hemibrain_eb_roi_1 1475x1475x1475; hemibrain_eb_roi_2 2725x2725x2725; hemibrain_eb_roi_3 2100x2100x2100
 
 | # | model | links | skeleton_erl.nerl (higher is better) | postprocess | skeleton_erl.erl_um | skeleton_erl.voi_sum | skeleton_erl.voi_split | skeleton_erl.voi_merge | skeleton_erl.n_non0_mergers | skeleton_erl.n_splits |
 |---|---|---|---|---|---|---|---|---|---|---|
