@@ -8,8 +8,8 @@ many crops a model may be fine-tuned on:
 
 | task | fit (fine-tuning) crops | test crops |
 | --- | --- | --- |
-| `cellmap_organelle_semantic` | 228 (every crop not in test, partial ones included) | 43, from 16 datasets |
-| `cellmap_organelle_semantic_fewshot` | 17, one complete crop per dataset | 193, from 16 datasets |
+| `cellmap_organelle_semantic_v1` | 228 (every crop not in test, partial ones included) | 43, from 16 datasets |
+| `cellmap_organelle_semantic_fewshot_v1` | 17, one complete crop per dataset | 193, from 16 datasets |
 
 The splits nest: the fewshot task's fit crops are among the large task's, and the large task's test
 crops among the fewshot task's. The two tasks still rank on different test sets, so their numbers do
@@ -181,7 +181,7 @@ single-level OME-Zarr group:
   `argmax.toml`. Labels are about 1% of the size.
 
 ```bash
-mia-evals score configs/cellmap_organelle_semantic/identity.toml --test <artifacts> --run-dir <run>
+mia-evals score configs/cellmap_organelle_semantic_v1/identity.toml --test <artifacts> --run-dir <run>
 ```
 
 ## Reference numbers
@@ -189,7 +189,7 @@ mia-evals score configs/cellmap_organelle_semantic/identity.toml --test <artifac
 Scored on the real configs with artifacts that hold no model (`controls/` beside this task's other
 outputs on `/nrs`, `make_controls.py`). Mean IoU over the 48 classes:
 
-| arm | what it is | `cellmap_organelle_semantic` | `..._fewshot` |
+| arm | what it is | `cellmap_organelle_semantic_v1` | `..._fewshot_v1` |
 | --- | --- | ---: | ---: |
 | `truth` | the label crop itself | 1.0000 | 1.0000 |
 | `raw_mode` | the truth block-mode-downsampled to the raw's grid: a perfect model at the raw's resolution | 0.9040 | 0.9115 |

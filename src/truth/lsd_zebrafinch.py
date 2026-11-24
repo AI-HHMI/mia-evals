@@ -336,7 +336,8 @@ the manifest.
 - `ffn_januszewski2018/<volume>.zarr`: FFN's released segmentation per region, as an `instances`
   artifact (already masked and relabelled by the LSD authors).
 
-Used by the mia-evals tasks `zebrafinch_neurite_tracing` and `zebrafinch_neurite_tracing_11um`.
+Used by the mia-evals tasks `zebrafinch_neurite_tracing_v1` and
+`zebrafinch_neurite_tracing_11um_v1`.
 """
 
 

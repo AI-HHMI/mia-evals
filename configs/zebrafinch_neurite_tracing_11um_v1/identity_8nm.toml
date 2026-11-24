@@ -1,0 +1,30 @@
+# zebrafinch_neurite_tracing_11um_v1 from a labelling a model made at 8 nm, finished outside mia-evals.
+#
+# Scored exactly as identity.toml: the same protocol, the same single candidate. The separate name keeps a model's
+# 8 nm row apart from its rows on the store's own 20 x 9 x 9 nm grid (mws_blockwise, or identity for a promptable
+# model), since a record is named <run>.step<N>.<this file's name>. The labelling must already be what the protocol
+# scores: the model's output on its 8 nm lattice -- mutex watershed of its affinities, or a promptable model's
+# segment-everything labelling -- relabelled into connected components on that lattice inside the cube and the FFN
+# neuropil mask, then taken to the store's voxels by the voxel each centre falls in and restricted to the mask there.
+# It is not relabelled again on the store's grid, whose 20 nm sections would cut a connected segment into pieces that
+# no longer touch face to face. The artifact's `convention` attr says how it was made.
+
+task_name = "zebrafinch_neurite_tracing_11um_v1"
+
+[data.test]
+config_path = "data/test.yaml"
+
+[data.fit]
+config_path = "data/fit.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "skeleton"
+skeleton_name = "skeletons/{volume}.pkl"   # inside each volume's store (the data YAML's `path`), {volume} = its name
+
+[postprocess]
+name = "identity"
+
+[metric]
+names = ["skeleton_erl"]
+rank_by = "skeleton_erl"

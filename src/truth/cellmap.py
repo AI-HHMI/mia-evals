@@ -2,7 +2,7 @@
 
     python -m truth.cellmap --configs configs [--seed 0] [--dry-run]
 
-Writes, for `cellmap_organelle_semantic` and `cellmap_organelle_semantic_fewshot`,
+Writes, for `cellmap_organelle_semantic_v1` and `cellmap_organelle_semantic_fewshot_v1`,
 
     configs/<task>/data/{test,fit}.yaml       miao data configs, one volume per CellMap crop
     configs/<task>/{identity,argmax}.toml     the scoring configs, with the 48-class table
@@ -24,15 +24,15 @@ array (one leaf-class id per voxel, decoded by the store's `classes.csv`).
   to pick. `NEAR_COPIES` are regions painted twice where the second pass changed 0.4% of voxels:
   one crop is kept, the other dropped. Both lists are checked against the boxes, so a change in
   the data stops the build instead of passing silently.
-- `cellmap_organelle_semantic`: per dataset, `TEST_FRACTION` of the complete crops (rounded, in
+- `cellmap_organelle_semantic_v1`: per dataset, `TEST_FRACTION` of the complete crops (rounded, in
   whole groups) are test; every class must be present in at least `MIN_CROPS_PER_CLASS` test and as
   many fit crops. Of `TRIALS` seeded draws satisfying that, the one whose per-class test share is
   closest to `TEST_FRACTION` wins. Fit is every other crop, partial ones included; a partial crop
   in a test group is dropped.
-- `cellmap_organelle_semantic_fewshot`: fit is one complete crop per dataset, taken from the large
-  task's fit (so the two nest: fewshot fit is inside the large fit, the large test inside the
-  fewshot test), chosen greedily for class coverage, preferring crops whose group holds no other
-  complete crop. Test is every other eligible complete crop outside the fit crops' groups.
+- `cellmap_organelle_semantic_fewshot_v1`: fit is one complete crop per dataset, taken from the
+  large task's fit (so the two nest: fewshot fit is inside the large fit, the large test inside
+  the fewshot test), chosen greedily for class coverage, preferring crops whose group holds no
+  other complete crop. Test is every other eligible complete crop outside the fit crops' groups.
 - Each volume's `bounding_box` is its crop in the raw's level-0 voxels (checked to be whole
   voxels, clipped to the raw), and its `resolutions` the raw's own voxel size, so a producer reads
   level 0 unless it asks for another resolution.
@@ -57,7 +57,7 @@ import zarr
 LMD = Path("/groups/miaai/miaai/lmd-v0.0.1/data")
 CELLMAP = Path("/nrs/cellmap/data")
 LABEL_GROUP = "manual_gt-all_organelles-crop"
-TASKS = ("cellmap_organelle_semantic", "cellmap_organelle_semantic_fewshot")
+TASKS = ("cellmap_organelle_semantic_v1", "cellmap_organelle_semantic_fewshot_v1")
 
 #: The classes the CellMap Segmentation Challenge scores, in its order: its
 #: `src/cellmap_segmentation_challenge/utils/tested_classes.csv`, unchanged since 2025-01-10 (its

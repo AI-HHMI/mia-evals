@@ -8,11 +8,11 @@ wrong, so these tasks reward a segmentation that stays correct over long distanc
 
 | task | region | size | test ground truth | perfect ERL |
 |---|---|---|---|---|
-| `zebrafinch_neurite_tracing` | LSD's benchmark region of j0126 (zebra finch, SBEM 9x9x20 nm), 87.3 x 83.7 x 106 um | 478 GVox | 50 hand-traced skeletons: 3,410 pieces, 431,659 nodes, 75.95 mm | 240.66 um |
-| `zebrafinch_neurite_tracing_11um` | the 10.8 um cube at its centre | 0.78 GVox | the same skeletons inside it: 67 pieces, 3,488 nodes, 0.52 mm | 17.91 um |
-| `hemibrain_eb_neurite_tracing` | LSD's three ellipsoid-body cubes of the hemibrain (FIB-SEM 8 nm): 12, 22 and 17 um | 3.2 / 20.2 / 9.3 GVox | skeletons derived from the whitelisted proofread neurons: 364 / 921 / 734 objects, 35,142 / 158,338 / 95,183 nodes, 4.9 / 22.3 / 13.2 mm | 44.6 / 117.9 / 74.0 um |
-| `hemibrain_al_neurite_tracing` | lmd's hemibrain crop-004, an 8 um cube in the right alpha lobe (8 nm) | 1.0 GVox | each listed neuron's largest piece, derived from the proofread v1.2 neurons: 612 pieces, 34,269 nodes, 4.97 mm | 14.37 um |
-| `nisb_base_neurite_tracing` | NISB's base test cube, seed101 (synthetic, 9x9x20 nm), 27 x 27 x 27 um | 12.2 GVox | the generator's own skeleton: 791,035 nodes | 256.57 um |
+| `zebrafinch_neurite_tracing_v1` | LSD's benchmark region of j0126 (zebra finch, SBEM 9x9x20 nm), 87.3 x 83.7 x 106 um | 478 GVox | 50 hand-traced skeletons: 3,410 pieces, 431,659 nodes, 75.95 mm | 240.66 um |
+| `zebrafinch_neurite_tracing_11um_v1` | the 10.8 um cube at its centre | 0.78 GVox | the same skeletons inside it: 67 pieces, 3,488 nodes, 0.52 mm | 17.91 um |
+| `hemibrain_eb_neurite_tracing_v1` | LSD's three ellipsoid-body cubes of the hemibrain (FIB-SEM 8 nm): 12, 22 and 17 um | 3.2 / 20.2 / 9.3 GVox | skeletons derived from the whitelisted proofread neurons: 364 / 921 / 734 objects, 35,142 / 158,338 / 95,183 nodes, 4.9 / 22.3 / 13.2 mm | 44.6 / 117.9 / 74.0 um |
+| `hemibrain_al_neurite_tracing_v1` | lmd's hemibrain crop-004, an 8 um cube in the right alpha lobe (8 nm) | 1.0 GVox | each listed neuron's largest piece, derived from the proofread v1.2 neurons: 612 pieces, 34,269 nodes, 4.97 mm | 14.37 um |
+| `nisb_base_neurite_tracing_v1` | NISB's base test cube, seed101 (synthetic, 9x9x20 nm), 27 x 27 x 27 um | 12.2 GVox | the generator's own skeleton: 791,035 nodes | 256.57 um |
 
 All five rank on nERL (ERL divided by the perfect ERL; for the ellipsoid-body task, the unweighted
 mean over its three regions) and also report ERL in um, VOI split and merge over nodes, merge and split
@@ -119,7 +119,7 @@ boundaries, and every error left in FFN is one the proofreaders fixed. Its nERL 
 
 ## Hemibrain alpha lobe
 
-`hemibrain_al_neurite_tracing` scores one cube of the hemibrain's right alpha lobe: lmd's crop-004,
+`hemibrain_al_neurite_tracing_v1` scores one cube of the hemibrain's right alpha lobe: lmd's crop-004,
 1000^3 at 8 nm, its first voxel at x 16000, y 28000, z 6000 in hemibrain voxels. Its skeletons are
 derived from the proofread v1.2 segmentation by the ellipsoid-body task's rules, with the same code
 (`python -m truth.lmd_hemibrain`, which documents each step):

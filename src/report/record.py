@@ -296,8 +296,8 @@ def assert_same_task(task_name: str, reference: Submission, other: Submission,
 #
 # Task-major rather than kind-major (`records/<task>/` beside one shared `README.md`) because a
 # task is the unit everything else operates on. A record belongs to exactly one task, a table
-# ranks within exactly one task, and two tasks are never comparable -- `lmd_ssl_v1_neuron_instance`
-# averages four volumes at 8 nm while `lmd_ssl_v1_zebrafish_instance` scores one, and putting them
+# ranks within exactly one task, and two tasks are never comparable -- `lmd_neuron_instance_v1`
+# averages four volumes at 8 nm while `lmd_zebrafish_instance_v1` scores one, and putting them
 # under one heading in one file invited exactly the comparison both refuse. Splitting the directory
 # makes adding a task a new directory instead of an edit to a shared file, and makes a task's
 # records and its table move, diff and review together.

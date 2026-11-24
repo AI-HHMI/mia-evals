@@ -7,14 +7,14 @@ Every task's table on one sortable page: [https://ai-hhmi.github.io/mia-evals/](
 
 | task | entries | table |
 | --- | --- | --- |
-| `cellmap_organelle_semantic` | 50 | [cellmap_organelle_semantic/README.md](cellmap_organelle_semantic/README.md) |
-| `gary_comparison_neuron_instance` | 23 | [gary_comparison_neuron_instance/README.md](gary_comparison_neuron_instance/README.md) |
-| `hemibrain_eb_neurite_tracing` | 1 | [hemibrain_eb_neurite_tracing/README.md](hemibrain_eb_neurite_tracing/README.md) |
-| `lm_zebrafish_cell_instance` | 6 | [lm_zebrafish_cell_instance/README.md](lm_zebrafish_cell_instance/README.md) |
-| `lmd_ssl_v1_neuron_instance` | 13 | [lmd_ssl_v1_neuron_instance/README.md](lmd_ssl_v1_neuron_instance/README.md) |
-| `lmd_ssl_v1_zebrafish_instance` | 3 | [lmd_ssl_v1_zebrafish_instance/README.md](lmd_ssl_v1_zebrafish_instance/README.md) |
-| `lmd_ssl_v2_neuron_instance` | 8 | [lmd_ssl_v2_neuron_instance/README.md](lmd_ssl_v2_neuron_instance/README.md) |
-| `lmd_ssl_v2_neuron_instance_crop512` | 8 | [lmd_ssl_v2_neuron_instance_crop512/README.md](lmd_ssl_v2_neuron_instance_crop512/README.md) |
-| `nisb_base_neurite_tracing` | 36 | [nisb_base_neurite_tracing/README.md](nisb_base_neurite_tracing/README.md) |
-| `zebrafinch_neurite_tracing` | 1 | [zebrafinch_neurite_tracing/README.md](zebrafinch_neurite_tracing/README.md) |
-| `zebrafinch_neurite_tracing_11um` | 17 | [zebrafinch_neurite_tracing_11um/README.md](zebrafinch_neurite_tracing_11um/README.md) |
+| `cellmap_organelle_semantic_v1` | 50 | [cellmap_organelle_semantic_v1/README.md](cellmap_organelle_semantic_v1/README.md) |
+| `gary_comparison_neuron_instance_v1` | 23 | [gary_comparison_neuron_instance_v1/README.md](gary_comparison_neuron_instance_v1/README.md) |
+| `hemibrain_eb_neurite_tracing_v1` | 1 | [hemibrain_eb_neurite_tracing_v1/README.md](hemibrain_eb_neurite_tracing_v1/README.md) |
+| `lm_zebrafish_cell_instance_v1` | 6 | [lm_zebrafish_cell_instance_v1/README.md](lm_zebrafish_cell_instance_v1/README.md) |
+| `lmd_neuron_instance_crop512_v2` | 8 | [lmd_neuron_instance_crop512_v2/README.md](lmd_neuron_instance_crop512_v2/README.md) |
+| `lmd_neuron_instance_v1` | 13 | [lmd_neuron_instance_v1/README.md](lmd_neuron_instance_v1/README.md) |
+| `lmd_neuron_instance_v2` | 8 | [lmd_neuron_instance_v2/README.md](lmd_neuron_instance_v2/README.md) |
+| `lmd_zebrafish_instance_v1` | 3 | [lmd_zebrafish_instance_v1/README.md](lmd_zebrafish_instance_v1/README.md) |
+| `nisb_base_neurite_tracing_v1` | 36 | [nisb_base_neurite_tracing_v1/README.md](nisb_base_neurite_tracing_v1/README.md) |
+| `zebrafinch_neurite_tracing_11um_v1` | 17 | [zebrafinch_neurite_tracing_11um_v1/README.md](zebrafinch_neurite_tracing_11um_v1/README.md) |
+| `zebrafinch_neurite_tracing_v1` | 1 | [zebrafinch_neurite_tracing_v1/README.md](zebrafinch_neurite_tracing_v1/README.md) |

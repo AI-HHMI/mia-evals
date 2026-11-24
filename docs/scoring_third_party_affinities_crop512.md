@@ -1,7 +1,7 @@
-# Scoring your affinity model on `lmd_ssl_v2_neuron_instance_crop512`
+# Scoring your affinity model on `lmd_neuron_instance_crop512_v2`
 
 How to put an affinity model on the
-[`lmd_ssl_v2_neuron_instance_crop512` leaderboard](../leaderboard/lmd_ssl_v2_neuron_instance_crop512/README.md),
+[`lmd_neuron_instance_crop512_v2` leaderboard](../leaderboard/lmd_neuron_instance_crop512_v2/README.md),
 scored exactly like our rows. You run your model on 15 prepared images, then submit one CPU job.
 Everything runs on the Janelia cluster.
 
@@ -16,7 +16,7 @@ the size threshold chosen on the fit volumes.
 
 ## 1. Predict
 
-The inputs are in `/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance_crop512/inputs`:
+The inputs are in `/nrs/scicompsoft/orhane/mia-evals/lmd_neuron_instance_crop512_v2/inputs`:
 
 ```
 test/<volume>.image.zarr   7 images, scored
@@ -48,7 +48,7 @@ from pathlib import Path
 import numpy as np
 import zarr
 
-INPUTS = Path("/nrs/scicompsoft/orhane/mia-evals/lmd_ssl_v2_neuron_instance_crop512/inputs")
+INPUTS = Path("/nrs/scicompsoft/orhane/mia-evals/lmd_neuron_instance_crop512_v2/inputs")
 OUT = Path("/path/to/my_crop512_predictions")  # EDIT: a new directory of yours
 RUN = "mymodel_v1"  # EDIT: your leaderboard row's name: letters, digits, _ and - only
 
@@ -102,7 +102,7 @@ Then submit the scoring job, replacing `<OUT>` with your `OUT`:
 cd ~/mia-evals
 export OMP_NUM_THREADS=8 MKL_NUM_THREADS=8 OPENBLAS_NUM_THREADS=8
 bsub -n 8 -W 4:00 -o score_%J.log ~/envs/mia-evals/bin/mia-evals score \
-    configs/lmd_ssl_v2_neuron_instance_crop512/mws_size_filter.toml \
+    configs/lmd_neuron_instance_crop512_v2/mws_size_filter.toml \
     --test <OUT>/test --val <OUT>/fit --scored-out <OUT>/scored
 ```
 
@@ -113,7 +113,7 @@ A successful log ends like this:
 chose mws(repulsive_stride=1, min_size=20000)
 ...
   voxel_instance.pq = 0.2xxx (unweighted mean over 7 volumes)
-record: .../mia-evals/leaderboard/lmd_ssl_v2_neuron_instance_crop512/records/mymodel_v1.mws_size_filter.json
+record: .../mia-evals/leaderboard/lmd_neuron_instance_crop512_v2/records/mymodel_v1.mws_size_filter.json
 ```
 
 Our rows score pq 0.22 to 0.30. The segmentations that were scored are saved in `<OUT>/scored`,

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import glob
+import re
 from pathlib import Path
 
 import pytest
@@ -51,6 +52,16 @@ def test_configs_hold_nothing_but_task_directories():
     stray = [p.name for p in (ROOT / "configs").iterdir() if not p.is_dir() or not glob.glob(str(p / "*.toml"))]
     assert not stray, f"configs/ may only hold task directories with scoring configs: {stray}"
     assert SCORING, "no scoring configs found"
+
+
+@pytest.mark.unit
+def test_every_task_name_ends_in_its_version():
+    """A task directory is named `<task>_v<N>`, N from 1 (README, "Task versions")."""
+    unversioned = sorted(
+        p.name for p in (ROOT / "configs").iterdir()
+        if p.is_dir() and not re.fullmatch(r".+_v[1-9][0-9]*", p.name)
+    )
+    assert not unversioned, f"task names must end in _v<N>: {unversioned}"
 
 
 @pytest.mark.unit

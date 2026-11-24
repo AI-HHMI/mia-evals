@@ -62,19 +62,19 @@ Expect `pytest -m unit` to report a small number of skips if you have not instal
 
 ## Quick start
 
-Scoring takes three steps. The first happens in whichever repository produced the model.
+Scoring takes three steps. The first step happens in whichever repository produced the model.
 
 ```bash
 # 1. Produce prediction artifacts for both halves of the eval set. This step belongs to the producer, not to mia-evals.
-python <mia-train>/src/predict.py <run_dir> --step 50000 --data-config configs/lmd_ssl_v1_neuron_instance/data/test.yaml --out <artifacts>/test
-python <mia-train>/src/predict.py <run_dir> --step 50000 --data-config configs/lmd_ssl_v1_neuron_instance/data/fit.yaml  --out <artifacts>/finetune
+python <mia-train>/src/predict.py <run_dir> --step 50000 --data-config configs/lmd_neuron_instance_v1/data/test.yaml --out <artifacts>/test
+python <mia-train>/src/predict.py <run_dir> --step 50000 --data-config configs/lmd_neuron_instance_v1/data/fit.yaml  --out <artifacts>/finetune
 
 # 2. Fit the post-processing hyperparams on the finetune half, report on the test half, and write a record.
-mia-evals score configs/lmd_ssl_v1_neuron_instance/cc_threshold_size_filter.toml \
+mia-evals score configs/lmd_neuron_instance_v1/cc_threshold_size_filter.toml \
     --val <artifacts>/finetune --test <artifacts>/test --run-dir <run_dir>
 
 # 3. Rebuild a table from its records. Scoring already does this for the task it scored; this is for after editing or removing a record by hand.
-mia-evals leaderboard --task lmd_ssl_v1_neuron_instance     # one task
+mia-evals leaderboard --task lmd_neuron_instance_v1         # one task
 mia-evals leaderboard                                       # every task, plus the index
 ```
 
@@ -160,7 +160,7 @@ write_artifact(
 
 A producer that writes tile by tile sets the same attributes itself; nothing requires this helper.
 
-## How a score is computed
+## Scoring
 
 Every evaluation follows the same four stages, and each stage is a registry you can extend without
 touching the engine.
@@ -251,7 +251,7 @@ task through different routes, as `mws_size_filter.toml` and `cc_threshold_size_
 than restated, so prediction and scoring read the same volume definitions.
 
 ```toml
-task_name = "lmd_ssl_v1_neuron_instance"
+task_name = "lmd_neuron_instance_v1"
 
 [data.test]                                      # the reported volumes
 config_path = "data/test.yaml"
@@ -350,6 +350,31 @@ the records already under its `task_name`, and rendering or checking a task whos
 fails the same way. Anything scored on a different set, or ranked differently, needs its own task
 name.
 
+## Task versions
+
+Every task name ends in a version, `<task>_v<N>`, and each version is a complete task of its own.
+When more or better annotated data becomes available, the task can get a new version. The old one stays
+in the repository and on the leaderboard, so a new model can still be scored against earlier
+results. For example, `lmd_neuron_instance_v1` (4 test volumes) and `lmd_neuron_instance_v2` (7 test volumes)
+are two versions of one task.
+
+- **Name:** `<task>` says what is measured, and `N` is a whole number that goes up with each release
+  of that task's data. `pytest -m unit` checks that every directory under `configs/` is named `<task>_v<N>`.
+- **Self-contained:** A version has its own `configs/<task>_v<N>/` and `leaderboard/<task>_v<N>/`.
+  Versions share no files.
+- **Frozen:** A version's test split, fit split and ranking metric do not change after its first
+  record. Adding, dropping or replacing a volume makes version `N+1`. A new post-processing route
+  does not.
+- **Own splits:** A model on a version's table is fine-tuned on that version's fit split and scored
+  on that version's test split. A volume may change sides between versions, so a model fine-tuned
+  for one version must not be scored on another. `mia-evals` does not check this.
+- **No ranking across versions:** Each version has its own table, and numbers from two versions do
+  not compare.
+
+To make version `N+1`, copy `configs/<task>_v<N>/` to `configs/<task>_v<N+1>/`, change `task_name` in
+its scoring configs, edit the two data configs, and score one model as described in
+[Adding a task](#adding-a-task) below.
+
 ## Adding a task
 
 A new task, meaning a new leaderboard table, needs no code if it uses an existing task type
@@ -358,22 +383,25 @@ A new task, meaning a new leaderboard table, needs no code if it uses an existin
 1. **Write the configs:** Create `configs/<task_name>/` as described under
    [Scoring configuration](#scoring-configuration): one `<route>.toml` per post-processing route, plus
    `data/test.yaml` and, if the post-processor sweeps parameters, `data/fit.yaml`. The directory must
-   be named after the task and each scoring config after its route, and a volume name used in another
-   task's data config must have exactly the same entry; `pytest -m unit` checks these rules.
+   be named after the task and each scoring config after its route, the task name must end in its
+   version (`_v1` for a new task, see [Task versions](#task-versions)), and a volume name used in
+   another task's data config must have exactly the same entry; `pytest -m unit` checks these rules.
 2. **Check the ground truth:** It must be where the task's `truth_kind` reads it (see [Tasks](#tasks)),
    for example a `label_key` and `bounding_box` for each volume when `truth_kind = "instances"`. Data
    that cannot be read as released gets a builder under `src/truth/` (`python -m truth.<dataset>`).
 3. **Settle the task before scoring it:** The first record fixes the task: its test volumes with their
    ground truth, its ranking metric, and the region scored in each volume, which follows from how the
-   predictions were tiled. Later records that differ are refused, so changing any of these afterwards
-   needs a new task name, or re-scoring every existing record.
+   predictions were tiled. Later records that differ are refused, so changing the test volumes or
+   the ranking metric afterwards needs a new version of the task (see
+   [Task versions](#task-versions)), and changing the scored region needs every existing record
+   re-scored.
 4. **Score one model** (see [Quick start](#quick-start)): This creates `leaderboard/<task_name>/` and
    adds the task to `leaderboard/README.md` and `leaderboard/index.html`. There is no list of tasks to
    edit.
 5. **Check and commit:** Run `pytest -m unit` and `mia-evals leaderboard --check`, then commit
    `configs/<task_name>/` together with the changed files under `leaderboard/`.
 
-A task that needs a new task type, post-processor or metric also needs code; see
+A task that needs a new task type, post-processor or metric also needs new code; see
 [Extending `mia-evals`](#extending-mia-evals).
 
 ## Repository layout

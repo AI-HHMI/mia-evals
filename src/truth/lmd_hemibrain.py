@@ -408,7 +408,8 @@ README = """# hemibrain_al_lmd -- mia-evals benchmark data
 
 Built by `python -m truth.lmd_hemibrain --out {out}` from the mia-evals
 repository; `manifest.json` records the command, commit, sources, settings and hashes, and the
-builder's docstring explains each choice. Used by the mia-evals task `hemibrain_al_neurite_tracing`.
+builder's docstring explains each choice. Used by the mia-evals task
+`hemibrain_al_neurite_tracing_v1`.
 
 **What it is.** Skeleton ground truth for lmd's hemibrain crop
 `crop-004_aL_R_x16000_y28000_z6000`: a 1000^3 cube at 8 nm (8 um) in the right alpha lobe of the

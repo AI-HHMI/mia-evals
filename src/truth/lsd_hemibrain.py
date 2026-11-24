@@ -509,7 +509,7 @@ ours); the public copy is listed in the manifest.
 - `ffn_januszewski2018/<volume>.zarr`: FFN's released segmentation of each core (restricted to the
   ellipsoid body and relabelled by the LSD authors), as an `instances` artifact.
 
-Used by the mia-evals task `hemibrain_eb_neurite_tracing`.
+Used by the mia-evals task `hemibrain_eb_neurite_tracing_v1`.
 """
 
 
