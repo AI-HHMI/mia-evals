@@ -7,12 +7,14 @@ region list that folds away, and a glossary of the metric keys.
 
 One task is shown at a time, the one the URL's `#task` names. Without one the page shows the list of
 benchmarks (`index`), and above a task that same list is the menu its header's one button opens,
-so the header is one row however many tasks there are.
+so the header is one row however many tasks there are. The list gives a task one row with a link
+to each of its versions (`<task>_v<N>`), and a task with several shows those links by its title.
 """
 
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from html import escape
 from pathlib import Path
 
@@ -50,8 +52,8 @@ PAGE = """<!doctype html>
  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 -apple-system,
   BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
  a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
- .mono, .run, .sfx, code, dl.legend dt, .group b { font-family: ui-monospace, SFMono-Regular,
-  Menlo, Consolas, monospace; }
+ .mono, .run, .sfx, code, dl.legend dt, .group b, .ver { font-family: ui-monospace,
+  SFMono-Regular, Menlo, Consolas, monospace; }
  header { background: var(--card); border-bottom: 1px solid var(--line); }
  .wrap { max-width: 1400px; margin: 0 auto; padding: 0 24px; }
  header .wrap { padding-top: 28px; padding-bottom: 24px; }
@@ -72,12 +74,20 @@ PAGE = """<!doctype html>
   margin: 0; padding: 12px 14px; font-size: 14px; letter-spacing: 0; }
  .group small { color: var(--muted); font-size: 12px; font-weight: 400; white-space: nowrap; }
  .group ul { margin: 0; padding: 0; list-style: none; }
- .group a { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
-  padding: 7px 14px; border-top: 1px solid var(--line); color: var(--ink); }
+ .group li { display: flex; align-items: baseline; border-top: 1px solid var(--line); }
+ .group li:hover { background: var(--hover); } .group li.on { background: var(--accent-soft); }
+ .group li > a { flex: 1; display: flex; justify-content: space-between; align-items: baseline;
+  gap: 12px; padding: 7px 14px; color: var(--ink); }
+ .group a:hover { text-decoration: none; }
  .group b { font-size: 12.5px; font-weight: 500; overflow-wrap: anywhere; }
- .group a:hover { background: var(--hover); text-decoration: none; }
- .group a:hover b, .group a.on b { color: var(--accent); }
- .group a.on { background: var(--accent-soft); }
+ .group li > a:hover b, .group li.on b { color: var(--accent); }
+ /* a task's versions: one link each, the open one marked */
+ .vers { display: flex; gap: 6px; white-space: nowrap; } .group .vers { padding-right: 14px; }
+ .ver { padding: 1px 9px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--card); color: var(--ink); font-size: 12px; }
+ .ver small::before { content: "·"; margin: 0 5px; }
+ .ver:hover, .ver.on { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+ .ver.on { font-weight: 600; }
  /* a benchmark is open: the header is one row, and the list is the menu its button opens */
  .board header .wrap { padding-top: 12px; padding-bottom: 12px; }
  .board h1 { font-size: 17px; letter-spacing: -.01em; }
@@ -93,6 +103,8 @@ PAGE = """<!doctype html>
  main.wrap { padding-bottom: 56px; }
  section { padding-top: 32px; scroll-margin-top: 120px; }
  h2 { margin: 0 0 4px; font-size: 20px; font-weight: 650; letter-spacing: -.01em; }
+ .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin: 0 0 4px; }
+ .head h2 { margin: 0; }
  .note, .empty { margin: 0 0 16px; color: var(--muted); }
  .views { margin: 0 0 20px; }
  .mixed { margin: 0 0 20px; padding: 10px 14px; border-left: 3px solid var(--line);
@@ -162,6 +174,7 @@ function show() {
   for (const s of sections) s.hidden = s.id !== id;
   for (const a of nav.querySelectorAll("a"))
    a.classList.toggle("on", board && a.hash.slice(1) === id);
+  for (const li of nav.querySelectorAll("li")) li.classList.toggle("on", !!li.querySelector(".on"));
   document.body.classList.toggle("board", board);
   drop(false);
 }
@@ -201,6 +214,45 @@ KINDS = {
     "skeleton_erl": "Neurite tracing",
     "semantic": "Semantic segmentation",
 }
+
+
+_VERSIONED = re.compile(r"(.+)_v([1-9][0-9]*)")
+
+
+def task_version(name: str) -> tuple[str, int | None]:
+    """`<task>_v<N>` as (`<task>`, N), a name without a version as (name, None)."""
+    match = _VERSIONED.fullmatch(name)
+    return (match[1], int(match[2])) if match else (name, None)
+
+
+def _versions(tables: Sequence[TaskTable]) -> dict[tuple[str, bool], list[TaskTable]]:
+    """`tables` by task, tasks in the order they first appear, each task's versions newest first.
+
+    The key is the task and whether its names carry a version; a name without one is a task of
+    its own."""
+    by_task: dict[tuple[str, bool], list[TaskTable]] = {}
+    for table in tables:
+        task, number = task_version(table.name)
+        by_task.setdefault((task, number is not None), []).append(table)
+    for versions in by_task.values():
+        versions.sort(key=lambda table: task_version(table.name)[1] or 0, reverse=True)
+    return by_task
+
+
+def _entries(count: int) -> str:
+    return f"{count} {'entry' if count == 1 else 'entries'}"
+
+
+def _version_links(versions: Sequence[TaskTable], shown: str = "", counts: bool = False) -> str:
+    """A link to each version, as `v2`: followed by its number of entries in the list of
+    benchmarks (`counts`), and marked as the open one where it is the section `shown`."""
+    links = []
+    for table in versions:
+        on = " on" if table.name == shown else ""
+        count = f"<small>{table.entries}</small>" if counts else ""
+        links.append(f'<a class="ver{on}" href="#{escape(table.name)}" '
+                     f'title="{_entries(table.entries)}">v{task_version(table.name)[1]}{count}</a>')
+    return f'<span class="vers">{"".join(links)}</span>'
 
 
 def _bold(text: str) -> str:
@@ -283,10 +335,16 @@ def _group(group: Group) -> str:
             f"<tbody>{rows}</tbody></table></div></div>" + _legend(group.columns))
 
 
-def section(table: TaskTable) -> str:
-    """`table` as the task's section of the page; `leaderboard.markdown` writes it as README.md."""
+def section(table: TaskTable, versions: Sequence[TaskTable] = ()) -> str:
+    """`table` as the task's section of the page; `leaderboard.markdown` writes it as README.md.
+
+    `versions` are the task's versions, `table` among them: given several, the title is followed
+    by a link to each."""
     name = escape(table.name)
-    parts = [f'<section id="{name}"><h2 class="mono">{name}</h2>',
+    title = f'<h2 class="mono">{name}</h2>'
+    if len(versions) > 1:
+        title = f'<div class="head">{title}{_version_links(versions, shown=table.name)}</div>'
+    parts = [f'<section id="{name}">{title}',
              f'<p class="note">{escape(LINKS_NOTE)}</p>']
     if not table.groups:
         parts.append(f'<p class="empty">{escape(NO_RECORDS)}</p>')
@@ -310,8 +368,22 @@ def _metric(table: TaskTable) -> str:
     return ""
 
 
+def _task(task: str, versioned: bool, versions: list[TaskTable]) -> str:
+    """A task's row in the list of benchmarks: its name, which opens its newest version, and a
+    link to each version with that version's number of entries."""
+    newest = versions[0]
+    # <wbr>: a name too long for its column wraps after an underscore, not inside a word.
+    label = escape(task if versioned else newest.name).replace("_", "_<wbr>")
+    if not versioned:       # a name without a version: the name and its number of entries
+        return (f'<li><a href="#{escape(newest.name)}"><b>{label}</b>'
+                f"<small>{_entries(newest.entries)}</small></a></li>")
+    return (f'<li><a href="#{escape(newest.name)}"><b>{label}</b></a>'
+            f"{_version_links(versions, counts=True)}</li>")
+
+
 def index(tables: list[TaskTable]) -> str:
-    """The list of benchmarks: every task once, with its number of entries, under what it ranks on.
+    """The list of benchmarks: every task once, with a link to each of its versions and that
+    version's number of entries, under what it ranks on.
 
     Shown as the page itself when no task is open, and as the menu above an open one. The groups
     are the `KINDS`, then any other metric, then the tasks without records.
@@ -329,12 +401,9 @@ def index(tables: list[TaskTable]) -> str:
     for metric, key in sorted(by_ranking, key=position):
         title = KINDS.get(metric, metric) if metric else NO_RECORDS.rstrip(".")
         ranked = f"<small>ranked by {escape(key)}</small>" if metric else ""
-        # <wbr>: a name too long for its column wraps after an underscore, not inside a word.
         items = "".join(
-            f'<li><a href="#{escape(table.name)}"><b>{escape(table.name).replace("_", "_<wbr>")}'
-            f"</b><small>{table.entries} {'entry' if table.entries == 1 else 'entries'}</small>"
-            "</a></li>"
-            for table in by_ranking[metric, key]
+            _task(task, versioned, versions)
+            for (task, versioned), versions in _versions(by_ranking[metric, key]).items()
         )
         groups.append(f'<div class="group card"><h2>{escape(title)}{ranked}</h2>'
                       f"<ul>{items}</ul></div>")
@@ -345,7 +414,13 @@ def render_page(root: Path) -> str:
     """The list of benchmarks and every task's section, each section from the same `table.build`
     as that task's README.md."""
     shares = default_shares()
+    def by_task(name: str) -> tuple[str, int]:
+        task, number = task_version(name)
+        return task, number or 0
+
+    # By task, then version, so a task's row comes before its variants' (`<task>_crop512`).
     tables = [build(task, load_task(root, task), views_link(root, task), shares)
-              for task in task_names(root)]
-    return (PAGE.replace("__NAV__", index(tables))
-            .replace("__BODY__", "\n".join(section(table) for table in tables)))
+              for task in sorted(task_names(root), key=by_task)]
+    versions = {table.name: group for group in _versions(tables).values() for table in group}
+    body = "\n".join(section(table, versions[table.name]) for table in tables)
+    return PAGE.replace("__NAV__", index(tables)).replace("__BODY__", body)
