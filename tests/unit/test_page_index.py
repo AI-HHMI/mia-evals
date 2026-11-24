@@ -24,8 +24,8 @@ ROOT = Path(__file__).resolve().parents[2] / "leaderboard"
 class IndexReader(HTMLParser):
     """The groups of the page's `<nav>`: each one's title, what it ranks by, and its rows.
 
-    A row is a task: its name, where the name leads, and its `versions` (where each leads, its
-    label and its number of entries). A name without a version has `entries` instead.
+    A row is a task: its name, where the name leads, and its `versions` (where each leads, and
+    its label). A name without a version has no `versions`.
     """
 
     def __init__(self) -> None:
@@ -44,12 +44,10 @@ class IndexReader(HTMLParser):
             if tag == "h2":
                 self.groups.append({"title": "", "ranked": "", "tasks": []})
             elif tag == "li":
-                self.groups[-1]["tasks"].append({"href": "", "name": "", "entries": ""})
+                self.groups[-1]["tasks"].append({"href": "", "name": ""})
             elif tag == "a" and "ver" in (a.get("class") or "").split():
-                row = self.groups[-1]["tasks"][-1]
-                row.pop("entries", None)
-                self.version = {"href": str(a["href"]), "label": "", "entries": ""}
-                row.setdefault("versions", []).append(self.version)
+                self.version = {"href": str(a["href"]), "label": ""}
+                self.groups[-1]["tasks"][-1].setdefault("versions", []).append(self.version)
             elif tag == "a":
                 self.groups[-1]["tasks"][-1]["href"] = a["href"]
 
@@ -57,10 +55,9 @@ class IndexReader(HTMLParser):
         if not self.inside or not self.path:
             return
         if self.version is not None:
-            self.version["entries" if self.path[-1] == "small" else "label"] += data
-        elif "a" in self.path and self.path[-1] in ("b", "small"):
-            field = "name" if self.path[-1] == "b" else "entries"
-            self.groups[-1]["tasks"][-1][field] += data
+            self.version["label"] += data
+        elif "a" in self.path and self.path[-1] == "b":
+            self.groups[-1]["tasks"][-1]["name"] += data
         elif "h2" in self.path:
             self.groups[-1]["ranked" if self.path[-1] == "small" else "title"] += data
 
@@ -82,6 +79,13 @@ def read_index(html: str) -> list[dict[str, Any]]:
 
 def _header(html: str) -> str:
     return html[html.index("<header>"):html.index("</header>")]
+
+
+def _title_links(section: str) -> tuple[list[str], list[str]]:
+    """The version links by a section's title: where each leads, and which are marked as open."""
+    head = section[:section.index('<p class="note">')]
+    return (re.findall(r'href="#([^"]+)"', head),
+            re.findall(r'class="ver on" href="#([^"]+)"', head))
 
 
 def _row(metric: str, key: str) -> Submission:
@@ -108,33 +112,30 @@ def test_every_version_is_listed_once_in_its_tasks_row_under_what_it_ranks_on():
             for version in task["versions"]:
                 name = version["href"][1:]
                 assert name == f"{task['name']}_{version['label']}"
-                submissions = load_task(ROOT, name)
-                assert version["entries"] == str(len(submissions)), name
-                metric = submissions[0].ranking["metric"]
-                assert group["title"] == page.KINDS.get(metric, metric), name
-                assert group["ranked"] == f"ranked by {submissions[0].ranking['key']}", name
+                ranking = load_task(ROOT, name)[0].ranking
+                assert group["title"] == page.KINDS.get(ranking["metric"], ranking["metric"]), name
+                assert group["ranked"] == f"ranked by {ranking['key']}", name
 
 
 @pytest.mark.unit
-def test_a_task_with_several_versions_links_each_of_them_by_its_title():
+def test_every_task_links_its_versions_by_its_title_and_marks_the_open_one():
     by_task: dict[str, list[str]] = {}
     for name in task_names(ROOT):
         by_task.setdefault(page.task_version(name)[0], []).append(name)
+    assert any(len(names) > 1 for names in by_task.values()), "no task has two versions"
     html = page.render_page(ROOT)
-    several = {task: names for task, names in by_task.items() if len(names) > 1}
-    assert several, "no task on the leaderboard has two versions"
-    for names in several.values():
+    for names in by_task.values():
         newest_first = sorted(names, key=lambda name: page.task_version(name)[1] or 0,
                               reverse=True)
         for name in names:
-            section = html[html.index(f'<section id="{name}">'):]
-            head = section[:section.index('<p class="note">')]
-            assert re.findall(r'href="#([^"]+)"', head) == newest_first, name
-            assert re.findall(r'class="ver on" href="#([^"]+)"', head) == [name]    # the open one
+            assert _title_links(html[html.index(f'<section id="{name}">'):]) == \
+                (newest_first, [name]), name
 
-    # A task with one version has nothing to switch to, and no links.
+    # A task with one version shows that one, marked. A name without a version shows none.
     one = build("cells_v1", [_row("voxel_instance", "pq")], None, None)
-    assert 'class="ver' not in page.section(one) + page.section(one, [one])
+    plain = build("cells", [_row("voxel_instance", "pq")], None, None)
+    assert _title_links(page.section(one, [one])) == (["cells_v1"], ["cells_v1"])
+    assert 'class="ver' not in page.section(one) + page.section(plain, [plain])
 
 
 @pytest.mark.unit
@@ -148,11 +149,10 @@ def test_a_task_has_one_row_with_a_link_to_each_version_newest_first():
     assert read_index(f"<nav>{page.index(tables)}</nav>") == [
         {"title": "Instance segmentation", "ranked": "ranked by pq", "tasks": [
             {"href": "#cells_v2", "name": "cells", "versions": [
-                {"href": "#cells_v2", "label": "v2", "entries": "1"},
-                {"href": "#cells_v1", "label": "v1", "entries": "2"}]},
+                {"href": "#cells_v2", "label": "v2"}, {"href": "#cells_v1", "label": "v1"}]},
             {"href": "#cells_crop_v2", "name": "cells_crop", "versions": [
-                {"href": "#cells_crop_v2", "label": "v2", "entries": "1"}]},
-            {"href": "#cells", "name": "cells", "entries": "1 entry"}]},
+                {"href": "#cells_crop_v2", "label": "v2"}]},
+            {"href": "#cells", "name": "cells"}]},
     ]
     assert page.task_version("cells_v12") == ("cells", 12)
     assert [page.task_version(name)[1] for name in ("cells", "cells_v0", "cells_v01")] == [None] * 3
@@ -169,14 +169,13 @@ def test_groups_are_the_kinds_then_other_metrics_then_tasks_without_records():
     ]
     assert read_index(f"<nav>{page.index(tables)}</nav>") == [
         {"title": "Instance segmentation", "ranked": "ranked by pq", "tasks": [
-            {"href": "#cells_b", "name": "cells_b", "entries": "1 entry"},
-            {"href": "#cells_a", "name": "cells_a", "entries": "2 entries"}]},
+            {"href": "#cells_b", "name": "cells_b"}, {"href": "#cells_a", "name": "cells_a"}]},
         {"title": "Semantic segmentation", "ranked": "ranked by mean_iou", "tasks": [
-            {"href": "#classes", "name": "classes", "entries": "1 entry"}]},
+            {"href": "#classes", "name": "classes"}]},
         {"title": "some_new_metric", "ranked": "ranked by score", "tasks": [
-            {"href": "#new", "name": "new", "entries": "1 entry"}]},
+            {"href": "#new", "name": "new"}]},
         {"title": "No records yet", "ranked": "", "tasks": [
-            {"href": "#empty", "name": "empty", "entries": "0 entries"}]},
+            {"href": "#empty", "name": "empty"}]},
     ]
 
 

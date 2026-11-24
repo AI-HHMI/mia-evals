@@ -8,7 +8,7 @@ region list that folds away, and a glossary of the metric keys.
 One task is shown at a time, the one the URL's `#task` names. Without one the page shows the list of
 benchmarks (`index`), and above a task that same list is the menu its header's one button opens,
 so the header is one row however many tasks there are. The list gives a task one row with a link
-to each of its versions (`<task>_v<N>`), and a task with several shows those links by its title.
+to each of its versions (`<task>_v<N>`), and a task's section shows those links by its title.
 """
 
 from __future__ import annotations
@@ -85,7 +85,6 @@ PAGE = """<!doctype html>
  .vers { display: flex; gap: 6px; white-space: nowrap; } .group .vers { padding-right: 14px; }
  .ver { padding: 1px 9px; border: 1px solid var(--line); border-radius: 999px;
   background: var(--card); color: var(--ink); font-size: 12px; }
- .ver small::before { content: "·"; margin: 0 5px; }
  .ver:hover, .ver.on { border-color: var(--accent); color: var(--accent); text-decoration: none; }
  .ver.on { font-weight: 600; }
  /* a benchmark is open: the header is one row, and the list is the menu its button opens */
@@ -239,19 +238,13 @@ def _versions(tables: Sequence[TaskTable]) -> dict[tuple[str, bool], list[TaskTa
     return by_task
 
 
-def _entries(count: int) -> str:
-    return f"{count} {'entry' if count == 1 else 'entries'}"
-
-
-def _version_links(versions: Sequence[TaskTable], shown: str = "", counts: bool = False) -> str:
-    """A link to each version, as `v2`: followed by its number of entries in the list of
-    benchmarks (`counts`), and marked as the open one where it is the section `shown`."""
+def _version_links(versions: Sequence[TaskTable], shown: str = "") -> str:
+    """A link to each version, as `v2`; the one for the section `shown` is marked as open."""
     links = []
     for table in versions:
         on = " on" if table.name == shown else ""
-        count = f"<small>{table.entries}</small>" if counts else ""
-        links.append(f'<a class="ver{on}" href="#{escape(table.name)}" '
-                     f'title="{_entries(table.entries)}">v{task_version(table.name)[1]}{count}</a>')
+        links.append(f'<a class="ver{on}" href="#{escape(table.name)}">'
+                     f"v{task_version(table.name)[1]}</a>")
     return f'<span class="vers">{"".join(links)}</span>'
 
 
@@ -338,11 +331,11 @@ def _group(group: Group) -> str:
 def section(table: TaskTable, versions: Sequence[TaskTable] = ()) -> str:
     """`table` as the task's section of the page; `leaderboard.markdown` writes it as README.md.
 
-    `versions` are the task's versions, `table` among them: given several, the title is followed
-    by a link to each."""
+    `versions` are the task's versions, `table` among them: the title is followed by a link to
+    each, the one for this section marked."""
     name = escape(table.name)
     title = f'<h2 class="mono">{name}</h2>'
-    if len(versions) > 1:
+    if versions and task_version(table.name)[1] is not None:
         title = f'<div class="head">{title}{_version_links(versions, shown=table.name)}</div>'
     parts = [f'<section id="{name}">{title}',
              f'<p class="note">{escape(LINKS_NOTE)}</p>']
@@ -370,20 +363,17 @@ def _metric(table: TaskTable) -> str:
 
 def _task(task: str, versioned: bool, versions: list[TaskTable]) -> str:
     """A task's row in the list of benchmarks: its name, which opens its newest version, and a
-    link to each version with that version's number of entries."""
+    link to each version. A name without a version is the row alone."""
     newest = versions[0]
     # <wbr>: a name too long for its column wraps after an underscore, not inside a word.
     label = escape(task if versioned else newest.name).replace("_", "_<wbr>")
-    if not versioned:       # a name without a version: the name and its number of entries
-        return (f'<li><a href="#{escape(newest.name)}"><b>{label}</b>'
-                f"<small>{_entries(newest.entries)}</small></a></li>")
-    return (f'<li><a href="#{escape(newest.name)}"><b>{label}</b></a>'
-            f"{_version_links(versions, counts=True)}</li>")
+    links = _version_links(versions) if versioned else ""
+    return f'<li><a href="#{escape(newest.name)}"><b>{label}</b></a>{links}</li>'
 
 
 def index(tables: list[TaskTable]) -> str:
-    """The list of benchmarks: every task once, with a link to each of its versions and that
-    version's number of entries, under what it ranks on.
+    """The list of benchmarks: every task once, with a link to each of its versions, under what
+    it ranks on.
 
     Shown as the page itself when no task is open, and as the menu above an open one. The groups
     are the `KINDS`, then any other metric, then the tasks without records.
