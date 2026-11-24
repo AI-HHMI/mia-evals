@@ -334,7 +334,7 @@ def test_the_scorer_builds_the_labelling_once_and_reads_only_what_the_skeleton_t
         """))
     config = tmp_path / "mws_blockwise.toml"
     config.write_text(textwrap.dedent(f"""\
-        task_name = "unit_tracing"
+        task_name = "unit_tracing_v1"
 
         [data]
         config_path = "{data}"
@@ -461,7 +461,7 @@ def test_the_scorer_fits_a_size_filter_over_blockwise_labellings_built_once(tmp_
                     "volumes:\n" + "\n".join(entries) + "\n")
     config = tmp_path / "mws_blockwise_size_filter.toml"
     config.write_text(textwrap.dedent(f"""\
-        task_name = "unit_task"
+        task_name = "unit_task_v1"
 
         [data.test]
         config_path = "{data}"

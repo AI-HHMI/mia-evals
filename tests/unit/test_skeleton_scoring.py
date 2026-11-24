@@ -143,7 +143,7 @@ def test_scoring_a_stored_labelling_never_reads_the_region(tmp_path, monkeypatch
     data = _data_config(tmp_path, store, name)
     config = tmp_path / "skeleton.toml"
     config.write_text(textwrap.dedent(f"""\
-        task_name = "unit_tracing"
+        task_name = "unit_tracing_v1"
 
         [data]
         config_path = "{data}"
@@ -195,7 +195,7 @@ def _score_stored(tmp_path, write) -> dict:
     data = _data_config(tmp_path, store, name)
     config = tmp_path / "skeleton.toml"
     config.write_text(textwrap.dedent(f"""\
-        task_name = "unit_tracing"
+        task_name = "unit_tracing_v1"
 
         [data]
         config_path = "{data}"

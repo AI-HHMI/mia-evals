@@ -44,8 +44,9 @@ def test_route_is_the_scoring_config_s_file_name(tmp_path):
         "resolutions: [[8, 8, 8]]\npatch_size: [8, 8, 8]\noutput_axes: lcxyz\n"
         "volumes:\n- name: v\n  path: /nowhere/v.zarr\n  image_key: raw\n  label_key: labels/gt\n"
     )
-    body = ("task_name = \"t\"\n[data]\nconfig_path = \"d.yaml\"\n[task]\nname = \"instance_seg\"\n"
-            "[postprocess]\nname = \"identity\"\n[metric]\nnames = [\"voxel_instance\"]\n")
+    body = ("task_name = \"t_v1\"\n[data]\nconfig_path = \"d.yaml\"\n[task]\n"
+            "name = \"instance_seg\"\n[postprocess]\nname = \"identity\"\n[metric]\n"
+            "names = [\"voxel_instance\"]\n")
     path = tmp_path / "identity_size_filter.toml"
     path.write_text(body)
     assert load_scoring_config(path).route == "identity_size_filter"
@@ -56,6 +57,29 @@ def test_route_is_the_scoring_config_s_file_name(tmp_path):
     (tmp_path / "has space.toml").write_text(body)
     with pytest.raises(ValueError, match="filesystem-safe"):
         load_scoring_config(tmp_path / "has space.toml")
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("name, accepted", [
+    ("t_v1", True), ("t_v12", True), ("t", False), ("t_v0", False), ("t_v01", False),
+    ("t_v1x", False),
+])
+def test_a_task_name_without_a_version_is_refused_at_load(tmp_path, name, accepted):
+    """A task is named `<task>_v<N>`: the loader refuses any other name."""
+    from config import load_scoring_config
+    (tmp_path / "d.yaml").write_text(
+        "resolutions: [[8, 8, 8]]\npatch_size: [8, 8, 8]\noutput_axes: lcxyz\n"
+        "volumes:\n- name: v\n  path: /nowhere/v.zarr\n  image_key: raw\n  label_key: labels/gt\n"
+    )
+    path = tmp_path / "identity.toml"
+    path.write_text(f"task_name = \"{name}\"\n[data]\nconfig_path = \"d.yaml\"\n[task]\n"
+                    "name = \"instance_seg\"\n[postprocess]\nname = \"identity\"\n[metric]\n"
+                    "names = [\"voxel_instance\"]\n")
+    if accepted:
+        assert load_scoring_config(path).task_name == name
+    else:
+        with pytest.raises(ValueError, match=f"task_name '{name}' does not end in a version"):
+            load_scoring_config(path)
 
 
 @pytest.mark.unit

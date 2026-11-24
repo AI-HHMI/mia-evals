@@ -20,7 +20,7 @@ from pathlib import Path
 
 from .common import views_link
 from .links import Link, default_shares
-from .record import load_task, task_names
+from .record import load_task, task_names, task_version
 from .table import (
     LINKS_NOTE,
     MIXED_REGIONS,
@@ -213,15 +213,6 @@ KINDS = {
     "skeleton_erl": "Neurite tracing",
     "semantic": "Semantic segmentation",
 }
-
-
-_VERSIONED = re.compile(r"(.+)_v([1-9][0-9]*)")
-
-
-def task_version(name: str) -> tuple[str, int | None]:
-    """`<task>_v<N>` as (`<task>`, N), a name without a version as (name, None)."""
-    match = _VERSIONED.fullmatch(name)
-    return (match[1], int(match[2])) if match else (name, None)
 
 
 def _versions(tables: Sequence[TaskTable]) -> dict[tuple[str, bool], list[TaskTable]]:

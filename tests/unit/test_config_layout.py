@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import glob
-import re
 from pathlib import Path
 
 import pytest
@@ -57,9 +56,11 @@ def test_configs_hold_nothing_but_task_directories():
 @pytest.mark.unit
 def test_every_task_name_ends_in_its_version():
     """A task directory is named `<task>_v<N>`, N from 1 (README, "Task versions")."""
+    from report.record import task_version
+
     unversioned = sorted(
         p.name for p in (ROOT / "configs").iterdir()
-        if p.is_dir() and not re.fullmatch(r".+_v[1-9][0-9]*", p.name)
+        if p.is_dir() and task_version(p.name)[1] is None
     )
     assert not unversioned, f"task names must end in _v<N>: {unversioned}"
 

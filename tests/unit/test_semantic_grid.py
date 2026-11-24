@@ -194,7 +194,7 @@ def _write_configs(root: Path, store: Path, route: str, postprocess: str) -> Pat
         """))
     config = root / f"{route}.toml"
     config.write_text(textwrap.dedent(f"""\
-        task_name = "unit_semantic"
+        task_name = "unit_semantic_v1"
 
         [data]
         config_path = "{data}"
@@ -230,7 +230,7 @@ def _score(config: Path, artifacts: Path, root: Path) -> dict:
         "scratch": root / "scratch",
     })()
     evaluate.cmd_score(args)
-    [record] = (root / "board" / "unit_semantic" / "records").glob(f"*.{config.stem}.json")
+    [record] = (root / "board" / "unit_semantic_v1" / "records").glob(f"*.{config.stem}.json")
     return json.loads(record.read_text())
 
 

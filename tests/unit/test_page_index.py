@@ -15,7 +15,7 @@ from typing import Any
 import pytest
 
 from report import page
-from report.record import Submission, load_task, task_names
+from report.record import Submission, load_task, task_names, task_version
 from report.table import build
 
 ROOT = Path(__file__).resolve().parents[2] / "leaderboard"
@@ -121,11 +121,11 @@ def test_every_version_is_listed_once_in_its_tasks_row_under_what_it_ranks_on():
 def test_every_task_links_its_versions_by_its_title_and_marks_the_open_one():
     by_task: dict[str, list[str]] = {}
     for name in task_names(ROOT):
-        by_task.setdefault(page.task_version(name)[0], []).append(name)
+        by_task.setdefault(task_version(name)[0], []).append(name)
     assert any(len(names) > 1 for names in by_task.values()), "no task has two versions"
     html = page.render_page(ROOT)
     for names in by_task.values():
-        newest_first = sorted(names, key=lambda name: page.task_version(name)[1] or 0,
+        newest_first = sorted(names, key=lambda name: task_version(name)[1] or 0,
                               reverse=True)
         for name in names:
             assert _title_links(html[html.index(f'<section id="{name}">'):]) == \
@@ -154,8 +154,8 @@ def test_a_task_has_one_row_with_a_link_to_each_version_newest_first():
                 {"href": "#cells_crop_v2", "label": "v2"}]},
             {"href": "#cells", "name": "cells"}]},
     ]
-    assert page.task_version("cells_v12") == ("cells", 12)
-    assert [page.task_version(name)[1] for name in ("cells", "cells_v0", "cells_v01")] == [None] * 3
+    assert task_version("cells_v12") == ("cells", 12)
+    assert [task_version(name)[1] for name in ("cells", "cells_v0", "cells_v01")] == [None] * 3
 
 
 @pytest.mark.unit

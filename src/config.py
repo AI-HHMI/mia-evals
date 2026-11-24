@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from report.record import task_version
 from tasks.base import Volume
 
 #: Fields of a miao volume entry that a score cares about. Anything else in the entry -- weights,
@@ -236,6 +237,12 @@ def load_scoring_config(path: str | Path) -> ScoringConfig:
 
     if "task_name" not in raw:
         raise ValueError("config must set a top-level 'task_name'")
+    # A task is named <task>_v<N>. Refused at load, so no record lands under a name without one.
+    if task_version(str(raw["task_name"]))[1] is None:
+        raise ValueError(
+            f"{path.name}: task_name {str(raw['task_name'])!r} does not end in a version. Name the "
+            'task <task>_v<N>, with _v1 for a new task (README, "Task versions").'
+        )
     for section in ("task", "postprocess", "metric", "data"):
         if section not in raw:
             raise ValueError(f"config is missing the [{section}] section")

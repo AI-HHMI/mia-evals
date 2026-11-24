@@ -68,7 +68,7 @@ def _data_config(root, entries: list[tuple[str, str, tuple[int, ...]]]) -> str:
 
 def _task_config(root, data_path: str, body: str) -> str:
     path = root / "identity.toml"      # a route is its file name: the post-processor it runs
-    path.write_text(f'task_name = "unit_task"\n\n[data]\nconfig_path = "{data_path}"\n\n{body}')
+    path.write_text(f'task_name = "unit_task_v1"\n\n[data]\nconfig_path = "{data_path}"\n\n{body}')
     return str(path)
 
 
@@ -121,7 +121,7 @@ def test_scores_an_instance_submission_and_writes_a_record(instances, monkeypatc
     written = list(records.rglob("*.json"))
     assert len(written) == 1
     payload = json.loads(written[0].read_text())
-    assert payload["task_name"] == "unit_task"
+    assert payload["task_name"] == "unit_task_v1"
     assert payload["ranking"]["metric"] == "voxel_instance"
     assert payload["ranking"]["higher_is_better"] is True
     # The split is real, so PQ must be below 1 -- a record that reported a perfect score here
@@ -340,7 +340,7 @@ def test_leaderboard_renders_and_detects_drift(instances, tmp_path):
 
     # Scoring writes the record *and* renders that task's table, so the two cannot drift apart by
     # a forgotten second command. Both land under the task's own directory.
-    record_path = _only_record(root / "unit_task" / "records")
+    record_path = _only_record(root / "unit_task_v1" / "records")
     assert record_path.is_file()
     # ... and the post-processed labelling that was scored is kept and named, so a viewer can
     # show exactly the voxels behind the number.
@@ -351,12 +351,12 @@ def test_leaderboard_renders_and_detects_drift(instances, tmp_path):
     from artifact import open_artifact as _open
     kept = _open(next(iter(scored.values())))
     assert kept.kind == "instances"      # a bare array here, since the fixture's source is one
-    output = root / "unit_task" / "README.md"
+    output = root / "unit_task_v1" / "README.md"
     assert output.is_file()
 
     text = output.read_text()
     assert "GENERATED FILE" in text
-    assert "unit_task" in text and record_path.stem in text
+    assert "unit_task_v1" in text and record_path.stem in text
     # The postprocessor is a column, so a reader cannot mistake a post-processing difference for a
     # model difference.
     assert "postprocess" in text
@@ -364,13 +364,13 @@ def test_leaderboard_renders_and_detects_drift(instances, tmp_path):
 
     output.write_text(text + "\nhand edit\n")
     assert leaderboard.check(root) == [output]
-    assert leaderboard.check(root, "unit_task") == [output]
+    assert leaderboard.check(root, "unit_task_v1") == [output]
 
     # Rebuilding one task repairs it, and the index is refreshed alongside.
-    leaderboard.write(root, "unit_task")
+    leaderboard.write(root, "unit_task_v1")
     assert leaderboard.check(root) == []
     index = (root / "README.md").read_text()
-    assert "unit_task" in index
+    assert "unit_task_v1" in index
     # The index lists tasks; it must not rank anything, or the split back into per-task pages
     # would have bought nothing.
     assert record_path.stem not in index
@@ -405,7 +405,7 @@ def test_a_plain_submission_is_kept_on_the_stores_grid(instances):
         "config": config, "test": artifact, "val": None, "leaderboard": root, "run_dir": None,
         "scored_out": None, "no_scored": False, "scratch": tmp_path / "s",
     })())
-    record_ = json.loads(_only_record(root / "unit_task" / "records").read_text())
+    record_ = json.loads(_only_record(root / "unit_task_v1" / "records").read_text())
     (kept,) = record_["postprocess"]["scored_artifacts"].values()
     ome = dict(zarr.open_group(kept, mode="r").attrs)["ome"]
     (dataset,) = ome["multiscales"][0]["datasets"]
@@ -462,7 +462,7 @@ def test_each_volume_is_scored_against_its_own_artifact(two_volumes):
         "run_dir": None,
         "scored_out": None, "no_scored": False, "scratch": root / "s",
     })())
-    payload = json.loads((_only_record(records / "unit_task" / "records")).read_text())
+    payload = json.loads((_only_record(records / "unit_task_v1" / "records")).read_text())
 
     per_volume = payload["per_volume"]
     assert set(per_volume) == {"alpha", "beta"}
@@ -550,7 +550,7 @@ def _split_task_config(root, test_data: str, fit_data: str | None, body: str,
             lines.append("volumes = [" + ", ".join(f'"{v}"' for v in volumes) + "]")
         return "\n".join(lines) + "\n"
 
-    text = 'task_name = "unit_task"\n\n' + table("test", test_data, test_volumes)
+    text = 'task_name = "unit_task_v1"\n\n' + table("test", test_data, test_volumes)
     if fit_data is not None:
         text += "\n" + table("fit", fit_data, fit_volumes)
     path = root / "split_task.toml"
@@ -601,7 +601,8 @@ def test_the_fit_split_is_declared_in_the_task_and_may_not_overlap_the_reported_
     # [data.fit] without [data.test] is a shape error, not a silently missing test split.
     lonely = tmp_path / "lonely.toml"
     lonely.write_text(
-        'task_name = "unit_task"\n\n[data.fit]\nconfig_path = "' + both + '"\n\n' + SIZE_FILTER_BODY
+        'task_name = "unit_task_v1"\n\n[data.fit]\nconfig_path = "' + both + '"\n\n'
+        + SIZE_FILTER_BODY
     )
     with pytest.raises(ValueError, match=r"\[data.fit\] needs a \[data.test\]"):
         load_scoring_config(lonely)
@@ -635,7 +636,7 @@ def test_a_sweep_is_fitted_on_the_declared_fit_split_and_applied_to_the_test_spl
         "scratch": tmp_path / "scratch",
     })()
     evaluate.cmd_score(args)
-    payload = json.loads((_only_record(records / "unit_task" / "records")).read_text())
+    payload = json.loads((_only_record(records / "unit_task_v1" / "records")).read_text())
     assert payload["postprocess"]["params"] == {"min_size": 3}
     assert Path(payload["postprocess"]["fitted_on_data_config"]).resolve() == Path(both).resolve()
     assert list(payload["region"]["volumes"]) == ["alpha"]
@@ -731,7 +732,7 @@ def test_identity_fits_a_size_filter_and_a_fill_together_over_two_fit_volumes(tm
         "config": config, "test": test_dir, "val": val_dir, "leaderboard": records,
         "run_dir": None, "scored_out": None, "no_scored": False, "scratch": tmp_path / "scratch",
     })())
-    payload = json.loads(_only_record(records / "unit_task" / "records").read_text())
+    payload = json.loads(_only_record(records / "unit_task_v1" / "records").read_text())
     # The first of the two perfect candidates: "all" also recovers the truth but comes after 1.
     assert payload["postprocess"]["params"] == {"min_size": 3, "fill_distance": 1}
     assert payload["postprocess"]["describe"] == "identity(min_size=3, fill_distance=1)"

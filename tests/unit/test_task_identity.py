@@ -64,7 +64,7 @@ def test_task_files_sharing_a_name_agree_on_what_the_task_is():
 def _submission(volumes, truth_kind="instances", metric="voxel_instance", key="pq",
                 label="row", value=0.5) -> Submission:
     return Submission(
-        task_name="unit_task",
+        task_name="unit_task_v1",
         producer={"artifacts": {v["name"]: f"/nowhere/{v['name']}.zarr" for v in volumes}},
         scores={metric: {key: value}},
         ranking={"metric": metric, "key": key, "value": value, "higher_is_better": True},
@@ -118,9 +118,9 @@ def test_a_directory_whose_records_disagree_cannot_be_loaded_or_checked(tmp_path
     _submission([ALPHA, BETA], label="a").write(root)
     _submission([ALPHA], label="b").write(root)                 # another test set, same name
     with pytest.raises(ValueError, match="was not scored on the same task"):
-        record.load_task(root, "unit_task")
+        record.load_task(root, "unit_task_v1")
     with pytest.raises(ValueError, match="volumes \\['alpha'\\] vs \\['alpha', 'beta'\\]"):
-        leaderboard.check(root, "unit_task")
+        leaderboard.check(root, "unit_task_v1")
 
 
 def test_a_row_scored_on_more_of_a_volume_cannot_join_the_table(tmp_path):
@@ -137,27 +137,27 @@ def test_a_row_scored_on_more_of_a_volume_cannot_join_the_table(tmp_path):
     ]
     assert record.region_differences(old, _submission([ALPHA], label="same")) == []
     with pytest.raises(ValueError, match="scored on a different region"):
-        record.assert_same_task("unit_task", old, new, "old.json", "new.json")
+        record.assert_same_task("unit_task_v1", old, new, "old.json", "new.json")
 
     root = tmp_path / "board"
     old.write(root)
     new.write(root)
     with pytest.raises(ValueError, match="scored on a different region"):
-        record.load_task(root, "unit_task")
+        record.load_task(root, "unit_task_v1")
 
 
 def test_the_truth_route_becomes_a_column_only_when_it_varies():
     rows = [_submission([ALPHA], truth_kind="instances", label="a"),
             _submission([ALPHA], truth_kind="instances", label="b", value=0.4)]
-    assert "| truth |" not in leaderboard.render_task("unit_task", rows)
+    assert "| truth |" not in leaderboard.render_task("unit_task_v1", rows)
 
     # The pre-rename spelling of the same route is not a difference.
     rows[1].config["task"]["kwargs"]["truth_kind"] = "sibling_artifact"
     rows[0].config["task"]["kwargs"]["truth_kind"] = "instances_resampled"
-    assert "| truth |" not in leaderboard.render_task("unit_task", rows)
+    assert "| truth |" not in leaderboard.render_task("unit_task_v1", rows)
 
     rows[1].config["task"]["kwargs"]["truth_kind"] = "instances"
-    page = leaderboard.render_task("unit_task", rows)
+    page = leaderboard.render_task("unit_task_v1", rows)
     assert "| truth |" in page
     assert "| instances_resampled |" in page and "| instances |" in page
 
@@ -211,7 +211,7 @@ def test_scoring_refuses_a_record_that_would_redefine_the_task(tmp_path):
 
     def task_file(name, data):
         path = tmp_path / f"{name}.toml"
-        path.write_text(f'task_name = "unit_task"\n\n[data]\nconfig_path = "{data}"\n\n{body}')
+        path.write_text(f'task_name = "unit_task_v1"\n\n[data]\nconfig_path = "{data}"\n\n{body}')
         return str(path)
 
     one = task_file("one", _data_config(tmp_path, "one", [("alpha", alpha, truth.shape)]))
@@ -234,7 +234,7 @@ def test_scoring_refuses_a_record_that_would_redefine_the_task(tmp_path):
     with pytest.raises(SystemExit, match="volumes \\['alpha', 'beta'\\] vs \\['alpha'\\]"):
         evaluate.cmd_score(args(two))
     # The refused record was never written, so the table is still consistent.
-    assert len(list((tmp_path / "board" / "unit_task" / "records").glob("*.json"))) == 1
+    assert len(list((tmp_path / "board" / "unit_task_v1" / "records").glob("*.json"))) == 1
     assert leaderboard.check(tmp_path / "board") == []
     # Another submission to the same task is, of course, fine: an artifact from a different run
     # (named by its `run`/`step` attrs, as predict.py writes them) gets its own record beside the
@@ -245,6 +245,6 @@ def test_scoring_refuses_a_record_that_would_redefine_the_task(tmp_path):
                    run="second_run", step=7)
     evaluate.cmd_score(args(one, test=second))
     written = json.loads(
-        (tmp_path / "board" / "unit_task" / "records" / "second_run.step7.one.json").read_text()
+        (tmp_path / "board" / "unit_task_v1" / "records" / "second_run.step7.one.json").read_text()
     )
-    assert written["task_name"] == "unit_task"
+    assert written["task_name"] == "unit_task_v1"

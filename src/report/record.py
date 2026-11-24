@@ -21,6 +21,7 @@ from __future__ import annotations
 import importlib
 import json
 import platform
+import re
 import subprocess
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -285,6 +286,17 @@ def assert_same_task(task_name: str, reference: Submission, other: Submission,
             "Predict over the region the existing rows cover (each record's region), or "
             "re-predict and re-score those rows on the new one."
         )
+
+
+# A task's name ends in its version, `<task>_v<N>` (README, "Task versions"). The scoring config
+# loader refuses a name without one, and the page lists a task's versions together.
+_VERSIONED = re.compile(r"(.+)_v([1-9][0-9]*)")
+
+
+def task_version(name: str) -> tuple[str, int | None]:
+    """`<task>_v<N>` as (`<task>`, N), a name without a version as (name, None)."""
+    match = _VERSIONED.fullmatch(name)
+    return (match[1], int(match[2])) if match else (name, None)
 
 
 # --------------------------------------------------------------------------- the on-disk layout

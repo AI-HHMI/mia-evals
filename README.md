@@ -352,15 +352,16 @@ name.
 
 ## Task versions
 
-Every task name ends in a version, `<task>_v<N>`, and each version is a complete task of its own.
+Every task name ends with a version number, `<task>_v<N>`, and each version is a complete task of its own.
 When more or better annotated data becomes available, the task can get a new version. The old one stays
 in the repository and on the leaderboard, so a new model can still be scored against earlier
 results. For example, `lmd_neuron_instance_v1` (4 test volumes) and `lmd_neuron_instance_v2` (7 test volumes)
 are two versions of one task.
 
-- **Name:** `<task>` says what is measured, and `N` is a whole number that goes up with each release
-  of that task's data. `pytest -m unit` checks that every directory under `configs/` is named `<task>_v<N>`.
-- **Self-contained:** A version has its own `configs/<task>_v<N>/` and `leaderboard/<task>_v<N>/`.
+- **Name:** `<task>` describes the actual task, and `N` is a whole number that goes up with each update of the task. 
+`mia-evals score` refuses a `task_name` without a version, and `pytest -m unit` checks that every directory under 
+`configs/` is named `<task>_v<N>`.
+- **Self-contained:** A version has its own `configs/<task>_v<N>/` and `leaderboard/<task>_v<N>/` directories.
   Versions share no files.
 - **Frozen:** A version's test split, fit split and ranking metric do not change after its first
   record. Adding, dropping or replacing a volume makes version `N+1`. A new post-processing route
