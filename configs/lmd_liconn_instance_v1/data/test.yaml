@@ -1,0 +1,95 @@
+# lmd_liconn_instance_v1 -- instance segmentation on LICONN expansion-microscopy volumes only (mouse and Drosophila): eight volumes with class `cell` labels,
+# like lmd_neuron_instance_v2, and one with a class `neuron` label (flyid49_40xw005_neuron). The name says "instance" because it holds both.
+#
+# A new task (its own name and version), made the way README 'Task versions' says: configs/lmd_neuron_instance_v2 copied, `task_name` changed,
+# the two data configs edited. lmd_neuron_instance_v1 / _v2 are untouched. This is the TEST half: scored once, as `--test`.
+#
+# Entries copied byte for byte from lmd_neuron_instance_v2 (same names, so same entries): liconn_mouse_hippocampus, liconn_expid82, flyid49_40xw006.
+# New entries (windows from lmd-configs corpus/windows.yaml, boxes measured 2026-11-23):
+#   liconn_expid82_jj           the same ExPID82 store as liconn_expid82, a different label and a disjoint box: John Walsh's Paintera proofreading
+#     (mia_annotation#12, manual_gt-cell-agglom-JJ-paintera), 59% dense, 177 ids, x 3356-3942, y 4984-5292, z 425-790.
+#   phdye19_opticlobes_final    FlyLICONN optic lobe, Matt phDye19 60x (mia_annotation#30, manual_gt-cell-final), 163 ids, 58.1% dense. Its exact level-0 box
+#     is 482x482x194 voxels = 2.082 um, just above the 2.048 um a 256-voxel patch needs at 8 nm: the box must stay exact, never rounded.
+#
+# DRAFT, UNSCORED: not reviewed by Emin; the labels of the two newest finals (phdye19 final, 40XW005 neuron) are not in lmd-configs census-20261116.
+# Single scale, 8 nm (resolutions below): the LICONN boxes are 2.3-9.9 um across, so no 8/16/32 ladder fits.
+#
+resolutions:
+- - 8.0
+  - 8.0
+  - 8.0
+patch_size:
+- 256
+- 256
+- 256
+output_axes: lcxyz
+samples_per_epoch: 1000
+volumes:
+- name: liconn_mouse_hippocampus
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-hippocampus-202507013_ExPID10-02_2percentAA_S2_Atto488_40XW_004/crop-001.zarr
+  image_key: raw
+  zarr_version: zarr3
+  label_key: labels/manual_gt-cell-final
+  bounding_box:
+  - - 496
+    - 976
+  - - 496
+    - 976
+  - - 44
+    - 236
+  normalize_max: 919
+  normalize_min: 219
+- name: liconn_expid82
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-ExPID82-1/crop-002_sub.zarr
+  image_key: raw
+  zarr_version: zarr3
+  label_key: labels/proofread-cell-agglom-dense-v20240123
+  bounding_box:
+  - - 1229
+    - 2253
+  - - 1642
+    - 2666
+  - - 0
+    - 534
+- name: flyid49_40xw006
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-drosophila-flyliconn-FlyID49-2ndgel-DUP-BIS-40XW006-20260625/crop-001.zarr
+  image_key: raw
+  zarr_version: zarr3
+  label_key: labels/manual_gt-cell-final
+  bounding_box:
+  - - 912
+    - 1392
+  - - 912
+    - 1392
+  - - 351
+    - 828
+  normalize_max: 1448
+  normalize_min: 210
+- name: liconn_expid82_jj
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-ExPID82-1/crop-002_sub.zarr
+  image_key: raw
+  zarr_version: zarr3
+  label_key: labels/manual_gt-cell-agglom-JJ-paintera
+  bounding_box:
+  - - 3356
+    - 3942
+  - - 4984
+    - 5292
+  - - 425
+    - 790
+  normalize_max: 255
+  normalize_min: 2
+- name: phdye19_opticlobes_final
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-drosophila-flyliconn-matt-phDye19-Gel2-OpticLobes-60x/crop-001_fullvol.zarr
+  image_key: raw
+  zarr_version: zarr3
+  label_key: labels/manual_gt-cell-final
+  bounding_box:
+  - - 1013
+    - 1495
+  - - 1013
+    - 1495
+  - - 580
+    - 774
+  normalize_max: 5281.46
+  normalize_min: 503.352

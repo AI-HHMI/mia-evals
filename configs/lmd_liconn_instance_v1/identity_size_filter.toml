@@ -1,0 +1,46 @@
+# lmd_liconn_instance_v1 -- the same task, scored from FINISHED instance labellings (for example the promptable / SAM
+# arm's segment-everything pass) through the same size filter, fitted on [data.fit] and applied once to [data.test].
+#
+#   mia-evals score configs/lmd_liconn_instance_v1/identity_size_filter.toml \
+#       --test <labellings>/test --val <labellings>/fit --run-dir <mia-train run dir>
+#
+# Same task, halves and candidates as mws_size_filter.toml beside it, so the rows land in one table and differ
+# only in what wrote the labelling.
+
+task_name = "lmd_liconn_instance_v1"
+
+notes = """
+Voxel metrics, not skeleton ones: these volumes ship dense label arrays and no skeletons, so panoptic
+quality ranks. LICONN only (mouse and Drosophila expansion microscopy; eight class cell labels and one class neuron label); not comparable with
+lmd_neuron_instance_v1 or _v2, which score other volume sets on other splits.
+
+Nine volumes: fit = liconn_mouse_dg, flyid49_40xw005, liconn_mouse_cortex_subbox, flyid49_40xw005_neuron;
+test = liconn_mouse_hippocampus, liconn_expid82, flyid49_40xw006, liconn_expid82_jj, phdye19_opticlobes_final.
+Volumes on one raw crop or store sit on one side (flyid49_40xw005 and its neuron label on fit; the two
+ExPID82 boxes on test). flyid49_40xw005_neuron is the proofread output of an LSD/watershed prediction,
+so its ground truth inherits that pipeline's boundaries. Single scale, 8 nm; the boxes are 2.3-9.9 um across.
+
+Scored region per volume is mia-train predict.py's lattice-aligned sub-box of the volume's measured
+bounding box, at 8 nm. Labellings come from predict.py's PromptGridPredictor pass; 0 is background.
+"""
+
+[data.test]
+config_path = "data/test.yaml"
+
+[data.fit]
+config_path = "data/fit.yaml"
+
+[task]
+name = "instance_seg"
+truth_kind = "instances_resampled"   # <volume>.gt.zarr beside each labelling
+
+[postprocess]
+name = "identity"
+# Mean object size at 8 nm, estimated from box volume x foreground / ids: ~5e4 voxels (flyid49_40xw005_neuron) to
+# ~1e6 (liconn_mouse_dg), ~2e5-6e5 for most. v2's list stopped at 6e5, below the DG mean, so 1.2e6 is added: a fitted
+# value at the edge of the list is not a fitted value.
+min_sizes = [0, 500, 5000, 20000, 50000, 150000, 300000, 600000, 1200000]
+
+[metric]
+names = ["voxel_instance"]
+rank_by = "voxel_instance"        # primary key: pq
