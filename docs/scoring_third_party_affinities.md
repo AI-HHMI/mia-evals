@@ -1,7 +1,7 @@
-# Scoring your own affinity predictions on `gary_comparison_neuron_instance_v1`
+# Scoring your own affinity predictions on `hemibrain_eb_neuron_instance_v1`
 
 Step-by-step instructions for putting an externally produced affinity map on the
-`gary_comparison_neuron_instance_v1` leaderboard with `mia-evals`. Written 2026-09-21 for Gary; the
+`hemibrain_eb_neuron_instance_v1` leaderboard with `mia-evals`. Written 2026-09-21 for Gary; the
 same steps work for any task and any producer.
 
 Everything below runs on the Janelia cluster. Nothing needs a GPU. Budget about half a day of wall
@@ -164,7 +164,7 @@ The mutex-watershed route is the one our rows are ranked by:
 ```bash
 cd ~/mia-evals
 bsub -P miaai -q local -n 32 -W 24:00 -J score_mws -o score_mws_%J.log \
-  ~/envs/mia-evals/bin/mia-evals score configs/gary_comparison_neuron_instance_v1/mws_size_filter.toml \
+  ~/envs/mia-evals/bin/mia-evals score configs/hemibrain_eb_neuron_instance_v1/mws_size_filter.toml \
     --test <OUT>/test --val <OUT>/fit \
     --scored-out <OUT>/scored/mws --scratch <OUT>/scratch
 ```
@@ -176,7 +176,7 @@ components on the short-range channels, is the cheap baseline (30 minutes, 8 slo
 
 ```bash
 bsub -P miaai -q local -n 8 -W 6:00 -J score_cc -o score_cc_%J.log \
-  ~/envs/mia-evals/bin/mia-evals score configs/gary_comparison_neuron_instance_v1/cc_threshold_size_filter.toml \
+  ~/envs/mia-evals/bin/mia-evals score configs/hemibrain_eb_neuron_instance_v1/cc_threshold_size_filter.toml \
     --test <OUT>/test --val <OUT>/fit \
     --scored-out <OUT>/scored/cc_threshold --scratch <OUT>/scratch
 ```
@@ -191,8 +191,8 @@ scoring test
 scored labellings kept under <OUT>/scored/mws
     hemibrain_eb_test                pq = 0.1xxx
   voxel_instance.pq = 0.1xxx (unweighted mean over 1 volumes)
-record: /path/to/mia-evals/leaderboard/gary_comparison_neuron_instance_v1/records/gary_mymodel_20260921.mws_size_filter.json
-updated: .../leaderboard/gary_comparison_neuron_instance_v1/README.md
+record: /path/to/mia-evals/leaderboard/hemibrain_eb_neuron_instance_v1/records/gary_mymodel_20260921.mws_size_filter.json
+updated: .../leaderboard/hemibrain_eb_neuron_instance_v1/README.md
 ```
 
 Panoptic quality (`pq`) ranks the table; VOI split and merge, SQ, RQ and adapted Rand error are
@@ -214,12 +214,12 @@ neuroglancer links, which need a fileglancer key that only exists on our side):
 ```bash
 cd ~/mia-evals
 git checkout -b gary-mws-record
-git add leaderboard/gary_comparison_neuron_instance_v1/records/gary_mymodel_20260921.mws_size_filter.json
-git commit -m "gary_comparison_neuron_instance_v1: add gary_mymodel_20260921.mws_size_filter"
+git add leaderboard/hemibrain_eb_neuron_instance_v1/records/gary_mymodel_20260921.mws_size_filter.json
+git commit -m "hemibrain_eb_neuron_instance_v1: add gary_mymodel_20260921.mws_size_filter"
 git push -u origin gary-mws-record
 ```
 
-Leave `leaderboard/gary_comparison_neuron_instance_v1/README.md` out of the commit: your render lacks
+Leave `leaderboard/hemibrain_eb_neuron_instance_v1/README.md` out of the commit: your render lacks
 the view links and would replace ours. Keep `<OUT>` in place and group-readable
 (`chmod -R g+rX <OUT>`): the record links to your artifacts and scored labelling by path.
 

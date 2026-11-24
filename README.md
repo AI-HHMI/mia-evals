@@ -359,7 +359,7 @@ results. For example, `lmd_neuron_instance_v1` (4 test volumes) and `lmd_neuron_
 are two versions of one task.
 
 - **Name:** `<task>` describes the actual task, and `N` is a whole number that goes up with each update of the task. 
-`mia-evals score` refuses a `task_name` without a version, and `pytest -m unit` checks that every directory under 
+`mia-evals score` refuses a `task_name` without a version number, and `pytest -m unit` checks that every directory under 
 `configs/` is named `<task>_v<N>`.
 - **Self-contained:** A version has its own `configs/<task>_v<N>/` and `leaderboard/<task>_v<N>/` directories.
   Versions share no files.
