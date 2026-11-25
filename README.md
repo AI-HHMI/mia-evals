@@ -5,10 +5,7 @@ leaderboard of the results, published at [ai-hhmi.github.io/mia-evals](https://a
 
 The central idea is that `mia-evals` scores **model predictions** and does not have to know anything about
 the model that generated those predictions. Model predictions are saved in a self-describing Zarr array 
-called a prediction artifact, and `mia-evals` simply reads that artifact and scores it. 
-Nothing in this repository imports `torch`, loads a checkpoint, or rebuilds a network. 
-A segmentation produced by a collaborator, a published tool, or a manual proofreading pass is therefore 
-a first-class submission, on exactly the same footing as one of our own models.
+called a prediction artifact, and `mia-evals` simply reads that artifact and scores it.
 
 [`mia-train`](https://github.com/AI-HHMI/mia-train) is our sister repository that trains models and
 writes prediction artifacts. The prediction artifact is the whole interface between the two repositories. 
@@ -62,7 +59,7 @@ Expect `pytest -m unit` to report a small number of skips if you have not instal
 
 ## Quick start
 
-Scoring takes three steps. The first step happens in whichever repository produced the model.
+Scoring takes three steps. The first step typically takes place in whichever repository produced the model.
 
 ```bash
 # 1. Produce prediction artifacts for both halves of the eval set. This step belongs to the producer, not to mia-evals.
@@ -90,8 +87,7 @@ entry points, so none of them depend on the working directory.
 
 ## Prediction artifacts
 
-An artifact is a **single-resolution Zarr array** carrying a few attributes that say what its
-numbers mean. It may be written in either of two forms, which score identically:
+An artifact is a **single-resolution Zarr array** carrying a few attributes. It may be written in either of two forms, which score identically:
 
 - a bare Zarr array, which is what the `write_artifact` helper below produces; or
 - a single-level OME-Zarr group whose `multiscales` name exactly one dataset (mia-train's
@@ -102,9 +98,9 @@ numbers mean. It may be written in either of two forms, which score identically:
 Zarr v2 and v3 are both readable, and any store `zarr.open` accepts will do. A multiscale *pyramid*
 is rejected, even though the source volumes read through `miao` are pyramids: scoring compares one
 voxel lattice against the ground truth, and a pyramid does not say which level that should be. If
-your prediction is already a pyramid, point at one level's path, such as `prediction.zarr/s0`.
+your prediction is already a pyramid, point at a single level's path, such as `prediction.zarr/s0`.
 Beyond the single-level `multiscales` entry, no OME-NGFF metadata is required for scoring: the
-attributes below are the contract.
+attributes below are the entire contract.
 
 Required attributes:
 
@@ -240,7 +236,7 @@ array's own grid: the prediction is placed by its OME geometry, which it must th
 each label voxel takes the class of the prediction voxel holding its centre. Truth painted at 2 nm is
 then scored at 2 nm whatever resolution a model ran at; see [docs/cellmap.md](docs/cellmap.md).
 
-## Scoring configuration
+## Scoring configs
 
 Configs are laid out one directory per task, named exactly as the task: `configs/<task_name>/<route>.toml`
 is a scoring config (its file name is its route) and `configs/<task_name>/data/{test,fit}.yaml` are that
@@ -325,9 +321,7 @@ name of the run directory that was passed to the producer's `predict.py` (which 
 experiment, the arm and the launch time, e.g. `gary__1a_dinov3_axial_subpixel_20260916_215544`),
 `<N>` the checkpoint step, `<route>` the scoring config's file name. So
 `lmd1__2c_dinov3_lvd_ft_subpixel_20260824_183919.step50000.cc_threshold_size_filter` says exactly which checkpoint was
-scored and how, and its checkpoint directory can be found by name. There is no `--label`: hand-written
-names (`2c_step50000`, `2c_step50000_sizefilter`, ...) made the tables unreadable and were replaced on
-2026-09-18. Scoring a run, step and route that already has a record is refused rather than
+scored and how, and its checkpoint directory can be found by name. Scoring a run, step and route that already has a record is refused rather than
 overwritten; delete the old record if the new scoring supersedes it, or save the config under a
 file name of its own if it is a different protocol.
 
@@ -428,11 +422,11 @@ A task that needs a new task type, post-processor or metric also needs new code;
 
 ## Extending `mia-evals`
 
-Adding a post-processor, a metric or a task requires writing one class, decorating it with the 
-relevant registry, and adding one import line to `src/components.py`. The engine and the registries
-themselves never change. A post-processor declares which artifact kinds it `accepts` and which
+Adding a post-processor, a metric or a task requires writing a class, decorating it with the 
+relevant registry, and adding an import line to `src/components.py`. The engine and the registries
+themselves do not change. A post-processor declares which artifact kinds it `accepts` and which
 canonical form it `produces`, and returns its parameter sweep from `search_space()`; the runner
-handles fitting that sweep on validation. A metric declares its canonical form, its `primary` key
+handles fitting that sweep on the validation data. A metric declares its canonical form, its `primary` key
 and its direction.
 
 ## Testing
@@ -447,5 +441,4 @@ pytest -m parity        # pins voxel_instance's VOI to funlib.evaluate's numbers
 
 MIT, and MIT upstream. Two modules in `src/utils/` are used verbatim from BANIS, whose notice travels
 with them in [`third_party_licenses/banis-MIT.txt`](third_party_licenses/banis-MIT.txt). See
-[ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md) for what was recycled, from whom, and why those two files
-must not be tidied.
+[ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md) for what was recycled, from whom, and why those two files must not be tidied.
