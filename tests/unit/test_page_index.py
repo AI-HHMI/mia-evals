@@ -88,6 +88,11 @@ def _title_links(section: str) -> tuple[list[str], list[str]]:
             re.findall(r'class="ver on" href="#([^"]+)"', head))
 
 
+def _title(section: str) -> str:
+    """A section's title as shown."""
+    return re.findall(r'<h2 class="mono">([^<]*)</h2>', section)[0]
+
+
 def _row(metric: str, key: str) -> Submission:
     return Submission(
         task_name="t", producer={"step": 5}, scores={metric: {key: 0.5}},
@@ -118,23 +123,27 @@ def test_every_version_is_listed_once_in_its_tasks_row_under_what_it_ranks_on():
 
 
 @pytest.mark.unit
-def test_every_task_links_its_versions_by_its_title_and_marks_the_open_one():
+def test_every_title_is_the_tasks_name_then_a_link_to_each_version_the_open_one_marked():
     by_task: dict[str, list[str]] = {}
     for name in task_names(ROOT):
         by_task.setdefault(task_version(name)[0], []).append(name)
     assert any(len(names) > 1 for names in by_task.values()), "no task has two versions"
     html = page.render_page(ROOT)
-    for names in by_task.values():
+    for task, names in by_task.items():
         newest_first = sorted(names, key=lambda name: task_version(name)[1] or 0,
                               reverse=True)
         for name in names:
-            assert _title_links(html[html.index(f'<section id="{name}">'):]) == \
-                (newest_first, [name]), name
+            section = html[html.index(f'<section id="{name}">'):]
+            assert _title(section) == task, name          # the marked link says which version
+            assert _title_links(section) == (newest_first, [name]), name
 
-    # A task with one version shows that one, marked. A name without a version shows none.
+    # A task with one version shows that one, marked. A name without a version shows none, and
+    # a section given no versions keeps the version in its title.
     one = build("cells_v1", [_row("voxel_instance", "pq")], None, None)
     plain = build("cells", [_row("voxel_instance", "pq")], None, None)
     assert _title_links(page.section(one, [one])) == (["cells_v1"], ["cells_v1"])
+    assert _title(page.section(one, [one])) == "cells" and _title(page.section(one)) == "cells_v1"
+    assert _title(page.section(plain, [plain])) == "cells"
     assert 'class="ver' not in page.section(one) + page.section(plain, [plain])
 
 

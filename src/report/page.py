@@ -322,12 +322,15 @@ def _group(group: Group) -> str:
 def section(table: TaskTable, versions: Sequence[TaskTable] = ()) -> str:
     """`table` as the task's section of the page; `leaderboard.markdown` writes it as README.md.
 
-    `versions` are the task's versions, `table` among them: the title is followed by a link to
-    each, the one for this section marked."""
+    `versions` are the task's versions, `table` among them: the title is then the task's name
+    without its version, followed by a link to each version, the one for this section marked."""
     name = escape(table.name)
-    title = f'<h2 class="mono">{name}</h2>'
-    if versions and task_version(table.name)[1] is not None:
-        title = f'<div class="head">{title}{_version_links(versions, shown=table.name)}</div>'
+    task, number = task_version(table.name)
+    if versions and number is not None:
+        title = (f'<div class="head"><h2 class="mono">{escape(task)}</h2>'
+                 f"{_version_links(versions, shown=table.name)}</div>")
+    else:
+        title = f'<h2 class="mono">{name}</h2>'
     parts = [f'<section id="{name}">{title}',
              f'<p class="note">{escape(LINKS_NOTE)}</p>']
     if not table.groups:
