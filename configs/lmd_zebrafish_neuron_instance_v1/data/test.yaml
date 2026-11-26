@@ -20,7 +20,7 @@ volumes:
   path: /groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr
   image_key: raw
   label_key: labels/proofread-cell-seg230927
-  zarr_version: zarr3
+  format: zarr3
   bounding_box:
   - - 0
     - 2000

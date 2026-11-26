@@ -286,7 +286,7 @@ def score_once(
                 # on a task counting the store's own voxels it lies on the store's grid, so the
                 # copy takes the store's.
                 geometry = (
-                    store_ome(volume.path, volume.image_key, volume.zarr_version, window_origin)
+                    store_ome(volume.path, volume.image_key, volume.format, window_origin)
                     if artifact.array_path is None and task.in_volume_frame() else None
                 )
                 regions[volume.name]["scored_artifact"] = str(write_scored(

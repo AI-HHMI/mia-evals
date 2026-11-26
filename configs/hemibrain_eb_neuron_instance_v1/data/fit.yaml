@@ -23,7 +23,7 @@ volumes:
     path: /groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-hemibrain/crop-001_EllipsoidBody_x24000_y23000_z17000.zarr
     image_key: raw
     label_key: labels/proofread-cell-hemibrain-v1.2
-    zarr_version: zarr3
+    format: zarr3
     bounding_box: [[4000, 5000], [4000, 5000], [3000, 4000]]
     weight: 1.0
     normalize: true   # uint8 on disk, so this maps to [0, 1] by dtype max

@@ -22,7 +22,7 @@ volumes:
     path: /groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr
     image_key: raw
     label_key: labels/manual_gt-cell-t10_postproofread
-    zarr_version: zarr3
+    format: zarr3
     fixed_axes: {t: 10}
     normalize_min: 715
     normalize_max: 16923

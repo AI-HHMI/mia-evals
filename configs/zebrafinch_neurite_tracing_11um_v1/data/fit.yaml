@@ -15,7 +15,7 @@ volumes:
   - name: zebrafinch_11um_val
     path: /groups/miaai/miaai/mia-evals-data/zebrafinch_j0126/zebrafinch_j0126.zarr
     image_key: raw
-    zarr_version: zarr2
+    format: zarr2
     bounding_box: [[2540, 3080], [4800, 6000], [4900, 6100]]
     weight: 1.0
     normalize: true   # uint8 on disk, so this maps to [0, 1] by dtype max

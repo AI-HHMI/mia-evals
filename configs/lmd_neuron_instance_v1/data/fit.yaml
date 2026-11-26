@@ -5,6 +5,7 @@
 #   /groups/miaai/miaai/lmd-v0.0.1/configs/evals/v1/instance_seg/lmd_instance_seg_eval_singlescale_patch256.yaml
 # The volumes must stay exactly these: the two halves define what "held out" means for every
 # recorded lmd_ssl_v1 score. The complementary half is test.yaml (in this directory).
+# 2026-11-26: each volume's `zarr_version` key is now written `format`, its name since miao 0.5.0; nothing else changed.
 #
 # Read on both sides of the artifact boundary. mia-train's predict.py predicts every volume in it
 # (`--data-config configs/lmd_neuron_instance_v1/data/fit.yaml --out <artifacts>/...`), and the lmd_ssl_v1 scoring configs
@@ -34,7 +35,7 @@ volumes:
   path: /groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-001_ac3_100slices.zarr
   image_key: raw
   label_key: labels/public_gt-cell-kasthuri15
-  zarr_version: zarr3
+  format: zarr3
   bounding_box:
   - - 0
     - 1024
@@ -47,7 +48,7 @@ volumes:
   path: /groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-003_quadcube1_x23908_y18314_z0.zarr
   image_key: raw
   label_key: labels/proofread-cell-seg230927
-  zarr_version: zarr3
+  format: zarr3
   bounding_box:
   - - 0
     - 2000
@@ -60,7 +61,7 @@ volumes:
   path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-DG-20250809_ExPID19-02_2ndGel_C5_Atto488_40XW_002/crop-001.zarr
   image_key: raw
   label_key: labels/manual_gt-cell-final
-  zarr_version: zarr3
+  format: zarr3
   bounding_box:
   - - 1416
     - 1892
@@ -75,7 +76,7 @@ volumes:
   path: /groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-hemibrain/crop-001_EllipsoidBody_x24000_y23000_z17000.zarr
   image_key: raw
   label_key: labels/proofread-cell-hemibrain-v1.2
-  zarr_version: zarr3
+  format: zarr3
   bounding_box:
   - - 1988
     - 3012

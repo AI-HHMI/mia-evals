@@ -517,7 +517,7 @@ def _shifted_ome(like: Artifact, origin: tuple[int, ...]) -> dict[str, Any] | No
 
 
 def store_ome(
-    path: str | Path, image_key: str, zarr_version: str, origin: tuple[int, ...]
+    path: str | Path, image_key: str, store_format: str, origin: tuple[int, ...]
 ) -> dict[str, Any] | None:
     """OME multiscales placing a labelling on a store's own level-0 grid, first voxel at `origin`.
 
@@ -530,7 +530,7 @@ def store_ome(
     from miao.zarr_meta import read_ome_metadata
 
     try:
-        meta = read_ome_metadata(path, image_key, zarr_version, [0])
+        meta = read_ome_metadata(path, image_key, store_format, [0])
     except (FileNotFoundError, KeyError, ValueError):
         return None
     spatial = [i for i, axis in enumerate(meta.axes) if axis.get("type") not in ("time", "channel")]

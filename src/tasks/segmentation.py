@@ -76,7 +76,7 @@ def pinned_window(volume: Volume, level: str, window: tuple[Any, ...]) -> tuple[
 
     assert volume.label_key is not None and volume.fixed_axes is not None  # checked by the caller
     meta = fix_axes(
-        read_ome_metadata(volume.path, volume.label_key, volume.zarr_version),
+        read_ome_metadata(volume.path, volume.label_key, volume.format),
         volume.fixed_axes, f"volume {volume.name!r}: ",
     )
     scale = next(s for s in meta.scales.values() if s.path == level)
@@ -240,7 +240,7 @@ def _ome_level0(volume: Volume, key: str) -> tuple[Geometry, tuple[int, ...], st
     """
     from miao.zarr_meta import read_ome_metadata
 
-    meta = read_ome_metadata(volume.path, key, volume.zarr_version, [0])
+    meta = read_ome_metadata(volume.path, key, volume.format, [0])
     if volume.fixed_axes:
         # Imported only here: a miao older than `fixed_axes` has no `fix_axes`, and cannot load a
         # data config that pins an axis in the first place.

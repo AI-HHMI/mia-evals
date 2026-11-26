@@ -124,7 +124,7 @@ def _data_config(root: Path, store: Path, name: str) -> Path:
           - name: {name}
             path: {store}
             image_key: raw
-            zarr_version: zarr2
+            format: zarr2
             bounding_box: {json.dumps(box)}
         """))
     return path

@@ -36,7 +36,7 @@ from tasks.base import Volume
 #: resolutions, normalisation windows -- describes how to *sample* the volume for training and has
 #: no bearing on scoring a prediction over it, so it is carried in `extra` rather than dropped.
 VOLUME_FIELDS = (
-    "name", "path", "image_key", "label_key", "bounding_box", "zarr_version", "fixed_axes",
+    "name", "path", "image_key", "label_key", "bounding_box", "format", "fixed_axes",
 )
 
 
@@ -166,7 +166,7 @@ def load_data_config(path: str | Path) -> tuple[Volume, ...]:
             bounding_box=None if box is None else tuple(
                 (int(pair[0]), int(pair[1])) for pair in box
             ),
-            zarr_version=str(entry.zarr_version),
+            format=str(entry.format),
             fixed_axes=_fixed_axes(entry, path),
             # What remains describes how to *sample* the volume for training -- weights,
             # resolutions, normalisation windows -- and has no bearing on scoring a prediction over

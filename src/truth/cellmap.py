@@ -390,7 +390,7 @@ def data_yaml(crops: list[Crop], header: str) -> str:
             f"  path: {c.store}",
             "  image_key: raw",
             f"  label_key: {c.label_key}",
-            "  zarr_version: zarr3",
+            "  format: zarr3",
             f"  resolutions: [{[float(v) for v in c.raw_voxel]}]",
             f"  bounding_box: {c.box()}",
         ]

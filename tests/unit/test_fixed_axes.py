@@ -61,7 +61,7 @@ def data_config(tmp_path: Path, fixed_axes: str) -> Path:
           path: {tmp_path / "ts.zarr"}
           image_key: raw
           label_key: labels/seg
-          zarr_version: zarr3
+          format: zarr3
           fixed_axes: {fixed_axes}
           bounding_box: [[0, 8], [0, 8], [0, 8]]
         """))

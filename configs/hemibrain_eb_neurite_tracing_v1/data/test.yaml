@@ -22,21 +22,21 @@ volumes:
   - name: hemibrain_eb_roi_1          # 12 um: 1475^3 core inside a 1875^3 raw
     path: /groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/roi_1.zarr
     image_key: raw
-    zarr_version: zarr2
+    format: zarr2
     bounding_box: [[200, 1675], [200, 1675], [200, 1675]]
     weight: 1.0
     normalize: true   # uint8 on disk, so this maps to [0, 1] by dtype max
   - name: hemibrain_eb_roi_2          # 22 um: 2725^3 core inside a 3125^3 raw
     path: /groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/roi_2.zarr
     image_key: raw
-    zarr_version: zarr2
+    format: zarr2
     bounding_box: [[200, 2925], [200, 2925], [200, 2925]]
     weight: 1.0
     normalize: true
   - name: hemibrain_eb_roi_3          # 17 um: 2100^3 core inside a 2500^3 raw, 210 voxels in along z
     path: /groups/miaai/miaai/mia-evals-data/hemibrain_eb_lsd/roi_3.zarr
     image_key: raw
-    zarr_version: zarr2
+    format: zarr2
     bounding_box: [[210, 2310], [200, 2300], [200, 2300]]
     weight: 1.0
     normalize: true

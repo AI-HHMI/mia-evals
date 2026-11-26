@@ -44,7 +44,7 @@ class Volume:
     label_key: str | None = None
     image_key: str = "raw"
     bounding_box: tuple[tuple[int, int], ...] | None = None
-    zarr_version: str = "zarr3"
+    format: str = "zarr3"
     fixed_axes: dict[str, int] | None = None
     extra: dict[str, Any] = field(default_factory=dict)
 

@@ -183,7 +183,7 @@ def _write_configs(root: Path, store: Path, route: str, postprocess: str) -> Pat
           path: {store}
           image_key: raw
           label_key: labels/crop
-          zarr_version: zarr3
+          format: zarr3
           bounding_box:
           - - 5
             - 8

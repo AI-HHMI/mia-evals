@@ -8,6 +8,7 @@
 # Everything else below is that file unchanged. The complementary half is fit.yaml (in this directory).
 #   kasthuri15_ac4 zebrafish_fish2_doublecube1 liconn_mouse_hippocampus liconn_expid82 flyid49_40xw006 cns_mito_crop164 cremi_sample_c
 # jiefu_cerebellum, the split's eighth, was dropped on 2026-10-21: its labels are over-fragmented.
+# 2026-11-26: each volume's `zarr_version` key is now written `format`, its name since miao 0.5.0; nothing else changed.
 #
 # lmd-v0.0.1 instance-segmentation eval v2 FAST (cells / neurons) — single scale (8 nm) — SimMIM / DINOv3
 #
@@ -199,7 +200,7 @@ volumes:
 - name: kasthuri15_ac4_crop512
   path: /groups/miaai/miaai/lmd-v0.0.1/data/em-mouse-Kasthuri15-ac3ac4-cortex/crop-002_ac4_100slices.zarr
   image_key: raw
-  zarr_version: zarr3
+  format: zarr3
   label_key: labels/public_gt-cell-kasthuri15
   bounding_box:
   - - 256
@@ -211,7 +212,7 @@ volumes:
 - name: zebrafish_fish2_doublecube1_crop512
   path: /groups/miaai/miaai/lmd-v0.0.1/data/em-zebrafish-fish2/crop-001_doublecube1_x52000_y42500_z0.zarr
   image_key: raw
-  zarr_version: zarr3
+  format: zarr3
   label_key: labels/proofread-cell-seg230927
   bounding_box:
   - - 744
@@ -223,7 +224,7 @@ volumes:
 - name: liconn_mouse_hippocampus_crop512
   path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-hippocampus-202507013_ExPID10-02_2percentAA_S2_Atto488_40XW_004/crop-001.zarr
   image_key: raw
-  zarr_version: zarr3
+  format: zarr3
   label_key: labels/manual_gt-cell-final
   bounding_box:
   - - 496
@@ -237,7 +238,7 @@ volumes:
 - name: liconn_expid82_crop512
   path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-ExPID82-1/crop-002_sub.zarr
   image_key: raw
-  zarr_version: zarr3
+  format: zarr3
   label_key: labels/proofread-cell-agglom-dense-v20240123
   bounding_box:
   - - 1485
@@ -249,7 +250,7 @@ volumes:
 - name: cremi_sample_c_crop512
   path: /groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-cremi/crop-003_sampleC_train_padded.zarr
   image_key: raw
-  zarr_version: zarr3
+  format: zarr3
   label_key: labels/proofread-cell-neuron_ids
   bounding_box:
   - - 1217
@@ -261,7 +262,7 @@ volumes:
 - name: flyid49_40xw006_crop512
   path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-drosophila-flyliconn-FlyID49-2ndgel-DUP-BIS-40XW006-20260625/crop-001.zarr
   image_key: raw
-  zarr_version: zarr3
+  format: zarr3
   label_key: labels/manual_gt-cell-final
   bounding_box:
   - - 912
@@ -275,7 +276,7 @@ volumes:
 - name: cns_mito_crop164_crop512
   path: /groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-cns-mito-gt-v6/crop-164_box163.zarr
   image_key: raw
-  zarr_version: zarr3
+  format: zarr3
   label_key: labels/proofread-cell-v1.0
   bounding_box:
   - - 320

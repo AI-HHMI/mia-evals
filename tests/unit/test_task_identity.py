@@ -177,7 +177,7 @@ def _data_config(root, name, entries):
               path: {vpath}
               image_key: raw
               label_key: labels/gt
-              zarr_version: zarr3
+              format: zarr3
               bounding_box: [[0, {shape[0]}], [0, {shape[1]}], [0, {shape[2]}]]
         """)
         for vname, vpath, shape in entries

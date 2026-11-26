@@ -5,6 +5,7 @@
 # level-0 voxels (x, y, z order, the store's own). Read on both sides of the artifact boundary:
 # mia-train's predict.py predicts it (`--data-config configs/hemibrain_eb_neuron_instance_v1/data/test.yaml`) and the
 # gary_comparison scoring configs score the prediction against it.
+# 2026-11-26: each volume's `zarr_version` key is now written `format`, its name since miao 0.5.0; nothing else changed.
 #
 # The scored region is the largest lattice-aligned sub-box of this box: at patch 256 with the
 # half-window stride that is 896^3 = [4052, 4948)^3, 71.9% of the colleague's test voxels. His
@@ -27,7 +28,7 @@ volumes:
     path: /groups/miaai/miaai/lmd-v0.0.1/data/em-drosophila-flyem-hemibrain/crop-001_EllipsoidBody_x24000_y23000_z17000.zarr
     image_key: raw
     label_key: labels/proofread-cell-hemibrain-v1.2
-    zarr_version: zarr3
+    format: zarr3
     bounding_box: [[4000, 5000], [4000, 5000], [4000, 5000]]
     weight: 1.0
     normalize: true   # uint8 on disk, so this maps to [0, 1] by dtype max

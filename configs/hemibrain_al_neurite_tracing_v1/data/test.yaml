@@ -17,7 +17,7 @@ volumes:
   - name: hemibrain_al_crop004        # 8 um: 1000^3 cube inside a 1400^3 raw
     path: /groups/miaai/miaai/mia-evals-data/hemibrain_al_lmd/hemibrain_al_crop004.zarr
     image_key: raw
-    zarr_version: zarr2
+    format: zarr2
     bounding_box: [[200, 1200], [200, 1200], [200, 1200]]
     weight: 1.0
     normalize: true   # uint8 on disk, so this maps to [0, 1] by dtype max

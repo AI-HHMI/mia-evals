@@ -329,7 +329,7 @@ def test_the_scorer_builds_the_labelling_once_and_reads_only_what_the_skeleton_t
           - name: {name}
             path: {store}
             image_key: raw
-            zarr_version: zarr2
+            format: zarr2
             bounding_box: {json.dumps(box)}
         """))
     config = tmp_path / "mws_blockwise.toml"
@@ -450,7 +450,7 @@ def test_the_scorer_fits_a_size_filter_over_blockwise_labellings_built_once(tmp_
         store.create_array("labels/gt/s0", shape=SHAPE, dtype="i8", chunks=SHAPE)[:] = truth
         box = "\n".join(f"  - - 0\n    - {s}" for s in SHAPE)
         entries.append(f"- name: {name}\n  path: {tmp_path / f'{name}.zarr'}\n  image_key: raw\n"
-                       f"  label_key: labels/gt\n  zarr_version: zarr3\n  bounding_box:\n{box}")
+                       f"  label_key: labels/gt\n  format: zarr3\n  bounding_box:\n{box}")
         split = tmp_path / ("test" if name == "alpha" else "val")
         split.mkdir(exist_ok=True)
         artifacts[name] = _affinities(seed=seed)

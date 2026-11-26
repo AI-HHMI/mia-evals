@@ -42,7 +42,7 @@ def test_route_is_the_scoring_config_s_file_name(tmp_path):
     data = tmp_path / "d.yaml"
     data.write_text(
         "resolutions: [[8, 8, 8]]\npatch_size: [8, 8, 8]\noutput_axes: lcxyz\n"
-        "volumes:\n- name: v\n  path: /nowhere/v.zarr\n  image_key: raw\n  label_key: labels/gt\n"
+        "volumes:\n- name: v\n  path: /nowhere/v.zarr\n  image_key: raw\n  label_key: labels/gt\n  format: zarr3\n"
     )
     body = ("task_name = \"t_v1\"\n[data]\nconfig_path = \"d.yaml\"\n[task]\n"
             "name = \"instance_seg\"\n[postprocess]\nname = \"identity\"\n[metric]\n"
@@ -69,7 +69,7 @@ def test_a_task_name_without_a_version_is_refused_at_load(tmp_path, name, accept
     from config import load_scoring_config
     (tmp_path / "d.yaml").write_text(
         "resolutions: [[8, 8, 8]]\npatch_size: [8, 8, 8]\noutput_axes: lcxyz\n"
-        "volumes:\n- name: v\n  path: /nowhere/v.zarr\n  image_key: raw\n  label_key: labels/gt\n"
+        "volumes:\n- name: v\n  path: /nowhere/v.zarr\n  image_key: raw\n  label_key: labels/gt\n  format: zarr3\n"
     )
     path = tmp_path / "identity.toml"
     path.write_text(f"task_name = \"{name}\"\n[data]\nconfig_path = \"d.yaml\"\n[task]\n"

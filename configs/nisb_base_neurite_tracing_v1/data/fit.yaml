@@ -14,7 +14,7 @@ volumes:
   - name: nisb_base_seed100
     path: /groups/miaai/miaai/lmd-v0.0.1/dev/nisb/base/val/seed100.zarr
     image_key: raw
-    zarr_version: zarr3
+    format: zarr3
     bounding_box: [[0, 3000], [0, 3000], [0, 1350]]
     weight: 1.0
     normalize: true
