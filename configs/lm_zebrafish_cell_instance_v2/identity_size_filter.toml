@@ -1,0 +1,38 @@
+# lm_zebrafish_cell_instance_v2 from finished segmentations, through a SIZE FILTER fitted on the four fit frames.
+#
+# For labellings made without affinities whose size filter is fitted here rather than by the producer:
+# segments below a voxel count become background, the count is fitted on the fit frames ([data.fit])
+# and applied once to the three test frames ([data.test]), as in the mws route. Artifacts are `instances`
+# labellings of whole frames on each store's own grid (152 x 508 x 1466, z, y, x for the Thayer store;
+# 3328 x 384 x 128, x, y, z for the other two as stored today, 128 x 384 x 3328, z, y, x once they are
+# re-ordered, see data/test.yaml), named after the volumes: lm_zebrafish_t10.zarr,
+# lm_zebrafish_roi1_c001_t05.zarr and lm_zebrafish_fish3_c010_t01.zarr in --test; lm_zebrafish_t01.zarr,
+# lm_zebrafish_t25.zarr, lm_zebrafish_t40.zarr and lm_zebrafish_roi1_c001_t80.zarr in --val. As for the
+# identity route, attrs name the producer (`run`, `step`), and `source_path` with `source_fixed_axes`
+# lets the scorer refuse a labelling of the wrong frame.
+#
+#   mia-evals score configs/lm_zebrafish_cell_instance_v2/identity_size_filter.toml \
+#       --test <labellings>/test --val <labellings>/fit
+
+task_name = "lm_zebrafish_cell_instance_v2"
+
+[data.test]
+config_path = "data/test.yaml"      # Thayer frame 10, roi1 frame 5, fish3 frame 1
+
+[data.fit]
+config_path = "data/fit.yaml"       # Thayer frames 1, 25 and 40, roi1 frame 80
+
+[task]
+name = "instance_seg"
+truth_kind = "instances"   # read from the store at the pinned frame
+
+[postprocess]
+name = "identity"
+# v1's candidates, unchanged (mws_size_filter.toml's comment gives the reasoning): they run to 200 k, near
+# the median truth cell of the Thayer frames (206-259 k voxels). The median cell is 163 k voxels in fish3
+# frame 1 and 537-689 k in the roi1 frames, so 200 k is no longer near every frame's median.
+min_sizes = [0, 500, 2000, 5000, 10000, 20000, 50000, 75000, 100000, 150000, 200000]
+
+[metric]
+names = ["voxel_instance"]
+rank_by = "voxel_instance"        # primary key: pq
