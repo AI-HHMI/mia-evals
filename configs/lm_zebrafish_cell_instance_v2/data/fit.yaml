@@ -1,0 +1,64 @@
+# lm_zebrafish_cell_instance_v2 -- the FIT split: every annotated frame that is not a test frame (test.yaml,
+# which explains the stores, the geometry and the pinned frame). The size filter is fitted here and
+# applied once to the three test frames.
+#
+#   lm_zebrafish_t01, _t25, _t40   Thayer example crop-001, 24 hpf, frames 1, 25 and 40
+#   lm_zebrafish_roi1_c001_t80     fish1, 72 hpf, ROI1, crop-001, frame 80
+#
+# Frames 1 and 25 are v1's fit volumes, entries unchanged. Frame 25's label is a proofread Cellpose
+# segmentation (Alannah Post, Paintera; 296 cells). Frame 1's is the `postprocessed_labels` stage of a
+# separate annotation of that frame, before its final proofread (317 cells), re-registered onto this
+# store's grid by a (1, 5, 5) voxel shift on 2026-10-06. That shift leaves it empty at z = 0, y < 5 and
+# x < 5 (2.2 M voxels, 2% of the frame) where the raw shows cells, so frame 1's box starts past that
+# strip: [[1, 152], [5, 508], [5, 1466]]. A training config on frame 1 should use the same box, or the
+# cells in the strip are learned as background.
+#
+# Frame 40 (Diana Ramirez, Paintera) holds 1,348 ids, of which 1,038 are below 10,000 voxels (the median
+# id is 336 voxels); the layer is used as stored. roi1 frame 80 (Diana Ramirez, Paintera; 94 cells)
+# is the same crop as the test frame roi1 frame 5, 75 frames later; its store is not yet in z, y, x
+# order (see test.yaml). fish3 crop-010 has one annotated frame, which is a test frame, so it has no
+# fit volume.
+
+resolutions: [[200.0, 108.0, 108.0]]   # z, y, x in nm (output_axes order)
+patch_size: [128, 128, 128]
+output_axes: lczyx
+samples_per_epoch: 1000   # the run config's [data] / [val_data] section overrides this
+defer_image_ops: true   # irrelevant for scoring; kept identical to a training-side file
+
+volumes:
+  - name: lm_zebrafish_t01
+    path: /groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr
+    image_key: raw
+    label_key: labels/postprocessed_labels_t01
+    format: zarr3
+    fixed_axes: {t: 1}
+    normalize_min: 715
+    normalize_max: 16923
+    bounding_box: [[1, 152], [5, 508], [5, 1466]]   # past the strip the re-registration left unlabelled
+  - name: lm_zebrafish_t25
+    path: /groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr
+    image_key: raw
+    label_key: labels/manual_gt-cell-t25_postproofread
+    format: zarr3
+    fixed_axes: {t: 25}
+    normalize_min: 715
+    normalize_max: 16923
+    bounding_box: [[0, 152], [0, 508], [0, 1466]]
+  - name: lm_zebrafish_t40
+    path: /groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr
+    image_key: raw
+    label_key: labels/manual_gt-cell-t40_postproofread
+    format: zarr3
+    fixed_axes: {t: 40}
+    normalize_min: 715
+    normalize_max: 16923
+    bounding_box: [[0, 152], [0, 508], [0, 1466]]
+  - name: lm_zebrafish_roi1_c001_t80
+    path: /groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-20251001_20250324_mem-histone_fish1_72hpf_roi1/crop-001_000x_000y_000z_96t_2c.zarr
+    image_key: raw
+    label_key: labels/manual_gt-cell-t80_postproofread
+    format: zarr2
+    fixed_axes: {t: 80}
+    normalize_min: 0
+    normalize_max: 1897
+    bounding_box: [[0, 128], [0, 384], [0, 3328]]

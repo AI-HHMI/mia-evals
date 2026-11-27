@@ -1,0 +1,68 @@
+# lm_zebrafish_cell_instance_v2 -- cell instance segmentation in single frames of light-sheet zebrafish time
+# series, from affinities through MUTEX WATERSHED and a size filter. Reported on three frames, one from
+# each of three stores ([data.test]); fitted on the four other annotated frames ([data.fit]).
+#
+#   python src/predict.py <run_dir> --data-config <mia-evals>/configs/lm_zebrafish_cell_instance_v2/data/test.yaml \
+#       --out <artifacts>/test --cover-box
+#   python src/predict.py <run_dir> --data-config <mia-evals>/configs/lm_zebrafish_cell_instance_v2/data/fit.yaml \
+#       --out <artifacts>/fit --cover-box
+#   mia-evals score configs/lm_zebrafish_cell_instance_v2/mws_size_filter.toml \
+#       --test <artifacts>/test --val <artifacts>/fit --run-dir <run_dir>
+#
+# Predict with --cover-box. The first record fixes the region scored in each frame, which otherwise
+# follows from a model's tiling (its window and the half-window stride); with the tiles reaching the
+# box faces, every model scores the whole frame whatever its window, so all rows share one region.
+#
+# A frame is 113 M voxels in the Thayer store and 164 M in the other two, so the watershed is minutes
+# per frame and the whole scoring one small CPU job.
+
+task_name = "lm_zebrafish_cell_instance_v2"
+
+notes = """
+Voxel metrics on dense labels: panoptic quality ranks; VOI split/merge, SQ, RQ and adapted Rand
+error are reported. Three frames of light-sheet time series (Betzig lab, zebrafish, membrane,
+200 x 108 x 108 nm voxels in z, y, x), one per specimen: Thayer example crop-001 at 24 hpf, frame 10
+(293 proofread cells, 152 x 508 x 1466, v1's test frame); fish1 at 72 hpf, ROI1 crop-001, frame 5
+(85 cells, 128 x 384 x 3328); fish3 at 24 hpf, ROI1 crop-010, frame 1 (268 cells, 128 x 384 x 3328).
+Thayer frames 1, 25 and 40 and fish1 frame 80 fit the size filter. The Thayer and fish1 test frames
+share specimen and field of view with fit frames, so on them this measures generalisation across
+time; fish3 has no fit frame. In fish1 frame 5, label id 325 is the annotator's mask of a region she
+could not resolve (10.4% of the frame) and is to be left out of scoring. Label 0 is scored as
+background in every frame, so pq counts any cell predicted there as a false positive; it is 26%, 44%
+and 67% of the three test frames, and not all of it is known to be free of cells: about a fifth of
+Thayer frame 10 was left unannotated on purpose, and 440,398 voxels of fish3 frame 1 are ids the
+annotator did not confirm, set to 0 at her request. All three labels were proofread from Cellpose
+predictions, which may favour models of that family. Not to be used for scoring yet, for two reasons.
+The fish1 and fish3 stores are still stored x, y, z, so the scorer can silently read only part of
+each of those frames; they are being re-stored as z, y, x (AI-HHMI/mia_annotation#1135, #1137), after
+which the existing z, y, x boxes select the intended whole frames. And the first model score needs
+parser and scorer support for `ignore_label_ids: [325]` on fish1 frame 5.
+"""
+
+[data.test]
+config_path = "data/test.yaml"      # Thayer frame 10, roi1 frame 5, fish3 frame 1
+
+[data.fit]
+config_path = "data/fit.yaml"       # Thayer frames 1, 25 and 40, roi1 frame 80
+
+[task]
+name = "instance_seg"
+truth_kind = "instances"   # read from the store at the pinned frame; predictions are at native resolution
+
+[postprocess]
+name = "mws"
+# Stride 1 keeps every long-range (repulsive) edge; coarser strides cost the lmd measurements most of
+# their accuracy (src/postprocess/mws.py), so they are not swept.
+repulsive_strides = [1]
+# pq counts every surviving speck as a false positive, so the size filter is the knob that decides it.
+# The candidates are v1's, unchanged. They were chosen on the Thayer frames, whose ground-truth cells are
+# a median 206-259 k voxels with the smallest 5% at 8-16 k (slivers of cells cut by the volume faces): they
+# run from no filter past that 5th percentile and on to 200 k. The new frames differ: the median cell is
+# 163 k voxels in fish3 frame 1 and 537-689 k in the roi1 frames, whose smallest 5% are near 80 k. A fitted
+# value on the edge of its candidates says nothing about where the optimum is, so if a fit chooses 200 k
+# the list needs extending, under a route name of its own.
+min_sizes = [0, 500, 2000, 5000, 10000, 20000, 50000, 75000, 100000, 150000, 200000]
+
+[metric]
+names = ["voxel_instance"]
+rank_by = "voxel_instance"        # primary key: pq

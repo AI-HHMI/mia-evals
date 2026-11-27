@@ -1,0 +1,67 @@
+# lm_zebrafish_cell_instance_v2 -- the TEST split: one frame from each of three Betzig light-sheet zebrafish
+# time series (membrane channel, DSR, 200 x 108 x 108 nm voxels in z, y, x).
+#
+#   lm_zebrafish_t10             Thayer example crop-001, 24 hpf, frame 10 of 48: v1's test volume, entry unchanged
+#   lm_zebrafish_roi1_c001_t05   fish1, 72 hpf, ROI1, crop-001, frame 5 of 96
+#   lm_zebrafish_fish3_c010_t01  fish3, 24 hpf, ROI1, crop-010, frame 1 of 288
+#
+# Each store holds its frames as t, c and three spatial axes; `fixed_axes` pins one frame, which miao,
+# mia-train's predict.py and the scorer then read as an ordinary 3D volume. The labels are proofread
+# Cellpose segmentations (Paintera): frame 10 by Diana Ramirez (293 cells), roi1 frame 5 by Alannah Post
+# (85 cells), fish3 frame 1 by Diana Ramirez (268 cells). The fit split is fit.yaml.
+#
+# The Thayer store is zarr v3, stored t, c, z, y, x, with one raw channel. The other two are zarr v2,
+# stored t, c, x, y, z (3328 x 384 x 128 per frame), with two raw channels (CamA, CamB). Their labels were
+# made on channel 0 (`source.channel_index` in each label layer's attrs). miao returns both channels: it
+# refuses to pin `c` while output_axes names it, and the Thayer entry, which must stay as in v1, needs
+# output_axes to name it. A producer takes channel 0.
+#
+# Every box is the whole frame, as each label layer's `bbox` attribute declares (offset 0, the frame's
+# full size). Boxes are in output_axes order, z, y, x, which miao maps onto each store's own order.
+#
+# Not consistent yet: the two new stores are stored t, c, x, y, z, while the Thayer store and the boxes
+# here are z, y, x, and the scorer applies a box to the stored axes as written. Both crops have been
+# requested to be re-stored as t, c, z, y, x (Diyi Chen; AI-HHMI/mia_annotation#1135 and #1137). Until
+# that update lands, the scorer can silently read only part of each of these two frames, so the task
+# should not be used for scoring yet; once it has, the existing z, y, x boxes select the intended whole
+# frames, 128 x 384 x 3328. The first model score also needs parser and scorer support for
+# `ignore_label_ids` on lm_zebrafish_roi1_c001_t05.
+#
+# normalize_min/max are lmd-configs' windows (corpus/windows.yaml); it has none for fish3 crop-010, so
+# that volume sets none.
+
+resolutions: [[200.0, 108.0, 108.0]]   # z, y, x in nm (output_axes order)
+patch_size: [128, 128, 128]
+output_axes: lczyx
+samples_per_epoch: 1000   # the run config's [data] / [val_data] section overrides this
+defer_image_ops: true   # irrelevant for scoring; kept identical to a training-side file
+
+volumes:
+  - name: lm_zebrafish_t10
+    path: /groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-example_annotations_Thayer/crop-001_dsr_timeseries_48t_1c.zarr
+    image_key: raw
+    label_key: labels/manual_gt-cell-t10_postproofread
+    format: zarr3
+    fixed_axes: {t: 10}
+    normalize_min: 715
+    normalize_max: 16923
+    bounding_box: [[0, 152], [0, 508], [0, 1466]]
+  - name: lm_zebrafish_roi1_c001_t05
+    path: /groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-20251001_20250324_mem-histone_fish1_72hpf_roi1/crop-001_000x_000y_000z_96t_2c.zarr
+    image_key: raw
+    label_key: labels/manual_gt-cell-t5_postproofread
+    format: zarr2
+    fixed_axes: {t: 5}
+    normalize_min: 0
+    normalize_max: 1897
+    bounding_box: [[0, 128], [0, 384], [0, 3328]]
+    # Label id 325 is the annotator's mask of the region she could not resolve (16,974,348 voxels, 10.4%
+    # of the frame). It is not a cell and not background: these voxels are to be left out of scoring.
+    ignore_label_ids: [325]
+  - name: lm_zebrafish_fish3_c010_t01
+    path: /groups/miaai/miaai/lmd-v0.0.1/data/lm-zebrafish-Betzig-mosaic-20251001_20250324_mem-histone_fish3_24hpf_roi1/crop-010_000x_003y_000z_288t_2c.zarr
+    image_key: raw
+    label_key: labels/manual_gt-cell-t1_postproofread
+    format: zarr2
+    fixed_axes: {t: 1}
+    bounding_box: [[0, 128], [0, 384], [0, 3328]]
