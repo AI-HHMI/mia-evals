@@ -75,6 +75,9 @@ def build(config: ScoringConfig) -> tuple[BaseTask, BasePostprocess, dict[str, B
         name: MetricRegistry.build(name, **config.metric_kwargs.get(name, {}))
         for name in config.metrics
     }
+    names = {volume.name for volume in (*config.volumes, *(config.fit_volumes or ()))}
+    for metric in metric_objects.values():
+        metric.check_volumes(names)
 
     mismatched = {
         name: metric.canonical

@@ -100,6 +100,27 @@ def test_a_raw_resolution_prediction_is_upsampled_two_to_one(crop, tmp_path):
     np.testing.assert_array_equal(aligned, prediction[np.ix_(held, held, held)])
 
 
+def test_a_box_written_in_another_axis_order_than_the_store_is_converted(tmp_path):
+    """A store saved x, y, z with its box written z, y, x (mia-evals#5): the annotated region is
+    the whole crop, 4 x 6 x 8 label voxels; applied as written, the box cut it to 4 x 6 x 4."""
+    labels = np.random.default_rng(3).integers(1, 6, (4, 6, 8)).astype(np.uint8)      # x, y, z
+    path = tmp_path / "tile.zarr"
+    store = zarr.open_group(str(path), mode="w", zarr_format=3)
+    raw = store.create_group("raw")
+    raw.create_array("s0", shape=(16, 16, 16), dtype="u1", chunks=(16, 16, 16))[:] = 0
+    _ome(raw, "xyz", (RAW,) * 3, (0.0,) * 3)
+    crop = store.create_group("labels").create_group("crop")
+    crop.create_array("s0", shape=labels.shape, dtype="u1", chunks=labels.shape)[:] = labels
+    _ome(crop, "xyz", (LABEL,) * 3, (CROP_TRANSLATION,) * 3)
+    box = ((5, 9), (5, 8), (5, 7))                       # z, y, x: 4, 3 and 2 raw voxels
+    volume = Volume(name="tile", path=path, label_key="labels/crop", bounding_box=box,
+                    box_axes="zyx")
+    artifact = ome_artifact(tmp_path / "pred.zarr", labels, LABEL, CROP_TRANSLATION, axes="xyz")
+    _, origin, shape, aligned, context = scored(volume, open_artifact(artifact))
+    assert origin == (0, 0, 0) and shape == (4, 6, 8) and context["whole_region"]
+    np.testing.assert_array_equal(aligned, labels)
+
+
 def test_a_prediction_on_the_label_grid_is_taken_voxel_for_voxel(crop, tmp_path):
     volume, labels = crop
     prediction = np.random.default_rng(2).integers(0, 9, (10, 10, 10)).astype(np.uint8)

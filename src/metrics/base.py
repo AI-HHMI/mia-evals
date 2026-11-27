@@ -88,6 +88,12 @@ class BaseMetric(abc.ABC):
         if not self.primary:
             raise ValueError(f"{type(self).__name__} must name a `primary` key")
 
+    def check_volumes(self, names: set[str]) -> None:
+        """Raise if a setting names a volume that is not among the task's `names` (both splits).
+
+        The runner calls this once the metric is built. Nothing is checked by default.
+        """
+
     def result(self) -> dict[str, float] | None:
         """For a metric that `accumulates`: the over-the-set answer, from everything scored since
         the last reset. None means the last call's return value already is it (the older contract,

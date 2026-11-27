@@ -163,10 +163,13 @@ def test_the_truth_route_becomes_a_column_only_when_it_varies():
 
 
 def _volume(root, name, labels):
+    from conftest import name_axes
+
     path = root / f"{name}.zarr"
     group = zarr.open(str(path), mode="w")
     array = group.create_array("labels/gt/s0", shape=labels.shape, dtype="i8", chunks=labels.shape)
     array[:] = labels
+    name_axes(path, "xyz", labels.shape)       # a store names its axes; the box below needs them
     return str(path)
 
 

@@ -23,6 +23,7 @@ import networkx as nx
 import numpy as np
 import pytest
 import zarr
+from conftest import name_axes
 
 from artifact import write_artifact
 from postprocess.mws import build_edges, mutex_watershed_reference, segment
@@ -311,6 +312,7 @@ def test_the_scorer_builds_the_labelling_once_and_reads_only_what_the_skeleton_t
     name = "cube_test"
     store = tmp_path / "store.zarr"
     (store / "skeletons").mkdir(parents=True)
+    name_axes(store, "zyx", SHAPE, zarr_format=2)       # the box is placed by the store's axes
     graph, node = nx.Graph(axes="zyx"), 0
     for component, (z, y) in enumerate(((12, 15), (20, 30)), start=1):
         for x in range(10, 36):
@@ -448,6 +450,7 @@ def test_the_scorer_fits_a_size_filter_over_blockwise_labellings_built_once(tmp_
     for name, seed in (("alpha", 6), ("beta", 7)):
         store = zarr.open_group(str(tmp_path / f"{name}.zarr"), mode="w")
         store.create_array("labels/gt/s0", shape=SHAPE, dtype="i8", chunks=SHAPE)[:] = truth
+        name_axes(tmp_path / f"{name}.zarr", "zyx", SHAPE)
         box = "\n".join(f"  - - 0\n    - {s}" for s in SHAPE)
         entries.append(f"- name: {name}\n  path: {tmp_path / f'{name}.zarr'}\n  image_key: raw\n"
                        f"  label_key: labels/gt\n  format: zarr3\n  bounding_box:\n{box}")

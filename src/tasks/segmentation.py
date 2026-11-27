@@ -18,7 +18,7 @@ import zarr
 
 from artifact import Artifact, Geometry
 
-from .base import BaseTask, Volume
+from .base import BaseTask, Volume, store_box
 from .registry import TaskRegistry
 
 #: The level a score must read. `s0` is native; a coarser rung changes what a voxel means and so
@@ -370,7 +370,8 @@ class SemanticSegmentation(BaseTask):
                 f"labels in {label.unit}"
             )
         annotated = [(0, n) for n in label_shape]
-        if volume.bounding_box is not None:
+        box = store_box(volume)
+        if box is not None:
             image, _, _ = _ome_level0(volume, volume.image_key)
             if image.axes != label.axes:
                 raise ValueError(
@@ -380,7 +381,7 @@ class SemanticSegmentation(BaseTask):
                 _centres_inside(t, s, n, ti + (lo - 0.5) * si, ti + (hi - 0.5) * si)
                 for t, s, n, ti, si, (lo, hi) in zip(
                     label.translation, label.voxel_size, label_shape, image.translation,
-                    image.voxel_size, volume.bounding_box, strict=True,
+                    image.voxel_size, box, strict=True,
                 )
             ]
         if any(hi <= lo for lo, hi in annotated):

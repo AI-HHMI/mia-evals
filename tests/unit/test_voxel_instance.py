@@ -211,3 +211,36 @@ def test_table_consuming_cores_agree_with_the_array_wrappers():
     assert pq_from_table(table) == panoptic_quality(TRUTH, prediction)
     assert voi_from_table(table) == variation_of_information(TRUTH, prediction)
     assert rand_error_from_table(table) == adapted_rand_error(TRUTH, prediction)
+
+
+def test_ignored_truth_ids_are_left_out_for_the_volume_that_lists_them():
+    """A predicted object inside an ignored region is no false positive, and one across its
+    border counts with its voxels outside. In another volume the same id is an ordinary object."""
+    from metrics.voxel_instance import VoxelInstance
+
+    truth = np.zeros((1, 4, 12), dtype=np.int64)
+    truth[..., 0:4], truth[..., 4:8], truth[..., 8:12] = 1, 2, 9      # 9: could not be resolved
+    prediction = np.zeros_like(truth)
+    prediction[..., 0:4], prediction[..., 4:9] = 1, 2                 # 2 reaches one column into 9
+    prediction[..., 9:10], prediction[..., 10:12] = 7, 8              # both wholly inside 9
+    metric = VoxelInstance(ignore_truth={"a": [9]})
+
+    listed = metric(prediction, truth, volume="a", background_id=0)
+    assert listed["pq"] == 1.0
+    assert (listed["instances_truth"], listed["instances_predicted"]) == (2.0, 2.0)
+
+    other = metric(prediction, truth, volume="b", background_id=0)
+    assert other["instances_truth"] == 3.0
+    assert (other["false_positive"], other["false_negative"]) == (2.0, 1.0)
+
+
+def test_voxel_instance_refuses_unknown_options_and_a_malformed_ignore_truth():
+    from metrics.voxel_instance import VoxelInstance
+
+    with pytest.raises(ValueError, match=r"unknown key\(s\) \['ignore_truths'\]"):
+        VoxelInstance(ignore_truths={"a": [9]})
+    with pytest.raises(ValueError, match="a table from a volume's name"):
+        VoxelInstance(ignore_truth=[0])              # the semantic metric's form: one list per task
+    with pytest.raises(ValueError, match=r"names volume\(s\) \['b'\]"):
+        VoxelInstance(ignore_truth={"b": [9]}).check_volumes({"a"})
+    VoxelInstance(ignore_truth={"a": [9]}).check_volumes({"a", "c"})

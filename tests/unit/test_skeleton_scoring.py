@@ -114,7 +114,11 @@ def test_a_lazy_labelling_scores_exactly_as_the_array_does(tmp_path):
 
 
 def _data_config(root: Path, store: Path, name: str) -> Path:
+    from conftest import name_axes
+
     box = [[o, o + s] for o, s in zip(ORIGIN, SHAPE, strict=True)]
+    # The store names its axes, which the box needs to be placed in it.
+    name_axes(store, "zyx", tuple(high for _, high in box), zarr_format=2)
     path = root / "data.yaml"
     path.write_text(textwrap.dedent(f"""\
         resolutions: [[20.0, 9.0, 9.0]]

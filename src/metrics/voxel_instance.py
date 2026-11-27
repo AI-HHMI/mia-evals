@@ -66,12 +66,15 @@ def _factorize(values: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
 
 def contingency(
-    truth: np.ndarray, prediction: np.ndarray, ignore_id: int | None = None
+    truth: np.ndarray, prediction: np.ndarray, ignore_id: int | None = None,
+    ignore_truth: tuple[int, ...] = (),
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
     """Joint voxel counts of (true id, predicted id), as sparse triples.
 
     Returns `(true_ids, pred_ids, counts, total)` where the three arrays are parallel: entry `i`
     says `counts[i]` voxels have true id `true_ids[i]` and predicted id `pred_ids[i]`.
+
+    Voxels whose true id is `ignore_id` or one of `ignore_truth` are left out before counting.
 
     Sparse rather than a dense matrix because instance ids are unbounded -- a zebrafish cube holds
     11,690 objects and a fragmented prediction can hold far more, so a dense table would be
@@ -91,6 +94,9 @@ def contingency(
         )
     if ignore_id is not None:
         keep = truth != ignore_id
+        truth, prediction = truth[keep], prediction[keep]
+    if ignore_truth:
+        keep = ~np.isin(truth, np.asarray(ignore_truth))
         truth, prediction = truth[keep], prediction[keep]
     if truth.size == 0:
         empty = np.zeros(0, dtype=np.int64)
@@ -298,6 +304,9 @@ class VoxelInstance(BaseMetric):
 
     `truth` is an integer array the same shape as the prediction. Ranked on `pq`, which is bounded
     in [0, 1] and, unlike VOI, does not change scale with the number of objects in the region.
+
+    Settings: `iou_threshold`; `ignore_truth`, a table from a volume's name to truth ids whose
+    voxels are left out of that volume's score (a region an annotator could not resolve, say).
     """
 
     canonical = "instances"
@@ -323,18 +332,43 @@ class VoxelInstance(BaseMetric):
                                              "pairing."),
     }
 
-    def __init__(self, iou_threshold: float = 0.5, **settings: Any) -> None:
-        super().__init__(iou_threshold=iou_threshold, **settings)
+    def __init__(self, iou_threshold: float = 0.5,
+                 ignore_truth: dict[str, list[int]] | None = None, **unknown: Any) -> None:
+        # Refused, not kept: a misspelled `ignore_truth` would be recorded and never applied.
+        if unknown:
+            raise ValueError(
+                f"[metric.voxel_instance] has unknown key(s) {sorted(unknown)}; "
+                "it takes ['ignore_truth', 'iou_threshold']"
+            )
+        table = {} if ignore_truth is None else ignore_truth
+        if not isinstance(table, dict) or not all(
+            isinstance(ids, list) and all(type(i) is int for i in ids) for ids in table.values()
+        ):
+            raise ValueError(
+                "[metric.voxel_instance].ignore_truth is a table from a volume's name to the truth "
+                f"ids left out of its score, e.g. `my_volume = [325]`; got {ignore_truth!r}"
+            )
+        super().__init__(iou_threshold=iou_threshold, ignore_truth=table)
         self.iou_threshold = float(iou_threshold)
+        self.ignore_truth = {str(name): tuple(ids) for name, ids in table.items()}
+
+    def check_volumes(self, names: set[str]) -> None:
+        unknown = sorted(set(self.ignore_truth) - names)
+        if unknown:
+            raise ValueError(
+                f"[metric.voxel_instance].ignore_truth names volume(s) {unknown}, which the task "
+                f"does not have. Its volumes are {sorted(names)}"
+            )
 
     def __call__(self, prediction: np.ndarray, truth: Any, **context: Any) -> dict[str, float]:
         ignore_id = context.get("ignore_id")
         background_id = context.get("background_id", 0)
+        ignored = self.ignore_truth.get(str(context.get("volume")), ())
         # ONE table for all three. Each metric used to call `contingency` itself, so a
         # 7-gigavoxel volume factorised both labellings three times and the scoring job was
         # killed by the memory limit -- each pass allocates two int32 code arrays, 56 GB at that
         # size. The module docstring claimed "computed once" long before the code did it.
-        table = contingency(np.asarray(truth), prediction, ignore_id)
+        table = contingency(np.asarray(truth), prediction, ignore_id, ignored)
         scores = pq_from_table(table, self.iou_threshold, background_id)
         scores.update(voi_from_table(table, background_id))
         scores["adapted_rand_error"] = rand_error_from_table(table, background_id)

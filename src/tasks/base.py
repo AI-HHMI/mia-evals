@@ -35,6 +35,10 @@ class Volume:
     without the box counts unannotated space as background and returns a plausible number that
     means nothing.
 
+    `box_axes` is the order the box is written in: the spatial axes of the data config's
+    `output_axes`, e.g. "zyx". A store may save its axes in another order, so the box is used
+    through `store_box`. None, for a volume built in code, says the box is in the store's order.
+
     `fixed_axes` pins stored axes to one index each, `{"t": 10}` for one frame of a time series
     (miao's setting of the same name). The volume is then that frame, spatial like any other.
     """
@@ -47,17 +51,53 @@ class Volume:
     format: str = "zarr3"
     fixed_axes: dict[str, int] | None = None
     extra: dict[str, Any] = field(default_factory=dict)
+    box_axes: str | None = None
 
-    @property
-    def origin(self) -> tuple[int, ...] | None:
-        return None if self.bounding_box is None else tuple(low for low, _ in self.bounding_box)
 
-    @property
-    def shape(self) -> tuple[int, ...] | None:
-        return (
-            None if self.bounding_box is None
-            else tuple(high - low for low, high in self.bounding_box)
-        )
+def store_axes(volume: Volume) -> str:
+    """The spatial axes of a volume's image in the order its store saves them, e.g. "xyz".
+
+    Read as miao reads them: from the image's OME metadata, with any pinned axis removed.
+    """
+    from miao.axes import spatial_axes
+    from miao.zarr_meta import fix_axes, read_ome_metadata
+
+    meta = read_ome_metadata(volume.path, volume.image_key, volume.format, [0])
+    if volume.fixed_axes:
+        meta = fix_axes(meta, volume.fixed_axes, f"volume {volume.name!r}: ")
+    return spatial_axes("".join(meta.axis_names))
+
+
+def store_box(volume: Volume) -> tuple[tuple[int, int], ...] | None:
+    """A volume's `bounding_box` in the order its store saves its axes; None if it has no box.
+
+    Artifacts, label arrays and skeleton nodes all count in the store's order, so this is the box
+    to compare them with. The reordering is miao's own, which makes the region scored the region
+    miao sampled and `predict.py` predicted. A store that does not name its axes is refused.
+    """
+    box = volume.bounding_box
+    if box is None or volume.box_axes is None:
+        return box
+    from miao.axes import compute_permutation
+
+    image = f"{volume.path}/{volume.image_key}"
+    try:
+        axes = store_axes(volume)
+    except (FileNotFoundError, KeyError, ValueError) as error:
+        raise ValueError(
+            f"volume {volume.name!r}: its bounding_box is written in {volume.box_axes!r} order "
+            f"(the data config's output_axes), but the axes of {image} could not be read, so the "
+            f"box cannot be placed in the store: {error}"
+        ) from error
+    try:
+        order = compute_permutation(volume.box_axes, axes)
+    except ValueError:
+        raise ValueError(
+            f"volume {volume.name!r}: its bounding_box is written for axes {volume.box_axes!r} "
+            f"(the data config's output_axes), but {image} stores axes {axes!r}. The two must "
+            "name the same axes."
+        ) from None
+    return tuple(box[position] for position in order)
 
 
 class BaseTask(abc.ABC):
@@ -135,14 +175,16 @@ class BaseTask(abc.ABC):
         The intersection rather than either one alone. The artifact may cover a block of a larger
         volume, and the annotation may cover a sub-box of it; scoring their union would include
         voxels with no truth, and scoring only the box would fail when the artifact is smaller.
+        The box is taken in the store's axis order (`store_box`), as the artifact's voxels are.
         """
         art_low = np.asarray(artifact.origin)
         art_high = art_low + np.asarray(artifact.spatial_shape)
-        if volume.bounding_box is None:
+        box = store_box(volume)
+        if box is None:
             return tuple(int(v) for v in art_low), tuple(int(v) for v in art_high - art_low)
 
-        box_low = np.asarray(volume.origin)
-        box_high = box_low + np.asarray(volume.shape)
+        box_low = np.asarray([low for low, _ in box])
+        box_high = np.asarray([high for _, high in box])
         low = np.maximum(art_low, box_low)
         high = np.minimum(art_high, box_high)
         if np.any(high <= low):
@@ -204,9 +246,9 @@ class BaseTask(abc.ABC):
         declared = None if placed else artifact.attrs.get("covers_full_box")
         if declared is not None:
             whole = bool(declared)
-        elif volume.bounding_box is not None:
-            whole = (origin == tuple(volume.origin or ())
-                     and shape == tuple(volume.shape or ()))
+        elif (box := store_box(volume)) is not None:
+            whole = (origin == tuple(low for low, _ in box)
+                     and shape == tuple(high - low for low, high in box))
         else:
             whole = False
         return {

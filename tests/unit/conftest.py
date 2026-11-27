@@ -14,3 +14,27 @@ def needs_newer_miao(error: Exception) -> bool:
     import miao.config
 
     return "fixed_axes" in str(error) and "fixed_axes" not in miao.config.VolumeConfig.model_fields
+
+
+def name_axes(store, axes: str, shape: tuple[int, ...], key: str = "raw",
+              zarr_format: int = 3) -> None:
+    """Give a test store an image group that names its axes, as every real store does.
+
+    The scorer converts a volume's bounding_box to the store's axis order, so a store whose data
+    config declares a box must name its axes. The image array is empty: no score reads it.
+    """
+    from pathlib import Path
+
+    import zarr
+
+    group = zarr.open_group(str(Path(store) / key), mode="a", zarr_format=zarr_format)
+    group.create_array("s0", shape=shape, dtype="uint8")
+    multiscale = {
+        "axes": [{"name": axis, "type": "space"} for axis in axes],
+        "datasets": [{"path": "s0", "coordinateTransformations": [
+            {"type": "scale", "scale": [1.0] * len(axes)}]}],
+    }
+    if zarr_format == 3:
+        group.attrs["ome"] = {"version": "0.5", "multiscales": [multiscale]}
+    else:
+        group.attrs["multiscales"] = [{"version": "0.4", **multiscale}]

@@ -28,14 +28,17 @@ def _only_record(records_dir):
     return path
 
 
-def _volume(root, name: str, labels: np.ndarray) -> str:
-    """A minimal OME-ish store: just the label pyramid rung a score reads."""
+def _volume(root, name: str, labels: np.ndarray, axes: str = "xyz") -> str:
+    """A minimal OME-ish store: the label pyramid rung a score reads, and an image naming `axes`."""
+    from conftest import name_axes
+
     path = root / f"{name}.zarr"
     group = zarr.open(str(path), mode="w")
     array = group.create_array(
         "labels/gt/s0", shape=labels.shape, dtype="i8", chunks=labels.shape
     )
     array[:] = labels
+    name_axes(path, axes, labels.shape)
     return str(path)
 
 
@@ -380,12 +383,11 @@ def test_a_plain_submission_is_kept_on_the_stores_grid(instances):
     """End to end: a plain-array labelling scored on a store with an OME image group is kept with
     the store's geometry, so its view can lay it on the raw image."""
     tmp_path, data, artifact = instances
-    raw = zarr.open_group(str(tmp_path / "cube.zarr"), mode="a").create_group("raw")
+    raw = zarr.open_group(str(tmp_path / "cube.zarr" / "raw"), mode="a")   # the fixture's image
     raw.attrs["ome"] = {"version": "0.5", "multiscales": [{
         "axes": [{"name": a, "type": "space", "unit": "nanometer"} for a in "xyz"],
         "datasets": [{"path": "s0", "coordinateTransformations": [
             {"type": "scale", "scale": [8.0, 8.0, 8.0]}]}]}]}
-    raw.create_array("s0", shape=(4, 4, 4), dtype="uint8")
     config = _task_config(tmp_path, data, textwrap.dedent("""\
         [task]
         name = "instance_seg"
@@ -410,6 +412,95 @@ def test_a_plain_submission_is_kept_on_the_stores_grid(instances):
     ome = dict(zarr.open_group(kept, mode="r").attrs)["ome"]
     (dataset,) = ome["multiscales"][0]["datasets"]
     assert dataset["coordinateTransformations"][0]["scale"] == [8.0, 8.0, 8.0]
+
+
+INSTANCES_BODY = textwrap.dedent("""\
+    [task]
+    name = "instance_seg"
+    truth_kind = "instances"
+
+    [postprocess]
+    name = "identity"
+
+    [metric]
+    names = ["voxel_instance"]
+    """)
+
+
+def _score(config, artifact, root):
+    import evaluate
+
+    evaluate.cmd_score(type("Args", (), {
+        "config": config, "test": artifact, "val": None, "leaderboard": root, "run_dir": None,
+        "scored_out": None, "no_scored": True, "scratch": root.parent / "scratch",
+    })())
+    return json.loads(_only_record(root / "unit_task_v1" / "records").read_text())
+
+
+def test_a_box_written_in_another_axis_order_than_the_store_is_scored_whole(tmp_path):
+    """mia-evals#5: a store saved x, y, z, its box written z, y, x. The whole frame is scored;
+    applied as written, the box clipped it to 2 x 4 x 2."""
+    truth = np.zeros((6, 4, 2), dtype=np.int64)                 # x, y, z
+    truth[:3], truth[3:] = 1, 2
+    volume = _volume(tmp_path, "tile", truth, axes="xyz")
+    data = tmp_path / "data.yaml"
+    data.write_text(textwrap.dedent(f"""\
+        resolutions: [[8.0, 8.0, 8.0]]
+        patch_size: [2, 2, 2]
+        output_axes: lczyx
+        volumes:
+        - name: tile
+          path: {volume}
+          image_key: raw
+          label_key: labels/gt
+          format: zarr3
+          bounding_box: [[0, 2], [0, 4], [0, 6]]
+        """))
+    artifact = write_artifact(tmp_path / "pred.zarr", truth, "instances", background_id=0,
+                              run="unit_run", step=1)
+    payload = _score(_task_config(tmp_path, str(data), INSTANCES_BODY), artifact,
+                     tmp_path / "board")
+    region = payload["region"]["volumes"]["tile"]
+    assert region["shape"] == [6, 4, 2] and region["whole_region"] is True
+    assert payload["ranking"]["value"] == 1.0
+    # The record keeps the box as the data config writes it.
+    assert payload["config"]["volumes"][0]["bounding_box"] == [[0, 2], [0, 4], [0, 6]]
+
+
+def test_a_box_on_a_store_that_names_no_axes_is_refused(instances):
+    tmp_path, data, artifact = instances
+    shutil.rmtree(tmp_path / "cube.zarr" / "raw")
+    with pytest.raises(ValueError, match="could not be read"):
+        _score(_task_config(tmp_path, data, INSTANCES_BODY), artifact, tmp_path / "board")
+
+
+def test_ignored_truth_ids_are_left_out_recorded_and_part_of_the_task(tmp_path):
+    """`[metric.voxel_instance.ignore_truth]`: a volume's listed truth ids are not scored. The
+    table is recorded, and a row scored without it does not join the same table."""
+    truth = np.zeros((4, 4, 4), dtype=np.int64)
+    truth[0:2], truth[2], truth[3] = 1, 2, 9                    # 9: a region nobody could resolve
+    prediction = truth.copy()
+    prediction[3, :2], prediction[3, 2:] = 5, 6                 # two segments predicted inside it
+    volume = _volume(tmp_path, "cube", truth)
+    data = _data_config(tmp_path, [("cube", volume, truth.shape)])
+    artifact = write_artifact(tmp_path / "pred.zarr", prediction, "instances", background_id=0,
+                              run="unit_run", step=1)
+    ignoring = INSTANCES_BODY + "\n[metric.voxel_instance.ignore_truth]\ncube = [9]\n"
+    payload = _score(_task_config(tmp_path, data, ignoring), artifact, tmp_path / "board")
+    scores = payload["per_volume"]["cube"]["voxel_instance"]
+    assert scores["pq"] == 1.0 and scores["false_positive"] == 0.0
+    assert scores["instances_truth"] == 2.0
+    assert payload["config"]["metric_kwargs"] == {"voxel_instance": {"ignore_truth": {"cube": [9]}}}
+
+    with pytest.raises(SystemExit, match=r"ranking metric settings differ in \['ignore_truth'\]"):
+        _score(_task_config(tmp_path, data, INSTANCES_BODY), artifact, tmp_path / "board")
+
+
+def test_ignore_truth_naming_a_volume_the_task_does_not_have_is_refused(instances):
+    tmp_path, data, artifact = instances
+    misnamed = INSTANCES_BODY + "\n[metric.voxel_instance.ignore_truth]\nkube = [9]\n"
+    with pytest.raises(ValueError, match=r"names volume\(s\) \['kube'\]"):
+        _score(_task_config(tmp_path, data, misnamed), artifact, tmp_path / "board")
 
 
 # --------------------------------------------------------------- several volumes at once

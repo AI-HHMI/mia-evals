@@ -138,6 +138,7 @@ def load_data_config(path: str | Path) -> tuple[Volume, ...]:
     if not path.is_file():
         raise FileNotFoundError(f"[data].config_path does not exist: {path}")
     try:
+        from miao.axes import spatial_axes
         from miao.config import load_config
     except ImportError as error:
         raise ImportError(
@@ -155,6 +156,8 @@ def load_data_config(path: str | Path) -> tuple[Volume, ...]:
             "not in the data config -- move them there and regenerate."
         ) from error
 
+    # A box is written in output_axes order (miao's rule); `store_box` converts it when it is used.
+    box_axes = spatial_axes(str(config.output_axes))
     volumes = []
     for entry in config.volumes:
         box = entry.bounding_box
@@ -168,6 +171,7 @@ def load_data_config(path: str | Path) -> tuple[Volume, ...]:
             ),
             format=str(entry.format),
             fixed_axes=_fixed_axes(entry, path),
+            box_axes=box_axes,
             # What remains describes how to *sample* the volume for training -- weights,
             # resolutions, normalisation windows -- and has no bearing on scoring a prediction over
             # it. Carried rather than dropped so a record can show the data config in full.
