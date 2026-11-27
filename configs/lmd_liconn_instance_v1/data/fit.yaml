@@ -1,0 +1,85 @@
+# lmd_liconn_instance_v1 -- instance segmentation on LICONN expansion-microscopy volumes only (mouse and Drosophila): eight volumes with class `cell` labels,
+# like lmd_neuron_instance_v2, and one with a class `neuron` label (flyid49_40xw005_neuron). The name says "instance" because it holds both.
+#
+# A new task (its own name and version), made the way README 'Task versions' says: configs/lmd_neuron_instance_v2 copied, `task_name` changed,
+# the two data configs edited. lmd_neuron_instance_v1 / _v2 are untouched. This is the FIT half: the volumes the arms are fine-tuned on and the post-processing sweep is fitted on.
+#
+# Entries copied byte for byte from lmd_neuron_instance_v2 (same names, so same entries): liconn_mouse_dg, flyid49_40xw005.
+# New entries (windows from lmd-configs corpus/windows.yaml, boxes measured 2026-11-23):
+#   liconn_mouse_cortex_subbox   mouse cortex (mia_annotation#8, manual_gt-cell-final): the annotation is spread over 1744x1760x277 voxels at 10.8% foreground,
+#     so the whole box fails the 30% density gate; the box here is the densest 480x480x192 window inside it (same size as DG and hippocampus),
+#     65.1% foreground, 232 ids, x 660-1140, y 620-1100, z 60-252, set by hand (it is off-centre).
+#   flyid49_40xw005_neuron       FlyID49 40XW005 again (as flyid49_40xw005), but the neuron label of mia_annotation#1138 (Louis Scuderi's proofreading of an
+#     LSD/watershed prediction: its ground truth inherits that pipeline's boundaries, so LSD-type models may be favoured). 252 ids, 47.6% dense, on its own
+#     grid (9 nm), box measured from the label's translation and shrunk to whole raw voxels; the cell label (#18) and this one are different classes.
+#
+# DRAFT, UNSCORED: not reviewed by Emin; the labels of the two newest finals (phdye19 final, 40XW005 neuron) are not in lmd-configs census-20261116.
+# Single scale, 8 nm (resolutions below): the LICONN boxes are 2.3-9.9 um across, so no 8/16/32 ladder fits.
+#
+resolutions:
+- - 8.0
+  - 8.0
+  - 8.0
+patch_size:
+- 256
+- 256
+- 256
+output_axes: lcxyz
+samples_per_epoch: 1000
+volumes:
+- name: liconn_mouse_dg
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-DG-20250809_ExPID19-02_2ndGel_C5_Atto488_40XW_002/crop-001.zarr
+  image_key: raw
+  zarr_version: zarr3
+  label_key: labels/manual_gt-cell-final
+  bounding_box:
+  - - 1416
+    - 1892
+  - - 516
+    - 996
+  - - 83
+    - 276
+  normalize_max: 1130
+  normalize_min: 301
+- name: flyid49_40xw005
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-drosophila-flyliconn-FlyID49-2ndgel-DUP-BIS-40XW005-20260625/crop-001.zarr
+  image_key: raw
+  zarr_version: zarr3
+  label_key: labels/manual_gt-cell-final
+  bounding_box:
+  - - 912
+    - 1392
+  - - 912
+    - 1392
+  - - 430
+    - 619
+  normalize_max: 1526
+  normalize_min: 206
+- name: liconn_mouse_cortex_subbox
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-mouse-liconn-cortex-20250822_ExPID09_2ndGel_30percentSucrose-Glycerol_40XW_003/crop-001.zarr
+  image_key: raw
+  zarr_version: zarr3
+  label_key: labels/manual_gt-cell-final
+  bounding_box:
+  - - 660
+    - 1140
+  - - 620
+    - 1100
+  - - 60
+    - 252
+  normalize_max: 585
+  normalize_min: 165
+- name: flyid49_40xw005_neuron
+  path: /groups/miaai/miaai/lmd-v0.0.1/data/exm-drosophila-flyliconn-FlyID49-2ndgel-DUP-BIS-40XW005-20260625/crop-001.zarr
+  image_key: raw
+  zarr_version: zarr3
+  label_key: labels/manual_gt-neuron-final
+  bounding_box:
+  - - 1080
+    - 1546
+  - - 1268
+    - 1740
+  - - 229
+    - 411
+  normalize_max: 1613
+  normalize_min: 206
